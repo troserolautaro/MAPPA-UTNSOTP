@@ -1,0 +1,18 @@
+[INFO] 14:41:52:697 Servidor/(43306:43306): Servidor listo para recibir al cliente
+[INFO] 14:42:01:153 Servidor/(43306:43306): Se conecto un cliente!
+[INFO] 14:42:01:157 Servidor/(43306:43306): Me llego el mensaje valor
+[INFO] 14:42:25:858 Servidor/(43306:43306): Me llegaron los siguientes valores:
+
+[INFO] 14:42:25:859 Servidor/(43306:43306): Hola
+[INFO] 14:42:25:859 Servidor/(43306:43306): Como va
+[INFO] 14:42:25:859 Servidor/(43306:43306): Todo bien?
+[INFO] 14:42:25:859 Servidor/(43306:43306): Xd
+[ERROR] 14:42:25:859 Servidor/(43306:43306): Un cliente se desconecto.
+[INFO] 15:05:03:384 Servidor/(2156:2156): Servidor listo para recibir al cliente
+[INFO] 15:17:26:072 Servidor/(2843:2843): Servidor listo para recibir al cliente
+[INFO] 15:17:46:230 Servidor/(2843:2843): Se conecto un cliente!
+[INFO] 15:17:46:230 Servidor/(2843:2843): Me llego el mensaje valor
+[INFO] 15:17:50:330 Servidor/(2843:2843): Me llegaron los siguientes valores:
+
+[INFO] 15:17:50:331 Servidor/(2843:2843): Hola mundo
+[ERROR] 15:17:50:332 Servidor/(2843:2843): Un cliente se desconecto.
