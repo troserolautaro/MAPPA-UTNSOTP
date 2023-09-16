@@ -25,7 +25,7 @@ int main(void) {
 	retardo_acceso_bloque = config_get_string_value(config,"RETARDO_ACCESO_BLOQUE");
 	retardo_acceso_fat = config_get_string_value(config,"RETARDO_ACCESO_FAT");
 
-	int server_fd = iniciar_servidor();
+	int server_fd = iniciar_servidor(puertoEscucha);
 	log_info(logger, "Servidor listo para recibir al cliente");
 	int cliente_fd = esperar_cliente(server_fd);
 			t_list* lista;
