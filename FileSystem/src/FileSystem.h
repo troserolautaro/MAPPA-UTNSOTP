@@ -6,9 +6,12 @@
 #include <string.h>
 #include <commons/log.h>
 #include <commons/config.h>
+#include <commons/config.h>
 
-#include "utils_Servidor.h"
-#include "utils_Cliente.h"
+//includes de utils globales
+#include <utils.h>
+#include <utilsServidor.h>
+#include <utilsCliente.h>
 
 void iterator(char* value);
 
