@@ -103,7 +103,7 @@ int main(void)
 
 	while(1){
 		char* comando = lectura_consola();
-		int idComando = validacion_contenido_consola();
+		int idComando = validacion_contenido_consola(comando);
 
 
 		/*PROBABLEMENTE HAY QUE MEJORAR ESTO, SI BIEN FUNCIONA NO TOMA LOS PARAMETROS QEU SE INGRESAN EN
@@ -157,13 +157,13 @@ int main(void)
 
 t_log* iniciar_logger(void)
 {
-	t_log* nuevo_logger =log_create("../tp.log","log",1,LOG_LEVEL_INFO);
+	t_log* nuevo_logger =log_create("./tp.log","log",1,LOG_LEVEL_INFO);
 	return nuevo_logger;
 }
 
 t_config* iniciar_config(void)
 {
-	t_config* nuevo_config= config_create("../Kernel.config");
+	t_config* nuevo_config = config_create("./Kernel.config");
 	return nuevo_config;
 }
 
