@@ -4,17 +4,23 @@
 
 int main(void) {
 
-	t_log* logger = log_create("log.log", "Servidor", 1, LOG_LEVEL_DEBUG);
-	t_config* config = iniciar_config();
+	t_log* logger = malloc(sizeof(t_log));
+	t_config* config = malloc(sizeof(t_config));
 
-	char* ipMemoria;
-	char* puertoEscuchaDispatch,* puertoEscuchaInterrupt,* puertoMemoria;
+	logger = log_create("log.log", "Servidor", 1, LOG_LEVEL_DEBUG);
+	config = iniciar_config();
+
+	char* ipMemoria = malloc(sizeof(char*)),
+			*puertoEscuchaDispatch = malloc(sizeof(char*)),
+			*puertoEscuchaInterrupt = malloc(sizeof(char*)),
+			*puertoMemoria = malloc(sizeof(char*));
 
 	//CONFIGURACION DE CPU
 	ipMemoria = config_get_string_value(config,"IP_MEMORIA");
 	puertoMemoria = config_get_string_value(config,"PUERTO_MEMORIA");
 	puertoEscuchaDispatch = config_get_string_value(config,"PUERTO_ESCUCHA_DISPATCH");
 	puertoEscuchaInterrupt = config_get_string_value(config,"PUERTO_ESCUCHA_INTERRUPT");
+
 
 
 	int serverDispatch = iniciar_servidor(puertoEscuchaDispatch);
@@ -49,13 +55,13 @@ int main(void) {
 
 t_log* iniciar_logger(void)
 {
-	t_log* nuevo_logger =log_create("../tp.log","log",1,LOG_LEVEL_INFO);
+	t_log* nuevo_logger =log_create("./tp.log","log",1,LOG_LEVEL_INFO);
 	return nuevo_logger;
 }
 
 t_config* iniciar_config(void)
 {
-	t_config* nuevo_config= config_create("../CPU.config");
+	t_config* nuevo_config= config_create("./CPU.config");
 	return nuevo_config;
 }
 
