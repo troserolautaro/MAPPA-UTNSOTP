@@ -4,26 +4,20 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-../src/FileSystem.c \
-../src/utils_Cliente.c \
-../src/utils_Servidor.c 
+../src/FileSystem.c 
 
 C_DEPS += \
-./src/FileSystem.d \
-./src/utils_Cliente.d \
-./src/utils_Servidor.d 
+./src/FileSystem.d 
 
 OBJS += \
-./src/FileSystem.o \
-./src/utils_Cliente.o \
-./src/utils_Servidor.o 
+./src/FileSystem.o 
 
 
 # Each subdirectory must supply rules for building sources it contributes
 src/%.o: ../src/%.c src/subdir.mk
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C Compiler'
-	gcc -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" -o "$@" "$<"
+	gcc -I"/home/utnso/git/tp-2023-2c-GrupoX-rama-utils/Utils/src" -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
@@ -31,7 +25,7 @@ src/%.o: ../src/%.c src/subdir.mk
 clean: clean-src
 
 clean-src:
-	-$(RM) ./src/FileSystem.d ./src/FileSystem.o ./src/utils_Cliente.d ./src/utils_Cliente.o ./src/utils_Servidor.d ./src/utils_Servidor.o
+	-$(RM) ./src/FileSystem.d ./src/FileSystem.o
 
 .PHONY: clean-src
 

@@ -8,8 +8,11 @@
 #include<commons/config.h>
 #include<readline/readline.h>
 #include<readline/history.h>
-#include "utils.h"
 
+//includes de utils globales
+#include <utils.h>
+#include <utilsServidor.h>
+#include <utilsCliente.h>
 
 t_log* iniciar_logger(void);
 t_config* iniciar_config(void);
