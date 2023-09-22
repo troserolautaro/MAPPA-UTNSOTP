@@ -38,7 +38,7 @@ int main(void) {
 				case PAQUETE:
 					lista = recibir_paquete(cliente_fd);
 					log_info(logger, "Me llegaron los siguientes valores:\n");
-					list_iterate(lista, (void*) iterator);
+//					list_iterate(lista, (void*) iterator);
 					break;
 				case -1:
 					log_error(logger, "Un cliente se desconecto.");
@@ -54,5 +54,5 @@ int main(void) {
 }
 
 void iterator(char* value) {
-	log_info(logger,"%s", value);
+//	log_info(logger,"%s", value);
 }

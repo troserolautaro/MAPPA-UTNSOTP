@@ -10,6 +10,14 @@
 #include<readline/history.h>
 #include "utils.h"
 
+enum consola{
+	INICIAR_PROCESO,
+	FINALIZAR_PROCESO,
+	INICIAR_PLANIFICACION,
+	DETENER_PLANIFICACION,
+	MULTIPROGRAMACION,
+	PROCESO_ESTADO
+};
 
 t_log* iniciar_logger(void);
 t_config* iniciar_config(void);
