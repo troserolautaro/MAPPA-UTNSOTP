@@ -14,6 +14,16 @@
 #include <utilsServidor.h>
 #include <utilsCliente.h>
 
+
+
+
+typedef struct{
+	int pid;
+	int pc;
+	//struct *registros;
+	//char* tablaArchivos[];
+
+}PCB;
 typedef enum consola{
 	INICIAR_PROCESO,
 	FINALIZAR_PROCESO,
@@ -22,6 +32,7 @@ typedef enum consola{
 	MULTIPROGRAMACION,
 	PROCESO_ESTADO
 };
+
 
 
 t_log* iniciar_logger(void);

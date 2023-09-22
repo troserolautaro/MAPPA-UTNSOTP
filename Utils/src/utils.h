@@ -12,6 +12,14 @@
 #include<assert.h>
 #include<signal.h>
 
+typedef enum{
+	NEW,
+	READY,
+	EXEC,
+	EXIT,
+	BLOCKED
+}estados;
+
 typedef enum
 {
 	MENSAJE,
