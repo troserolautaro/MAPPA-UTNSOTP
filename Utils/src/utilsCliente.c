@@ -1,4 +1,4 @@
-#include "utils_Cliente.h"
+#include "utilsCliente.h"
 
 
 void* serializar_paquete(t_paquete* paquete, int bytes)
@@ -19,7 +19,7 @@ void* serializar_paquete(t_paquete* paquete, int bytes)
 int crear_conexion(char *ip, char* puerto)
 {
 	struct addrinfo hints;
-	struct addrinfo *server_info;
+	struct addrinfo *server_info = malloc(sizeof(*server_info));
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_UNSPEC;
@@ -38,6 +38,7 @@ int crear_conexion(char *ip, char* puerto)
 	//continuando sobre cuando creamos el socket del cliente
 	connect(socket_cliente, server_info->ai_addr, server_info->ai_addrlen);
 
+	free(server_info);
 	freeaddrinfo(server_info);
 
 	return socket_cliente;

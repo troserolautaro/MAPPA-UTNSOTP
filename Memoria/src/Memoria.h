@@ -5,7 +5,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <commons/log.h>
-#include "utils.h"
+
+//includes de utils globales
+#include <utils.h>
+#include <utilsServidor.h>
+#include <utilsCliente.h>
 
 void iterator(char* value);
 

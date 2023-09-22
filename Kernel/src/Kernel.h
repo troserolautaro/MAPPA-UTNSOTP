@@ -8,9 +8,13 @@
 #include<commons/config.h>
 #include<readline/readline.h>
 #include<readline/history.h>
-#include "utils.h"
 
-enum consola{
+//includes de utils globales
+#include <utils.h>
+#include <utilsServidor.h>
+#include <utilsCliente.h>
+
+typedef enum consola{
 	INICIAR_PROCESO,
 	FINALIZAR_PROCESO,
 	INICIAR_PLANIFICACION,
