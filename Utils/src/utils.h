@@ -12,6 +12,13 @@
 #include<assert.h>
 #include<signal.h>
 
+typedef struct{
+	uint32_t AX;
+	uint32_t BX;
+	uint32_t CX;
+	uint32_t DX;
+}registros_CPU;
+
 typedef enum{
 	NEW,
 	READY,
