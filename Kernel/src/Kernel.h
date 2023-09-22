@@ -14,6 +14,16 @@
 #include <utilsServidor.h>
 #include <utilsCliente.h>
 
+typedef struct{
+	int pid;
+	int pc;
+	//struct *registros;
+	//char* tablaArchivos[];
+
+}PCB;
+
+
+
 t_log* iniciar_logger(void);
 t_config* iniciar_config(void);
 void leer_consola(t_log*);
