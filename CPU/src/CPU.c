@@ -27,7 +27,8 @@ int main(void) {
 	int serverInterrupt = iniciar_servidor(puertoEscuchaInterrupt);
 	log_info(logger, "Servidor listo para recibir al cliente");
 	int clienteFd = esperar_cliente(serverDispatch);
-			t_list* lista;
+	/*PROBABLEMENTE SE PUEDA SEPARAR ESTO Y ABSTRAERLA COMO UNA FUNCION PARA UTILES*/
+			t_list* lista = malloc(sizeof(t_list));
 			while (1) {
 				int cod_op = recibir_operacion(clienteFd);
 				switch (cod_op) {
@@ -48,6 +49,7 @@ int main(void) {
 					break;
 				}
 			}
+			free(lista);
 
 
 	return EXIT_SUCCESS;

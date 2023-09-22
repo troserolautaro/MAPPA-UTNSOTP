@@ -3,7 +3,7 @@
 /*Esta funcion lo que hace es utilizar la libreria READLINE para poder leer en consola*/
 
 char* lectura_consola(void){
-	char* linea=malloc(sizeof(linea));
+	char* linea=malloc(sizeof(char*));
 	linea = readline(">>");
 	if (linea) {
 		add_history(linea);
@@ -13,36 +13,32 @@ char* lectura_consola(void){
 
 /*Esta funcion valida que es lo que se escribio por consola y lo asigna a un valor del enumerador de funciones de
 la consola (PROBABLEMENTE SE PUEDA MEJORAR)*/
-int validacion_contenido_consola(char* consola){
-	if(!strcasecmp(consola, "iniciar_proceso")){
-		free(consola);
+int validacion_contenido_consola(char* comando){
+	if(!strcasecmp(comando, "iniciar_proceso")){
+
 		return INICIAR_PROCESO;
 	}
-	if(!strcasecmp(consola, "finalizar_proceso")){
-		free(consola);
+	if(!strcasecmp(comando, "finalizar_proceso")){
+
 		return FINALIZAR_PROCESO;
 	}
-	if(!strcasecmp(consola, "iniciar_planificacion")){
-		free(consola);
+	if(!strcasecmp(comando, "iniciar_planificacion")){
+
 		return INICIAR_PLANIFICACION;
 	}
-	if(!strcasecmp(consola, "detener_planificacion")){
-		free(consola);
+	if(!strcasecmp(comando, "detener_planificacion")){
+
 		return DETENER_PLANIFICACION;
 	}
-	if(!strcasecmp(consola, "multiprogramacion")){
-		free(consola);
+	if(!strcasecmp(comando, "multiprogramacion")){
+
 		return MULTIPROGRAMACION;
 	}
-	if(!strcasecmp(consola, "proceso_estado")){
-		free(consola);
+	if(!strcasecmp(comando, "proceso_estado")){
+
 		return PROCESO_ESTADO;
 	}
-	if(!strcasecmp(consola, "exit")){
-		free(consola);
-		return -1;
-	}
-	free(consola);
+
 	return -2;
 }
 
@@ -81,9 +77,9 @@ int main(void)
 
 	/************************************INICIALIZAR CONEXIONES************************************/
 
-//	conexionCPUDispatch = crear_conexion(ipCPU, puertoCPUDispatch);
-//	conexionCPUInterrupt = crear_conexion(ipCPU, puertoCPUInterrupt);
-	conexionMemoria = crear_conexion(ipMemoria, puertoMemoria);
+	conexionCPUDispatch = crear_conexion(ipCPU, puertoCPUDispatch);
+	conexionCPUInterrupt = crear_conexion(ipCPU, puertoCPUInterrupt);
+//	conexionMemoria = crear_conexion(ipMemoria, puertoMemoria);
 //	conexionFileSystem = crear_conexion(ipFileSystem, puertoFileSystem);
 
 	/************************************INICIALIZAR HILOS DE ENVIO Y RECIBO DE MENSAJES************************************/
@@ -104,43 +100,48 @@ int main(void)
 	while(1){
 		char* comando = lectura_consola();
 		int idComando = validacion_contenido_consola(comando);
-
-
 		/*PROBABLEMENTE HAY QUE MEJORAR ESTO, SI BIEN FUNCIONA NO TOMA LOS PARAMETROS QEU SE INGRESAN EN
 		 * CONSOLA */
-
 		switch(idComando){
 			case INICIAR_PROCESO:
-				printf("INICIAR PROCESO");
+				printf("INICIAR PROCESO \n");
+				enviar_mensaje("INICIAR PROCESO",conexionCPUDispatch);
 			break;
 
 			case FINALIZAR_PROCESO:
-				printf("FINALIZAR PROCESO");
+				printf("FINALIZAR PROCESO \n");
+				enviar_mensaje("FINALIZAR PROCESO",conexionCPUDispatch);
 			break;
 
 			case INICIAR_PLANIFICACION:
-				printf("INICIAR PLANIFICACION");
+				printf("INICIAR PLANIFICACION \n");
+				enviar_mensaje("INICIAR PLANIFICACION",conexionCPUDispatch);
 			break;
 
 			case DETENER_PLANIFICACION:
-				printf("DETENER PLANIFICACION");
+				printf("DETENER PLANIFICACION \n");
+				enviar_mensaje("DETENER PLANIFICACION",conexionCPUDispatch);
 			break;
 
 			case MULTIPROGRAMACION:
-				printf("MULTIPROGRAMACION");
+				printf("MULTIPROGRAMACION \n");
+				enviar_mensaje("MULTIPROGRAMACION",conexionCPUDispatch);
 			break;
 
 			case PROCESO_ESTADO:
-				printf("PROCESO ESTADO");
+				printf("PROCESO ESTADO \n");
+				enviar_mensaje("PROCESO ESTADO",conexionCPUDispatch);
 			break;
 
 			case -1:
-				printf("Saliendo!");
+				printf("Saliendo! \n");
+				enviar_mensaje("Me desconecte",conexionCPUDispatch);
 			break;
 			default:
-				printf("No se reconocio el comando");
+				printf("No se reconocio el comando \n");
 			break;
 		}
+		free(comando);
 
 	}
 

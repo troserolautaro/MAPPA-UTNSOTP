@@ -34,17 +34,7 @@ int esperar_cliente(int socket_servidor)
 
 	// Aceptamos un nuevo cliente
 	int socket_cliente = accept(socket_servidor, NULL, NULL);
-//	while (1) {
-//		   pthread_t thread;
-//		   int *socket_cliente = malloc(sizeof(int));
-//		   *socket_cliente = accept(socket_servidor, NULL, NULL);
-//		   pthread_create(&thread,
-//		                  NULL,
-//		                  (void*) atender_cliente,
-//		                  socket_cliente);
-//		   pthread_detach(thread);
-//		}
-	log_info(logger, "Se conecto un cliente!");
+//	log_info(logger, "Se conecto un cliente!");
 
 	return socket_cliente;
 }
@@ -76,7 +66,8 @@ void recibir_mensaje(int socket_cliente)
 {
 	int size;
 	char* buffer = recibir_buffer(&size, socket_cliente);
-	log_info(logger, "Me llego el mensaje %s", buffer);
+	printf("Me llego el mensaje %s \n", buffer);
+//	log_info(logger, "Me llego el mensaje %s", buffer);
 	free(buffer);
 }
 

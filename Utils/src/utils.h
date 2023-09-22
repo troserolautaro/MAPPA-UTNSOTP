@@ -24,6 +24,7 @@ typedef struct
 	void* stream;
 } t_buffer;
 
+
 typedef struct
 {
 	op_code codigo_operacion;
