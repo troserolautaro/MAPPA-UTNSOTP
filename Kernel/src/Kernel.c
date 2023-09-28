@@ -42,6 +42,8 @@ int validacion_contenido_consola(char* comando){
 	return -2;
 }
 
+pidGlobal = 0;
+
 int main(void)
 {
 	char* ipCPU,* ipMemoria,* ipFileSystem ;
@@ -205,3 +207,26 @@ void terminar_programa(int conexion, t_log* logger, t_config* config)
 	liberar_conexion(conexion);
 }
 
+PCB* iniciar_proceso(char* path, int size, int prioridad){
+
+	pidGlobal++;
+
+	PCB* proceso = malloc(sizeof(PCB));
+
+	proceso->estado = NEW;
+	proceso->prioridad = prioridad;
+
+	proceso->registros->AX = 0;
+	proceso->registros->BX = 0;
+	proceso->registros->CX = 0;
+	proceso->registros->DX = 0;
+
+	proceso->pid = pidGlobal; //Modificar en caso de que sea necesario
+
+}
+
+
+void finalizar_proceso(PCB* proceso, int pid){
+	proceso->estado = EXIT;
+
+}

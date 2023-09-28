@@ -20,18 +20,21 @@
 typedef struct{
 	int pid;
 	int pc;
-	//struct *registros;
+	int prioridad;
+	int estado;
+	registros_CPU registros;
 	//char* tablaArchivos[];
-
 }PCB;
-typedef enum consola{
+
+
+typedef enum{
 	INICIAR_PROCESO,
 	FINALIZAR_PROCESO,
 	INICIAR_PLANIFICACION,
 	DETENER_PLANIFICACION,
 	MULTIPROGRAMACION,
 	PROCESO_ESTADO
-};
+}consola;
 
 
 
@@ -40,5 +43,6 @@ t_config* iniciar_config(void);
 void leer_consola(t_log*);
 void paquete(int);
 void terminar_programa(int, t_log*, t_config*);
-
+PCB* iniciar_proceso(char* path, int size, int prioridad);
+void finalizar_proceso(PCB* proceso, int pid);
 #endif /* CPU_H_ */
