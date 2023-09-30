@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <commons/log.h>
+#include <commons/config.h>
 
 //includes de utils globales
 #include <utils.h>
@@ -12,5 +13,9 @@
 #include <utilsCliente.h>
 
 void iterator(char* value);
+t_log* iniciar_logger(void);
+t_config* iniciar_config(void);
+
+
 
 #endif /* CPU_H_ */

@@ -21,8 +21,13 @@ int main(void) {
 	puertoEscuchaDispatch = config_get_string_value(config,"PUERTO_ESCUCHA_DISPATCH");
 	puertoEscuchaInterrupt = config_get_string_value(config,"PUERTO_ESCUCHA_INTERRUPT");
 
+	//Iniciar Cliente que conecta a memoria
+	int conexionMemoria = crear_conexion(ipMemoria, puertoMemoria);
+	char* valor= malloc(sizeof(char*));
+	valor=ipMemoria;
+	enviar_mensaje(valor,conexionMemoria);
 
-
+	//Inicia Servidor
 	int serverDispatch = iniciar_servidor(puertoEscuchaDispatch);
 	int serverInterrupt = iniciar_servidor(puertoEscuchaInterrupt);
 	log_info(logger, "Servidor listo para recibir al cliente");
