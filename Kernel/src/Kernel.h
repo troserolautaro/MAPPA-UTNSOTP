@@ -46,7 +46,7 @@ t_config* iniciar_config(void);
 void paquete(int);
 
 //Comandos
-void terminar_programa(int, t_log*, t_config*);
+void terminar_programa(int, t_log*);
 void iniciar_proceso(char* path, int size, int prioridad);
 void finalizar_proceso(int pid);
 void proceso_estado();
