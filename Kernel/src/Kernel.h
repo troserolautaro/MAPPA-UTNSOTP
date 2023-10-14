@@ -40,9 +40,28 @@ typedef enum{
 
 t_log* iniciar_logger(void);
 t_config* iniciar_config(void);
-void leer_consola(t_log*);
+//void leer_consola(t_log*);
 void paquete(int);
+
+//Comandos
 void terminar_programa(int, t_log*, t_config*);
-PCB* iniciar_proceso(char* path, int size, int prioridad);
-void finalizar_proceso(PCB* proceso, int pid);
+void iniciar_proceso(char* path, int size, int prioridad);
+void finalizar_proceso(int pid);
+void proceso_estado();
+
+//Consola
+char* lectura_consola();
+int validacion_contenido_consola(char* comando);
+
+//Planificadores
+void planificador_largo();
+void planificador_largo_salida();
+void planificador_corto();
+
+//Planificador de corto plazo
+
+void fifo();
+void prioridad(); //Multicola sin salto entre ellas
+void round_robin();
+
 #endif /* CPU_H_ */
