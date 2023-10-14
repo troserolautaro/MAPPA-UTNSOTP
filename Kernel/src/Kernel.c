@@ -1,7 +1,8 @@
 #include "Kernel.h"
 
 
-
+//VARIABLES GLOBALES
+int conexionCPUDispatch, conexionCPUInterrupt,conexionMemoria,conexionFileSystem;
 int PIDGLOBAL = 0;
 
 //LISTA DE TODOS LOS PROCESOS
@@ -24,11 +25,7 @@ int main(void)
 	char* puertoCPUDispatch,*puertoCPUInterrupt,* puertoMemoria,* puertoFileSystem ;
 	char* valor;
 
-	char* AlgoritmoPlanificacion,* quantum,* recursos,* instanciasRecursos;
-
-	int conexionCPUDispatch, conexionCPUInterrupt,conexionMemoria,conexionFileSystem;
-
-	/*INICIALIZAR CONFIG Y LOGGER */
+	char* AlgoritmoPlanificacion,* quantum,* recursos,* instanciasRecursos,* gradoMultiprogramacion;
 	t_log* logger=malloc(sizeof(logger));
 	t_config* config=malloc(sizeof(config));
 	logger = iniciar_logger();
@@ -64,25 +61,28 @@ int main(void)
 	/************************************INICIALIZAR CONEXIONES************************************/
 
 	conexionCPUDispatch = crear_conexion(ipCPU, puertoCPUDispatch);
-	conexionCPUInterrupt = crear_conexion(ipCPU, puertoCPUInterrupt);
+	//conexionCPUInterrupt = crear_conexion(ipCPU, puertoCPUInterrupt);
+	//int conexiones[4];
+	//conexiones[0]=conexionCPUDispatch;
+	//conexiones[1]=conexionCPUInterrupt;
+
 //	conexionMemoria = crear_conexion(ipMemoria, puertoMemoria);
 //	conexionFileSystem = crear_conexion(ipFileSystem, puertoFileSystem);
 
 	/************************************INICIALIZAR HILOS DE ENVIO Y RECIBO DE MENSAJES************************************/
+	//HILO DE MANEJO DE CONSOLA
+	pthread_t hiloConsola;
+	pthread_create(&hiloConsola,NULL,manejar_consola,NULL );
+	//manejar_consola(NULL);
+	/************************************INICIO CONSOLA INTERACTIVA*************************************************/
 
-	// Enviamos al servidor el valor de CLAVE como mensaje
-//	enviar_mensaje(valor,conexionCPUDispatch);
-//	enviar_mensaje(valor,conexionCPUInterrupt);
-//	enviar_mensaje(valor,conexionMemoria);
-//	enviar_mensaje(valor,conexionFileSystem);
+	/************************************FINALIZA LOS PROGRAMAS O HILOS A FUTURO************************************/
+	pthread_join(hiloConsola,NULL);
+	return EXIT_SUCCESS;
+}
 
-	// Armamos y enviamos el paquete
-//	paquete(conexionCPUDispatch);
-//	paquete(conexionCPUInterrupt);
-//	paquete(conexionMemoria);
-//	paquete(conexionFileSystem);
-
-
+//pasar conexiones en el paramotro como array o struct
+void * manejar_consola( void* args ){
 	while(1){
 		char* comando = lectura_consola();
 		char* contexto;
@@ -158,28 +158,27 @@ int main(void)
 //				enviar_mensaje("PROCESO ESTADO",conexionCPUDispatch);
 			break;
 
-			case -1:
+				case -1:
 					printf("Saliendo! \n");
 					enviar_mensaje("Me desconecte",conexionCPUDispatch);
-			break;
-
-			default:
-				printf("No se reconocio el comando \n");
-			break;
-
-		}
-//		free(comando);
+					return NULL ;
+				break;
+				default:
+					printf("No se reconocio el comando \n");
+				break;
+			}
+			free(comando);
 
 	}
 
 
-
+	/************************************INICIO CONSOLA INTERACTIVA*************************************************/
 
 	/************************************FINALIZA LOS PROGRAMAS O HILOS A FUTURO************************************/
 
 //	terminar_programa(conexionCPUDispatch, logger, config);
 //	terminar_programa(conexionCPUInterrupt, logger, config);
-	terminar_programa(conexionMemoria, logger, config);
+	terminar_programa(conexionMemoria, logger);
 //	terminar_programa(conexionFileSystem, logger, config);
 }
 
@@ -224,14 +223,16 @@ void paquete(int conexion)
 				free(leido);
 				break;
 			}
-			agregar_a_paquete(paquete,leido,strlen(leido)+1);
-			free(leido);
 	}
-   	enviar_paquete(paquete,conexion);
-	eliminar_paquete(paquete);
+}
+void iniciar_planificacion(){
+	detenida=false;
+}
+void detener_planificacion(){
+	detenida=true;
 }
 
-void terminar_programa(int conexion, t_log* logger, t_config* config)
+void terminar_programa(int conexion, t_log* logger)
 {
 	log_destroy(logger);
 	liberar_conexion(conexion);
@@ -263,7 +264,86 @@ void finalizar_proceso(int pid){
 		/*POR AHORA PONGO COMENTARIOS DONDE TALVEZ HABRIA QUE HACER UN FREE! */
 		PCB* proceso= list_get(procesos,pid);
 		if(proceso->estado!=EXIT){
-			planificador_largo_salida();
+			planificador_largo_salida(proceso);
+		}else{
+			printf("El proceso ya fue finalizado");
+		}
+
+	}else{
+		printf("Intentando eliminar un proceso que no existe\n");
+	}
+
+}
+void proceso_estado(){
+	//POSIBLE MUTEX PARA LA LISTA DE PROCESOS
+	if(!list_is_empty(procesos)){
+		int i;
+		for(i = 0 ; i<list_size(procesos); i++){
+
+			PCB* proceso= list_get(procesos,i);
+			printf("[PID] %d \n",proceso->pid);
+			printf("[ESTADO] ");
+
+			switch(proceso->estado){
+				case NEW:
+					printf("NEW\n");
+				break;
+				case READY:
+					printf("READY\n");
+				break;
+				case EXEC:
+					printf("EXEC\n");
+				break;
+				case BLOCKED:
+					printf("BLOCKED\n");
+				break;
+				case EXIT:
+					printf("EXIT\n");
+				break;
+				default:
+					printf("Estado no definido\n");
+				break;
+				}
+			}
+
+	}else{
+		printf("No hay procesos \n");
+	}
+}
+
+void terminar_programa(int conexion, t_log* logger)
+{
+	log_destroy(logger);
+	liberar_conexion(conexion);
+}
+
+void iniciar_proceso(char* path, int size, int prioridad){
+	//Mutex
+		PIDGLOBAL++;
+		PCB* proceso = malloc(sizeof(PCB*));
+
+		proceso->estado = NEW;
+		proceso->prioridad = prioridad;
+
+		proceso->registros.AX= 0;
+		proceso->registros.BX = 0;
+		proceso->registros.CX = 0;
+		proceso->registros.DX = 0;
+		proceso->pid = PIDGLOBAL; //Modificar en caso de que sea necesario
+		list_add(procesos,proceso);
+		queue_push(colaLargo,proceso);
+
+}
+
+
+void finalizar_proceso(int pid){
+	//POSIBLE MUTEX
+	if(pid<=(list_size(procesos))){
+		pid=-1;
+		/*POR AHORA PONGO COMENTARIOS DONDE TALVEZ HABRIA QUE HACER UN FREE! */
+		PCB* proceso= list_get(procesos,pid);
+		if(proceso->estado!=EXIT){
+			planificador_largo_salida(proceso);
 		}else{
 			printf("El proceso ya fue finalizado");
 		}
@@ -392,4 +472,3 @@ void prioridad(){
 void round_robin(){
 	//Mensaje a la cpu para que luego de cada instruccion reciba un mensaje para manejar el Quantum
 }
-
