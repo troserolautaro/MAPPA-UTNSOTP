@@ -1,8 +1,120 @@
 #include "Kernel.h"
 
+//VARIABLES GLOBALES
+int conexionCPUDispatch, conexionCPUInterrupt,conexionMemoria,conexionFileSystem;
+int pidGlobal=0;
+int main(void)
+{
+	char* ipCPU,* ipMemoria,* ipFileSystem ;
+	char* puertoCPUDispatch,*puertoCPUInterrupt,* puertoMemoria,* puertoFileSystem ;
+	char* valor;
+
+	char* AlgoritmoPlanificacion,* quantum,* recursos,* instanciasRecursos,* gradoMultiprogramacion;
+	t_log* logger=malloc(sizeof(logger));
+	t_config* config=malloc(sizeof(config));
+	logger = iniciar_logger();
+	config = iniciar_config();
+
+	/************************************RECUPERA DATOS DE ARCHIVO DE CONFIGURACION************************************/
+
+	//CONFIGURACION DE CPU
+	ipCPU = config_get_string_value(config,"IP_CPU");
+	puertoCPUDispatch=config_get_string_value(config,"PUERTO_CPU_DISPATCH");
+	puertoCPUInterrupt=config_get_string_value(config,"PUERTO_CPU_INTERRUPT");
+	AlgoritmoPlanificacion=config_get_string_value(config,"ALGORITMO_PLANIFICACION");
+	quantum=config_get_string_value(config,"QUANTUM");
+
+	//CONFIGURACION DE MEMORIA
+	ipMemoria = config_get_string_value(config,"IP_MEMORIA");
+	puertoMemoria=config_get_string_value(config,"PUERTO_MEMORIA");
+
+	//CONFIGURACION DE FILESYSTEM
+	ipMemoria = config_get_string_value(config,"IP_MEMORIA");
+	puertoFileSystem=config_get_string_value(config,"PUERTO_FILESYSTEM");
+
+	//BORRAR LUEVO ESTE CAMPO
+	valor=config_get_string_value(config,"CLAVE");
+
+	/************************************INICIALIZAR CONEXIONES************************************/
+
+	conexionCPUDispatch = crear_conexion(ipCPU, puertoCPUDispatch);
+	//conexionCPUInterrupt = crear_conexion(ipCPU, puertoCPUInterrupt);
+	//int conexiones[4];
+	//conexiones[0]=conexionCPUDispatch;
+	//conexiones[1]=conexionCPUInterrupt;
+
+//	conexionMemoria = crear_conexion(ipMemoria, puertoMemoria);
+//	conexionFileSystem = crear_conexion(ipFileSystem, puertoFileSystem);
+
+	/************************************INICIALIZAR HILOS DE ENVIO Y RECIBO DE MENSAJES************************************/
+	//HILO DE MANEJO DE CONSOLA
+	pthread_t hiloConsola;
+	pthread_create(&hiloConsola,NULL,manejar_consola,NULL );
+	//manejar_consola(NULL);
+	/************************************INICIO CONSOLA INTERACTIVA*************************************************/
+
+	/************************************FINALIZA LOS PROGRAMAS O HILOS A FUTURO************************************/
+	pthread_join(hiloConsola,NULL);
+	return EXIT_SUCCESS;
+}
+
+//pasar conexiones en el paramotro como array o struct
+void * manejar_consola( void* args ){
+	while(1){
+			char* comando = lectura_consola();
+			int idComando = validacion_contenido_consola(comando);
+			/*PROBABLEMENTE HAY QUE MEJORAR ESTO, SI BIEN FUNCIONA NO TOMA LOS PARAMETROS QEU SE INGRESAN EN
+			 * CONSOLA */
+			switch(idComando){
+				case INICIAR_PROCESO:
+					printf("INICIAR PROCESO \n");
+					enviar_mensaje("INICIAR PROCESO",conexionCPUDispatch);
+				break;
+
+				case FINALIZAR_PROCESO:
+					printf("FINALIZAR PROCESO \n");
+					enviar_mensaje("FINALIZAR PROCESO",conexionCPUDispatch);
+				break;
+
+				case INICIAR_PLANIFICACION:
+					printf("INICIAR PLANIFICACION \n");
+					enviar_mensaje("INICIAR PLANIFICACION",conexionCPUDispatch);
+				break;
+
+				case DETENER_PLANIFICACION:
+					printf("DETENER PLANIFICACION \n");
+					enviar_mensaje("DETENER PLANIFICACION",conexionCPUDispatch);
+				break;
+
+				case MULTIPROGRAMACION:
+					printf("MULTIPROGRAMACION \n");
+					enviar_mensaje("MULTIPROGRAMACION",conexionCPUDispatch);
+				break;
+
+				case PROCESO_ESTADO:
+					printf("PROCESO ESTADO \n");
+					enviar_mensaje("PROCESO ESTADO",conexionCPUDispatch);
+				break;
+
+				case -1:
+					printf("Saliendo! \n");
+					enviar_mensaje("Me desconecte",conexionCPUDispatch);
+					return NULL ;
+				break;
+				default:
+					printf("No se reconocio el comando \n");
+				break;
+			}
+			free(comando);
+
+		}
+	return NULL ;
+
+}
+
 /*Esta funcion lo que hace es utilizar la libreria READLINE para poder leer en consola*/
 
-char* lectura_consola(void){
+char* lectura_consola(){
 	char* linea=malloc(sizeof(char*));
 	linea = readline(">>");
 	if (linea) {
@@ -38,126 +150,13 @@ int validacion_contenido_consola(char* comando){
 
 		return PROCESO_ESTADO;
 	}
+	if(!strcasecmp(comando, "exit")){
+
+			return -1;
+		}
 
 	return -2;
 }
-
-pidGlobal = 0;
-
-int main(void)
-{
-	char* ipCPU,* ipMemoria,* ipFileSystem ;
-	char* puertoCPUDispatch,*puertoCPUInterrupt,* puertoMemoria,* puertoFileSystem ;
-	char* valor;
-
-	char* AlgoritmoPlanificacion,* quantum,* recursos,* instanciasRecursos,* gradoMultiprogramacion;
-	t_log* logger=malloc(sizeof(logger));
-	t_config* config=malloc(sizeof(config));
-	int conexionCPUDispatch, conexionCPUInterrupt,conexionMemoria,conexionFileSystem;
-	logger = iniciar_logger();
-	config = iniciar_config();
-
-	/************************************RECUPERA DATOS DE ARCHIVO DE CONFIGURACION************************************/
-
-	//CONFIGURACION DE CPU
-	ipCPU = config_get_string_value(config,"IP_CPU");
-	puertoCPUDispatch=config_get_string_value(config,"PUERTO_CPU_DISPATCH");
-	puertoCPUInterrupt=config_get_string_value(config,"PUERTO_CPU_INTERRUPT");
-	AlgoritmoPlanificacion=config_get_string_value(config,"ALGORITMO_PLANIFICACION");
-	quantum=config_get_string_value(config,"QUANTUM");
-
-	//CONFIGURACION DE MEMORIA
-	ipMemoria = config_get_string_value(config,"IP_MEMORIA");
-	puertoMemoria=config_get_string_value(config,"PUERTO_MEMORIA");
-
-	//CONFIGURACION DE FILESYSTEM
-	ipMemoria = config_get_string_value(config,"IP_MEMORIA");
-	puertoFileSystem=config_get_string_value(config,"PUERTO_FILESYSTEM");
-
-	//BORRAR LUEVO ESTE CAMPO
-	valor=config_get_string_value(config,"CLAVE");
-
-	/************************************INICIALIZAR CONEXIONES************************************/
-
-	conexionCPUDispatch = crear_conexion(ipCPU, puertoCPUDispatch);
-	conexionCPUInterrupt = crear_conexion(ipCPU, puertoCPUInterrupt);
-//	conexionMemoria = crear_conexion(ipMemoria, puertoMemoria);
-//	conexionFileSystem = crear_conexion(ipFileSystem, puertoFileSystem);
-
-	/************************************INICIALIZAR HILOS DE ENVIO Y RECIBO DE MENSAJES************************************/
-
-	// Enviamos al servidor el valor de CLAVE como mensaje
-//	enviar_mensaje(valor,conexionCPUDispatch);
-//	enviar_mensaje(valor,conexionCPUInterrupt);
-//	enviar_mensaje(valor,conexionMemoria);
-//	enviar_mensaje(valor,conexionFileSystem);
-
-	// Armamos y enviamos el paquete
-//	paquete(conexionCPUDispatch);
-//	paquete(conexionCPUInterrupt);
-//	paquete(conexionMemoria);
-//	paquete(conexionFileSystem);
-
-
-	while(1){
-		char* comando = lectura_consola();
-		int idComando = validacion_contenido_consola(comando);
-		/*PROBABLEMENTE HAY QUE MEJORAR ESTO, SI BIEN FUNCIONA NO TOMA LOS PARAMETROS QEU SE INGRESAN EN
-		 * CONSOLA */
-		switch(idComando){
-			case INICIAR_PROCESO:
-				printf("INICIAR PROCESO \n");
-				enviar_mensaje("INICIAR PROCESO",conexionCPUDispatch);
-			break;
-
-			case FINALIZAR_PROCESO:
-				printf("FINALIZAR PROCESO \n");
-				enviar_mensaje("FINALIZAR PROCESO",conexionCPUDispatch);
-			break;
-
-			case INICIAR_PLANIFICACION:
-				printf("INICIAR PLANIFICACION \n");
-				enviar_mensaje("INICIAR PLANIFICACION",conexionCPUDispatch);
-			break;
-
-			case DETENER_PLANIFICACION:
-				printf("DETENER PLANIFICACION \n");
-				enviar_mensaje("DETENER PLANIFICACION",conexionCPUDispatch);
-			break;
-
-			case MULTIPROGRAMACION:
-				printf("MULTIPROGRAMACION \n");
-				enviar_mensaje("MULTIPROGRAMACION",conexionCPUDispatch);
-			break;
-
-			case PROCESO_ESTADO:
-				printf("PROCESO ESTADO \n");
-				enviar_mensaje("PROCESO ESTADO",conexionCPUDispatch);
-			break;
-
-			case -1:
-				printf("Saliendo! \n");
-				enviar_mensaje("Me desconecte",conexionCPUDispatch);
-			break;
-			default:
-				printf("No se reconocio el comando \n");
-			break;
-		}
-		free(comando);
-
-	}
-
-
-	/************************************INICIO CONSOLA INTERACTIVA*************************************************/
-
-	/************************************FINALIZA LOS PROGRAMAS O HILOS A FUTURO************************************/
-
-//	terminar_programa(conexionCPUDispatch, logger, config);
-//	terminar_programa(conexionCPUInterrupt, logger, config);
-	terminar_programa(conexionMemoria, logger, config);
-//	terminar_programa(conexionFileSystem, logger, config);
-}
-
 t_log* iniciar_logger(void)
 {
 	t_log* nuevo_logger =log_create("./tp.log","log",1,LOG_LEVEL_INFO);
@@ -214,15 +213,16 @@ PCB* iniciar_proceso(char* path, int size, int prioridad){
 	PCB* proceso = malloc(sizeof(PCB));
 
 	proceso->estado = NEW;
+	proceso->pc = 0;
 	proceso->prioridad = prioridad;
+	proceso->registros.AX = 0;
+	proceso->registros.BX = 0;
+	proceso->registros.CX = 0;
+	proceso->registros.DX = 0;
 
-	proceso->registros->AX = 0;
-	proceso->registros->BX = 0;
-	proceso->registros->CX = 0;
-	proceso->registros->DX = 0;
 
 	proceso->pid = pidGlobal; //Modificar en caso de que sea necesario
-
+	return proceso;
 }
 
 

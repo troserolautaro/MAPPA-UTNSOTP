@@ -1,10 +1,12 @@
 #include "CPU.h"
 
-
-
+//VARIABLES GLOBALES
+int serverDispatch,serverInterrupt;
+int clienteKernel;
+t_log* logger ;
 int main(void) {
 
-	t_log* logger = malloc(sizeof(t_log));
+	logger = malloc(sizeof(t_log));
 	t_config* config = malloc(sizeof(t_config));
 
 	logger = log_create("log.log", "Servidor", 1, LOG_LEVEL_DEBUG);
@@ -23,43 +25,50 @@ int main(void) {
 
 	//Iniciar Cliente que conecta a memoria
 	int conexionMemoria = crear_conexion(ipMemoria, puertoMemoria);
-	char* valor= malloc(sizeof(char*));
-	valor=ipMemoria;
-	enviar_mensaje(valor,conexionMemoria);
+	//char* valor= malloc(sizeof(char*));
+	//valor=ipMemoria;
+	//enviar_mensaje(puertoMemoria,conexionMemoria);
 
 	//Inicia Servidor
-	int serverDispatch = iniciar_servidor(puertoEscuchaDispatch);
-	int serverInterrupt = iniciar_servidor(puertoEscuchaInterrupt);
+	 serverDispatch = iniciar_servidor(puertoEscuchaDispatch);
+	 serverInterrupt = iniciar_servidor(puertoEscuchaInterrupt);
 	log_info(logger, "Servidor listo para recibir al cliente");
-	int clienteFd = esperar_cliente(serverDispatch);
+	clienteKernel = esperar_cliente(serverDispatch);
+
+	//HILO DE MANEJO CLIENTE KERNEL
+	pthread_t hiloKernel;
+	pthread_create(&hiloKernel,NULL,(void *) manejar_cliente,NULL );
 	/*PROBABLEMENTE SE PUEDA SEPARAR ESTO Y ABSTRAERLA COMO UNA FUNCION PARA UTILES*/
-			t_list* lista = malloc(sizeof(t_list));
-			while (1) {
-				int cod_op = recibir_operacion(clienteFd);
-				switch (cod_op) {
-				case MENSAJE:
-					recibir_mensaje(clienteFd);
-					break;
-				case PAQUETE:
-					lista = recibir_paquete(clienteFd);
-					log_info(logger, "Me llegaron los siguientes valores:\n");
-					list_iterate(lista, (void*) iterator);
-					break;
-				case -1:
-					log_error(logger, "Un cliente se desconecto.");
-					log_destroy(logger);
-					return EXIT_SUCCESS;
-				default:
-					log_warning(logger,"Operacion desconocida. No quieras meter la pata");
-					break;
-				}
-			}
-			free(lista);
-
-
+	pthread_join(hiloKernel,NULL);
+	//manejar_cliente(NULL);
 	return EXIT_SUCCESS;
 }
-
+void * manejar_cliente(void*){
+	printf("Se conecto Kernel \n");
+	t_list* lista = malloc(sizeof(t_list));
+				while (1) {
+					int cod_op = recibir_operacion(clienteKernel);
+					switch (cod_op) {
+					case MENSAJE:
+						recibir_mensaje(clienteKernel);
+						break;
+					case PAQUETE:
+						lista = recibir_paquete(clienteKernel);
+						log_info(logger, "Me llegaron los siguientes valores:\n");
+						list_iterate(lista, (void*) iterator);
+						break;
+					case -1:
+						log_error(logger, "Un cliente se desconecto.");
+						log_destroy(logger);
+						return NULL;
+						break;
+					default:
+						log_warning(logger,"Operacion desconocida. No quieras meter la pata");
+						break;
+					}
+				}
+				free(lista);
+}
 t_log* iniciar_logger(void)
 {
 	t_log* nuevo_logger =log_create("./tp.log","log",1,LOG_LEVEL_INFO);

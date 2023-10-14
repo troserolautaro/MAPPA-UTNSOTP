@@ -8,6 +8,8 @@
 #include<commons/config.h>
 #include<readline/readline.h>
 #include<readline/history.h>
+#include <pthread.h>
+
 
 //includes de utils globales
 #include <utils.h>
@@ -37,12 +39,14 @@ typedef enum{
 }consola;
 
 
-
+int conexionCPUDispatch, conexionCPUInterrupt,conexionMemoria,conexionFileSystem,pidGlobal;
 t_log* iniciar_logger(void);
 t_config* iniciar_config(void);
-void leer_consola(t_log*);
+char* lectura_consola();
 void paquete(int);
 void terminar_programa(int, t_log*, t_config*);
 PCB* iniciar_proceso(char* path, int size, int prioridad);
 void finalizar_proceso(PCB* proceso, int pid);
+void * manejar_consola( void* args);
+int validacion_contenido_consola(char* );
 #endif /* CPU_H_ */
