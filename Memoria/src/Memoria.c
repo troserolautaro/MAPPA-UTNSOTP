@@ -1,9 +1,19 @@
 #include "Memoria.h"
 
-t_log* logger = malloc(sizeof(t_log));
-t_config* config = malloc(sizeof(t_config));
+t_log* logger;
+t_config* config;
 
+//funcion de prueba, se puede borrar
+/*
+void * mostrar_instrucciones(void* elemento) {
+    t_instruccion* valor = (t_instruccion*)elemento;
+    printf("Elemento: %s\n", valor->comando);
+    return true;
+}
+*/
 int main(void) {
+	logger = malloc(sizeof(t_log));
+	config = malloc(sizeof(t_config));
 
 	logger = log_create("log.log", "Servidor", 1, LOG_LEVEL_DEBUG);
 	config = iniciar_config();
@@ -34,7 +44,9 @@ int main(void) {
 	logger = log_create("log.log", "Servidor", 1, LOG_LEVEL_DEBUG);
 
 	log_info(logger, "Servidor listo para recibir al cliente");
-	int cliente_fd = esperar_cliente(serverMemoria);
+
+	    //list_iterate(instrucciones, mostrar_instrucciones);
+	 int cliente_fd = esperar_cliente(serverMemoria);
 			t_list* lista;
 			while (1) {
 				int cod_op = recibir_operacion(cliente_fd);
@@ -56,11 +68,51 @@ int main(void) {
 					break;
 				}
 			}
-
-
 	return EXIT_SUCCESS;
 }
 
+//LEER INSTRUCCIONES DEL PSEUDOCODIGO  Y CARGARLAS EN MEMORIA
+//se probo y funciona
+t_list* cargar_instrucciones(char* path, char* file){
+	FILE * fileInstrucciones = malloc(sizeof(FILE));
+		t_list * instrucciones;
+		instrucciones= list_create();
+		char direccionIns[100];
+		//une la ruta de los archivos, con el archivo especificado
+		//cambiar el archivo por variable a futuro, no prioritario de momento
+		strcat(strcpy(direccionIns, path), "/instrucciones.txt");
+		//abre el archivo en modo lectura
+		fileInstrucciones = fopen ( direccionIns, "r");
+		t_instruccion instruccion;
+		instruccion.comando=malloc(sizeof(char*));
+		instruccion.parametros= list_create();
+		char parametros[2][30];
+		char lineaDeCodigo[30];
+		if (fileInstrucciones == NULL)
+		    {
+			 printf("no hay insctrucciones o hubo error con el archivo");
+		    }
+		 	else
+		    {
+		 	    printf("\nEl contenido del archivo de prueba es \n");
+		 	    while (fgets(lineaDeCodigo, sizeof(lineaDeCodigo),fileInstrucciones )!=NULL)
+		 	    {
+		 	    	if (sscanf(lineaDeCodigo, "%s %s %s", instruccion.comando,parametros[0], parametros[1]) >= 1) {
+		 	    		 //printf("\n el comando es  %s \n", instruccion.comando);
+		 	    		for (int i = 0; i < 2; i++) {
+							if (strlen(parametros[i]) > 0) {
+								list_add(instruccion.parametros,parametros[i]);
+								//printf("parametro %d tiene : %s \n", i,parametros[i]);
+							}
+		 	    		}
+		 	    	}
+		 	    	list_add(instrucciones,&instruccion);
+		 	    	memset(parametros, '\0', sizeof(parametros));
+		 	    }
+		    }
+		    fclose(fileInstrucciones);
+		    return instrucciones;
+}
 void iterator(char* value) {
 	log_info(logger,"%s", value);
 }
