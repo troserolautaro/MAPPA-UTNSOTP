@@ -85,3 +85,20 @@ t_config* iniciar_config(void)
 void iterator(char* value) {
 	log_info(logger,"%s", value);
 }
+
+void set(char* registro, int valor){
+	registro = valor;
+}
+
+void sum(uint32_t registroDestino,uint32_t registroOrigen){
+	registroDestino += registroOrigen;
+}
+void sub(uint32_t registroDestino,uint32_t registroOrigen){
+	registroDestino -= registroOrigen;
+}
+
+void exit();
+
+
+
+
