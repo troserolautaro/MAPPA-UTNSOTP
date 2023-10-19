@@ -86,7 +86,7 @@ void iterator(char* value) {
 	log_info(logger,"%s", value);
 }
 
-void set(char* registro, int valor){
+void set(uint32_t registro, int valor){
 	registro = valor;
 }
 
@@ -98,6 +98,32 @@ void sub(uint32_t registroDestino,uint32_t registroOrigen){
 }
 
 void exit();
+
+uint32_t obtener_registro(char* componente,registros_cpu* registro){
+
+	uint32_t registroAux;
+
+	switch(componente){
+	case "AX":
+		registroAux = registro->AX;
+		break;
+	case "BX":
+		registroAux = registro->BX;
+			break;
+	case "CAX":
+		registroAux = registro->CX;
+			break;
+	case "DX":
+		registroAux = registro->DX;
+			break;
+	default:
+		printf("Registro no válido");
+	}
+
+	return registroAux;
+
+
+}
 
 
 
