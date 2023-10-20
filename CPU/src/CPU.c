@@ -69,6 +69,7 @@ void * manejar_cliente(void*){
 				}
 				free(lista);
 }
+//FUNCIONES DE INICIO DE MODULO
 t_log* iniciar_logger(void)
 {
 	t_log* nuevo_logger =log_create("./tp.log","log",1,LOG_LEVEL_INFO);
@@ -81,11 +82,13 @@ t_config* iniciar_config(void)
 	return nuevo_config;
 }
 
-
+//
 void iterator(char* value) {
 	log_info(logger,"%s", value);
 }
 
+
+//FUNCIONES DE INSTRUCCION
 void set(uint32_t registro, int valor){
 	registro = valor;
 }
@@ -99,22 +102,24 @@ void sub(uint32_t registroDestino,uint32_t registroOrigen){
 
 void exit();
 
-uint32_t obtener_registro(char* componente,registros_cpu* registro){
 
-	uint32_t registroAux;
+//FUNCION AUXILIAR PARA OBTENER LOS REGISTROS INDICADOS EN LAS INSTRUCCIONES
+uint32_t * obtener_registro(char* registro,registros_CPU* registros){
 
-	switch(componente){
+	uint32_t * registroAux;
+
+	switch(registro){
 	case "AX":
-		registroAux = registro->AX;
+		registroAux = registros->AX;
 		break;
 	case "BX":
-		registroAux = registro->BX;
+		registroAux = registros->BX;
 			break;
-	case "CAX":
-		registroAux = registro->CX;
+	case "CX":
+		registroAux = registros->CX;
 			break;
 	case "DX":
-		registroAux = registro->DX;
+		registroAux = registros->DX;
 			break;
 	default:
 		printf("Registro no válido");
@@ -125,6 +130,50 @@ uint32_t obtener_registro(char* componente,registros_cpu* registro){
 
 }
 
+//FUNCIONES PARA CICLO DE EJECUCION SIMPLE
+t_instruccion fetch(int pc){
+	//busca la instruccion en memoria
+}
+//definir como llega de memoria para definir el tipo de parametro
+void decode(t_instruccion instruccion,char* operacion, t_list * parametros){
+	//obtener registros necesarios para ejecutar la instruccion y pasarselos a execute
+
+}
+execute(char* operacion, t_list* parametros ){
+	switch (operacion) {
+		case "SET":
+			set(list_get(parametros,0),list_get(parametros,0));
+			break;
+		case "SUM":
+			sum(list_get(parametros,0),list_get(parametros,0));
+			break;
+		case "SUB":
+			sub(list_get(parametros,0),list_get(parametros,0));
+			break;
+		case "EXIT":
+			exit();
+			break;
+		default:
+			log_warning(logger,"Operacion desconocida. No quieras meter la pata");
+			break;
+		}
+}
+check_interrupt(){
+	//pendiente a definir que hace
+}
+
+//FUNCION QUE EJECUTA CICLO DE INSTRUCCION
+//agregar luego parametro pcb a ejecutar ciclo de instruccion;
+void ejecutar_ciclo(){
+	int pc;
+	t_instruccion instruccion;
+	char* operacion;
+	t_list * parametros
+	instruccion=fetch(pc);
+	decode(instruccion,&operacion,&parametros );
+	execute(operacion, parametros );
+	check_interrupt();
+}
 
 
 

@@ -25,7 +25,7 @@ void set(uint32_t registro, int valor);
 void sum(uint32_t registroDestino,registroOrigen);
 void sub(uint32_t registroDestino,uint32_t registroOrigen);
 void exit();
-registros_cpu* obtener_registro(char* componente,registros_cpu* registro);
+uint32_t* obtener_registro(char* componente,registros_CPU* registro);
 
 
 #endif /* CPU_H_ */
