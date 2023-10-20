@@ -1,10 +1,10 @@
 #include "Memoria.h"
 
-t_log* logger = malloc(sizeof(t_log));
-t_config* config = malloc(sizeof(t_config));
+
 
 int main(void) {
-
+	t_log* logger = malloc(sizeof(t_log));
+	t_config* config = malloc(sizeof(t_config));
 	logger = log_create("log.log", "Servidor", 1, LOG_LEVEL_DEBUG);
 	config = iniciar_config();
 

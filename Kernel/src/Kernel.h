@@ -35,7 +35,8 @@ typedef enum{
 	INICIAR_PLANIFICACION,
 	DETENER_PLANIFICACION,
 	MULTIPROGRAMACION,
-	PROCESO_ESTADO
+	PROCESO_ESTADO,
+	EXIT
 }consola;
 
 
@@ -46,14 +47,20 @@ t_config* iniciar_config(void);
 void paquete(int);
 
 //Comandos
-void terminar_programa(int, t_log*);
+void iniciar_planificacion();
+void detener_planificacion();
+void terminar_programa(int conexion, t_log* logger);
 void iniciar_proceso(char* path, int size, int prioridad);
 void finalizar_proceso(int pid);
 void proceso_estado();
 
 //Consola
 char* lectura_consola();
+void * manejar_consola( void* args);
 int validacion_contenido_consola(char* comando);
+
+
+
 
 //Planificadores
 void planificador_largo();
@@ -61,9 +68,9 @@ void planificador_largo_salida();
 void planificador_corto();
 
 //Planificador de corto plazo
-
 void fifo();
 void prioridad(); //Multicola sin salto entre ellas
+bool ordenar_prioridades();
 void round_robin();
 
 #endif /* CPU_H_ */

@@ -24,7 +24,7 @@ typedef enum{
 	NEW,
 	READY,
 	EXEC,
-	EXIT,
+	TERMINATED,
 	BLOCKED
 }estados;
 
