@@ -37,6 +37,8 @@ int main(void) {
 	retardoRespuesta = config_get_string_value(config,"RETARDO_RESPUESTA");
 	algoritmoReemplazo = config_get_string_value(config,"ALGORITMO_REEMPLAZO");
 
+	//CARGA INSTRUCCIONES
+	t_list* listaInstrucciones=cargar_instrucciones(pathInstrucciones,"");
 	//INICIAR SERVIDOR
 	int serverMemoria = iniciar_servidor(puertoEscucha);
 
@@ -45,7 +47,7 @@ int main(void) {
 
 	log_info(logger, "Servidor listo para recibir al cliente");
 
-	    //list_iterate(instrucciones, mostrar_instrucciones);
+	//list_iterate(instrucciones, mostrar_instrucciones);
 	 int cliente_fd = esperar_cliente(serverMemoria);
 			t_list* lista;
 			while (1) {
@@ -58,6 +60,11 @@ int main(void) {
 					lista = recibir_paquete(cliente_fd);
 					log_info(logger, "Me llegaron los siguientes valores:\n");
 					list_iterate(lista, (void*) iterator);
+					int pc =1;
+					char* instruccion=malloc(sizeof(char) * 100 + 1);
+					instruccion=list_get(listaInstrucciones,pc);
+	 	    		 printf("\n el comando es  %s \n", instruccion);
+					enviar_mensaje(instruccion,cliente_fd);
 					break;
 				case -1:
 					log_error(logger, "Un cliente se desconecto.");
@@ -75,19 +82,20 @@ int main(void) {
 //se probo y funciona
 t_list* cargar_instrucciones(char* path, char* file){
 	FILE * fileInstrucciones = malloc(sizeof(FILE));
-		t_list * instrucciones;
+		t_list * instrucciones,*lineasDeCodigo;
 		instrucciones= list_create();
+		lineasDeCodigo= list_create();
 		char direccionIns[100];
 		//une la ruta de los archivos, con el archivo especificado
 		//cambiar el archivo por variable a futuro, no prioritario de momento
 		strcat(strcpy(direccionIns, path), "/instrucciones.txt");
 		//abre el archivo en modo lectura
 		fileInstrucciones = fopen ( direccionIns, "r");
-		t_instruccion instruccion;
-		instruccion.comando=malloc(sizeof(char*));
-		instruccion.parametros= list_create();
-		char parametros[2][30];
-		char lineaDeCodigo[30];
+		//t_instruccion instruccion;
+		//instruccion.comando=malloc(sizeof(char*));
+		//instruccion.parametros= list_create();
+		//char parametros[2][30];
+		char* lineaDeCodigo=malloc(sizeof(char) * 100 + 1);
 		if (fileInstrucciones == NULL)
 		    {
 			 printf("no hay insctrucciones o hubo error con el archivo");
@@ -95,23 +103,22 @@ t_list* cargar_instrucciones(char* path, char* file){
 		 	else
 		    {
 		 	    printf("\nEl contenido del archivo de prueba es \n");
-		 	    while (fgets(lineaDeCodigo, sizeof(lineaDeCodigo),fileInstrucciones )!=NULL)
+		 	    while (fgets(lineaDeCodigo,sizeof(char) * 100,fileInstrucciones )!=NULL)
 		 	    {
-		 	    	if (sscanf(lineaDeCodigo, "%s %s %s", instruccion.comando,parametros[0], parametros[1]) >= 1) {
-		 	    		 //printf("\n el comando es  %s \n", instruccion.comando);
-		 	    		for (int i = 0; i < 2; i++) {
-							if (strlen(parametros[i]) > 0) {
-								list_add(instruccion.parametros,parametros[i]);
-								//printf("parametro %d tiene : %s \n", i,parametros[i]);
-							}
-		 	    		}
-		 	    	}
-		 	    	list_add(instrucciones,&instruccion);
-		 	    	memset(parametros, '\0', sizeof(parametros));
+		 			char* lineaTemporal=malloc(sizeof(char) * 100 + 1);
+		 			lineaDeCodigo[strcspn(lineaDeCodigo, "\n")] = '\0';
+		 	        strncpy(lineaTemporal, lineaDeCodigo, sizeof(lineaTemporal));
+			 	    printf("p = %s\n",lineaTemporal);
+		 	    	list_add(lineasDeCodigo,lineaTemporal);
 		 	    }
 		    }
 		    fclose(fileInstrucciones);
-		    return instrucciones;
+		    char* primerComando=malloc(sizeof(char) * 100 + 1);
+		    primerComando=list_get(lineasDeCodigo,0);
+		    printf("Línea %d: %s\n", 0, primerComando);
+			printf("\n tamaño de lista %d \n", list_size(lineasDeCodigo));
+
+		    return lineasDeCodigo;
 }
 void iterator(char* value) {
 	log_info(logger,"%s", value);

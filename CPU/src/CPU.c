@@ -2,8 +2,10 @@
 
 //VARIABLES GLOBALES
 int serverDispatch,serverInterrupt;
+int conexionMemoria;
 int clienteKernel;
 t_log* logger ;
+PCB pcbPrueba;
 int main(void) {
 
 	logger = malloc(sizeof(t_log));
@@ -24,16 +26,17 @@ int main(void) {
 	puertoEscuchaInterrupt = config_get_string_value(config,"PUERTO_ESCUCHA_INTERRUPT");
 
 	//Iniciar Cliente que conecta a memoria
-	int conexionMemoria = crear_conexion(ipMemoria, puertoMemoria);
-	//char* valor= malloc(sizeof(char*));
-	//valor=ipMemoria;
-	//enviar_mensaje(puertoMemoria,conexionMemoria);
+	 conexionMemoria = crear_conexion(ipMemoria, puertoMemoria);
+	 pcbPrueba.pc=1;
+	ejecutar_ciclo();
 
 	//Inicia Servidor
 	 serverDispatch = iniciar_servidor(puertoEscuchaDispatch);
 	 serverInterrupt = iniciar_servidor(puertoEscuchaInterrupt);
 	log_info(logger, "Servidor listo para recibir al cliente");
 	clienteKernel = esperar_cliente(serverDispatch);
+
+
 
 	//HILO DE MANEJO CLIENTE KERNEL
 	pthread_t hiloKernel;
@@ -89,90 +92,116 @@ void iterator(char* value) {
 
 
 //FUNCIONES DE INSTRUCCION
-void set(uint32_t registro, int valor){
-	registro = valor;
+void set(uint32_t *registro, int valor){
+	*registro = valor;
 }
 
-void sum(uint32_t registroDestino,uint32_t registroOrigen){
-	registroDestino += registroOrigen;
+void sum(uint32_t * registroDestino,uint32_t *registroOrigen){
+	*registroDestino += *registroOrigen;
 }
-void sub(uint32_t registroDestino,uint32_t registroOrigen){
-	registroDestino -= registroOrigen;
+void sub(uint32_t * registroDestino,uint32_t * registroOrigen){
+	*registroDestino -= *registroOrigen;
 }
 
-void exit();
+void exit_p(){
+	pcbPrueba.estado=EXIT;
+}
 
 
 //FUNCION AUXILIAR PARA OBTENER LOS REGISTROS INDICADOS EN LAS INSTRUCCIONES
-uint32_t * obtener_registro(char* registro,registros_CPU* registros){
-
-	uint32_t * registroAux;
-
-	switch(registro){
-	case "AX":
-		registroAux = registros->AX;
-		break;
-	case "BX":
-		registroAux = registros->BX;
-			break;
-	case "CX":
-		registroAux = registros->CX;
-			break;
-	case "DX":
-		registroAux = registros->DX;
-			break;
-	default:
-		printf("Registro no válido");
+uint32_t * obtener_registro(char registro[],registros_CPU* registros){
+	if(!strcasecmp(registro, "AX")){
+		return &registros->AX;
 	}
-
-	return registroAux;
-
-
+	if(!strcasecmp(registro, "BX")){
+		return &registros->BX;
+	}
+	if(!strcasecmp(registro, "CX")){
+		return &registros->CX;
+	}
+	if(!strcasecmp(registro, "DX")){
+		return  &registros->DX;
+	}
+	return -2;
 }
 
 //FUNCIONES PARA CICLO DE EJECUCION SIMPLE
-t_instruccion fetch(int pc){
+char* fetch(int pc){
 	//busca la instruccion en memoria
+	t_paquete* paquete=crear_paquete();
+	agregar_a_paquete(paquete,"1",strlen("1")+1);
+	enviar_paquete(paquete,conexionMemoria);
+	eliminar_paquete(paquete);
+	int cod_op = recibir_operacion(conexionMemoria);
+	int size;
+	char * lineaInstruccion=malloc(sizeof(char)*100+1);
+	lineaInstruccion=recibir_buffer(&size,conexionMemoria);
+	return lineaInstruccion;
 }
 //definir como llega de memoria para definir el tipo de parametro
-void decode(t_instruccion instruccion,char* operacion, t_list * parametros){
+t_instruccion decode( char* lineaDeCodigo){
 	//obtener registros necesarios para ejecutar la instruccion y pasarselos a execute
+	//DECODIFICACION DE LA INSTRUCCION
+	t_instruccion instruccion;
+	instruccion.comando=malloc(sizeof(char*));
+	instruccion.parametros= list_create();
+	char * parametros[2];
+	parametros[0]=malloc(sizeof(char) * 30 + 1);
+	parametros[1]=malloc(sizeof(char) * 30 + 1);;
+	if (sscanf(lineaDeCodigo, "%s %s %s", instruccion.comando,parametros[0], parametros[1]) >= 1) {
+		 //printf("\n el comando es  %s \n", instruccion.comando);
 
-}
-execute(char* operacion, t_list* parametros ){
-	switch (operacion) {
-		case "SET":
-			set(list_get(parametros,0),list_get(parametros,0));
-			break;
-		case "SUM":
-			sum(list_get(parametros,0),list_get(parametros,0));
-			break;
-		case "SUB":
-			sub(list_get(parametros,0),list_get(parametros,0));
-			break;
-		case "EXIT":
-			exit();
-			break;
-		default:
-			log_warning(logger,"Operacion desconocida. No quieras meter la pata");
-			break;
+		for (int i = 0; i < 2; i++) {
+			if (strlen(parametros[i]) > 0) {
+				parametros[i][strcspn(parametros[i], "\n")] = '\0';
+				list_add(instruccion.parametros,parametros[i]);
+				printf("parametro %d tiene : %s \n", i,parametros[i]);
+			}
 		}
+	}
+	return instruccion;
 }
-check_interrupt(){
+void execute(t_instruccion instruccion){
+	t_list * parametros=instruccion.parametros;
+	uint32_t *registroOrigen, *registroDestino;
+	//obtengo parametros
+	char* parametro1=malloc(sizeof(char)*30+1);
+	parametro1=list_get(parametros,0);
+	if(parametro1!=NULL){
+		registroOrigen=obtener_registro(parametro1,&pcbPrueba.registros);
+	}
+	char* parametro2=malloc(sizeof(char)*30+1);
+	parametro2=list_get(parametros,1);
+	if(parametro2!=NULL && strcasecmp(instruccion.comando, "SET")){
+		registroDestino=obtener_registro(parametro2,&pcbPrueba.registros);
+	}
+	//executo funcion
+	if(!strcasecmp(instruccion.comando, "SET")){
+		set(registroOrigen,(int)*parametro2);
+	}
+	if(!strcasecmp(instruccion.comando, "SUM")){
+		sum(registroOrigen,registroDestino);
+	}
+	if(!strcasecmp(instruccion.comando, "SUB")){
+		sub(registroOrigen,registroDestino);
+	}
+	if(!strcasecmp(instruccion.comando, "EXIT")){
+		exit_p();
+	}
+}
+void check_interrupt(){
 	//pendiente a definir que hace
 }
 
 //FUNCION QUE EJECUTA CICLO DE INSTRUCCION
 //agregar luego parametro pcb a ejecutar ciclo de instruccion;
 void ejecutar_ciclo(){
-	int pc;
 	t_instruccion instruccion;
-	char* operacion;
-	t_list * parametros
-	instruccion=fetch(pc);
-	decode(instruccion,&operacion,&parametros );
-	execute(operacion, parametros );
-	check_interrupt();
+	char* operacion, *lineaDeCodigo;
+	lineaDeCodigo=fetch(pcbPrueba.pc);
+	instruccion= decode(lineaDeCodigo);
+	execute(instruccion);
+	//check_interrupt();
 }
 
 
