@@ -8,6 +8,7 @@
 #include<netdb.h>
 #include<commons/log.h>
 #include<commons/collections/list.h>
+#include<commons/collections/queue.h>
 #include<string.h>
 #include<assert.h>
 #include<signal.h>
@@ -25,7 +26,7 @@ typedef enum{
 	NEW,
 	READY,
 	EXEC,
-	EXIT,
+	TERMINATED,
 	BLOCKED
 }estados;
 

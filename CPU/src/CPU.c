@@ -4,8 +4,9 @@
 int serverDispatch,serverInterrupt;
 int conexionMemoria;
 int clienteKernel;
+int clock = 0; //Es el encargado de revisar el quantum
 t_log* logger ;
-PCB pcbPrueba;
+PCB* pcbPrueba;
 int main(void) {
 
 	logger = malloc(sizeof(t_log));
@@ -26,9 +27,9 @@ int main(void) {
 	puertoEscuchaInterrupt = config_get_string_value(config,"PUERTO_ESCUCHA_INTERRUPT");
 
 	//Iniciar Cliente que conecta a memoria
-	 conexionMemoria = crear_conexion(ipMemoria, puertoMemoria);
-	 pcbPrueba.pc=1;
-	ejecutar_ciclo();
+	// conexionMemoria = crear_conexion(ipMemoria, puertoMemoria);
+	/* pcbPrueba->pc=1;
+	ejecutar_ciclo();*/
 
 	//Inicia Servidor
 	 serverDispatch = iniciar_servidor(puertoEscuchaDispatch);
@@ -104,7 +105,7 @@ void sub(uint32_t * registroDestino,uint32_t * registroOrigen){
 }
 
 void exit_p(){
-	pcbPrueba.estado=EXIT;
+	pcbPrueba->estado=TERMINATED;
 }
 
 
@@ -168,12 +169,12 @@ void execute(t_instruccion instruccion){
 	char* parametro1=malloc(sizeof(char)*30+1);
 	parametro1=list_get(parametros,0);
 	if(parametro1!=NULL){
-		registroOrigen=obtener_registro(parametro1,&pcbPrueba.registros);
+		registroOrigen=obtener_registro(parametro1,&pcbPrueba->registros);
 	}
 	char* parametro2=malloc(sizeof(char)*30+1);
 	parametro2=list_get(parametros,1);
 	if(parametro2!=NULL && strcasecmp(instruccion.comando, "SET")){
-		registroDestino=obtener_registro(parametro2,&pcbPrueba.registros);
+		registroDestino=obtener_registro(parametro2,&pcbPrueba->registros);
 	}
 	//executo funcion
 	if(!strcasecmp(instruccion.comando, "SET")){
@@ -198,7 +199,7 @@ void check_interrupt(){
 void ejecutar_ciclo(){
 	t_instruccion instruccion;
 	char* operacion, *lineaDeCodigo;
-	lineaDeCodigo=fetch(pcbPrueba.pc);
+	lineaDeCodigo=fetch(pcbPrueba->pc);
 	instruccion= decode(lineaDeCodigo);
 	execute(instruccion);
 	//check_interrupt();
