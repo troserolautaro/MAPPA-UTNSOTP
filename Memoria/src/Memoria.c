@@ -38,7 +38,7 @@ int main(void) {
 	algoritmoReemplazo = config_get_string_value(config,"ALGORITMO_REEMPLAZO");
 
 	//CARGA INSTRUCCIONES
-	t_list* listaInstrucciones=cargar_instrucciones(pathInstrucciones,"");
+	t_list* listaInstrucciones =cargar_instrucciones(pathInstrucciones,"");
 	//INICIAR SERVIDOR
 	int serverMemoria = iniciar_servidor(puertoEscucha);
 
@@ -61,7 +61,7 @@ int main(void) {
 					log_info(logger, "Me llegaron los siguientes valores:\n");
 					list_iterate(lista, (void*) iterator);
 					int pc =1;
-					char* instruccion=malloc(sizeof(char) * 100 + 1);
+					char* instruccion=malloc(sizeof(char) * (200 + 1));
 					instruccion=list_get(listaInstrucciones,pc);
 	 	    		 printf("\n el comando es  %s \n", instruccion);
 					enviar_mensaje(instruccion,cliente_fd);
