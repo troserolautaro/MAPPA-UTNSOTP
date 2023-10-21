@@ -20,6 +20,7 @@ void * manejar_cliente(void*);
 t_config* iniciar_config(void);
 t_log* iniciar_logger(void);
 void iterator(char* value);
+void ejecutar_ciclo();
 
 void set(uint32_t * registro, int valor);
 void sum(uint32_t * registroDestino,uint32_t * registroOrigen);
