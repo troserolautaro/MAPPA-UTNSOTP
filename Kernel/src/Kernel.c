@@ -127,7 +127,7 @@ void * manejar_consola( void* args ){
 
 					iniciar_proceso(path,size,prioridad);
 					planificador_largo();
-					printf("INICIAR PROCESO \n");
+
 					free(path);
 			break;
 
@@ -172,6 +172,7 @@ void * manejar_consola( void* args ){
 					printf("No se reconocio el comando \n");
 				break;
 			}
+
 			free(comando);
 
 	}
@@ -367,6 +368,7 @@ void planificador_largo(){
 		PCB* proceso=queue_pop(colaLargo);
 		proceso->estado=READY;
 		queue_push(colaCorto,proceso);
+		gradoMultiprogramacion -=1;
 	}
 	planificador_corto();
 }
@@ -376,8 +378,10 @@ void planificador_largo_salida(PCB* proceso){
 	PCB* temp=(list_get(procesos,proceso->pid));
 	proceso=temp;
 	proceso->estado=TERMINATED;
-	planificador_largo();
+	gradoMultiprogramacion +=1;
 	free(temp);
+	planificador_largo();
+
 }
 
 
@@ -388,12 +392,7 @@ void planificador_corto(){
 			prioridad();
 			/*Mandar mensaje con el quantum del kernel y el proceso */
 		}else{
-			if(quantum < 1 ){
-
-				fifo();
-				/*Manda mensaje al cpu */
-
-			}else{
+			if(quantum > 0){
 
 				round_robin();
 				/*Mandar mensaje con el quantum del kernel y el proceso */
@@ -403,10 +402,7 @@ void planificador_corto(){
 		}
 		PCB* proceso= queue_pop(colaCorto);
 		proceso->estado=EXEC;
-
-}
-void fifo(){
-
+		enviar_mensaje("INICIAR PROCESO",conexionCPUDispatch);
 
 }
 
