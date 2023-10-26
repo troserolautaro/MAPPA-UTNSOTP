@@ -16,7 +16,7 @@ void* serializar_paquete(t_paquete* paquete, int bytes)
 	return magic;
 }
 
-int crear_conexion(char *ip, char* puerto)
+int crear_conexion(char *ip, char* puerto, int cliente)
 {
 	struct addrinfo hints;
 	struct addrinfo *server_info = malloc(sizeof(struct addrinfo));
@@ -40,6 +40,8 @@ int crear_conexion(char *ip, char* puerto)
 
 
 	freeaddrinfo(server_info);
+
+	handshake(cliente,socket_cliente);
 
 	return socket_cliente;
 }
@@ -76,6 +78,7 @@ t_paquete* crear_paquete(void)
 {
 	t_paquete* paquete = malloc(sizeof(t_paquete));
 	paquete->codigo_operacion = PAQUETE;
+	printf("%d",paquete->codigo_operacion);
 	crear_buffer(paquete);
 	return paquete;
 }
@@ -110,4 +113,11 @@ void eliminar_paquete(t_paquete* paquete)
 void liberar_conexion(int socket_cliente)
 {
 	close(socket_cliente);
+}
+void handshake(int cliente, int socket_cliente){
+	t_paquete * temp = crear_paquete();
+	//agregar_a_paquete(temp,"conexion\0",(sizeof(char*)*9));
+	//agregar_a_paquete(temp,(void *)cliente,sizeof(void *));
+	enviar_paquete(temp,socket_cliente);
+	eliminar_paquete(temp);
 }

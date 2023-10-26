@@ -33,44 +33,29 @@ int main(void) {
 	//Inicia Servidor
 	 serverDispatch = iniciar_servidor(puertoEscuchaDispatch);
 	 serverInterrupt = iniciar_servidor(puertoEscuchaInterrupt);
-	log_info(logger, "Servidor listo para recibir al cliente");
-	clienteKernel = esperar_cliente(serverDispatch);
+	 log_info(logger, "Servidor listo para recibir al cliente");
+	 clienteKernel = esperar_cliente(serverDispatch);
 
 
 
 	//HILO DE MANEJO CLIENTE KERNEL
 	pthread_t hiloKernel;
-	pthread_create(&hiloKernel,NULL,(void *) manejar_cliente,NULL );
+	pthread_create(&hiloKernel,NULL,(void *) manejar_cliente,&clienteKernel);
 	/*PROBABLEMENTE SE PUEDA SEPARAR ESTO Y ABSTRAERLA COMO UNA FUNCION PARA UTILES*/
 	pthread_join(hiloKernel,NULL);
 	//manejar_cliente(NULL);
 	return EXIT_SUCCESS;
 }
-void * manejar_cliente(void*){
-	printf("Se conecto Kernel \n");
-	t_list* lista = malloc(sizeof(t_list));
-				while (1) {
-					int cod_op = recibir_operacion(clienteKernel);
-					switch (cod_op) {
-					case MENSAJE:
-						recibir_mensaje(clienteKernel);
-						break;
-					case PAQUETE:
-						lista = recibir_paquete(clienteKernel);
-						log_info(logger, "Me llegaron los siguientes valores:\n");
-						list_iterate(lista, (void*) iterator);
-						break;
-					case -1:
-						log_error(logger, "Un cliente se desconecto.");
-						log_destroy(logger);
-						return NULL;
-						break;
-					default:
-						log_warning(logger,"Operacion desconocida. No quieras meter la pata");
-						break;
-					}
-				}
-				free(lista);
+void * manejar_cliente(int socket){
+
+		log_info(logger,"socket %d",socket);
+		t_list* mensaje = procesar_tipo(socket);
+//		log_info(logger,"Llego el mensaje, lo voy a procesar");
+		if(mensaje!=NULL && !list_is_empty(mensaje)){
+			procesar_mensaje(mensaje);
+		}
+
+	return 1;
 }
 //FUNCIONES DE INICIO DE MODULO
 t_log* iniciar_logger(void)
@@ -86,9 +71,7 @@ t_config* iniciar_config(void)
 }
 
 //
-void iterator(char* value) {
-	log_info(logger,"%s", value);
-}
+
 
 
 //FUNCIONES DE INSTRUCCION
@@ -204,5 +187,15 @@ void ejecutar_ciclo(){
 	//check_interrupt();
 }
 
+void procesar_mensaje(t_list* mensaje){
+	char* msg = string_new();
+	string_append(&msg,list_get(mensaje,0));
+	string_trim(&msg);
+	string_to_lower(msg);
 
+	if(strcmp(msg,"conexion")){
+		log_info(logger,"Hola! %s",(char *)list_get(mensaje,1));
+	}
+
+}
 

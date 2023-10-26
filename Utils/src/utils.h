@@ -9,9 +9,19 @@
 #include<commons/log.h>
 #include<commons/collections/list.h>
 #include<commons/collections/queue.h>
+#include<commons/string.h>
 #include<string.h>
 #include<assert.h>
 #include<signal.h>
+
+//USUARIOS DE LA RED
+typedef enum{
+	KERNEL,
+	CPU,
+	MEMORIA,
+	FILESYSTEM
+}usuarios;
+
 
 //REGUISTROS DE CPU
 typedef struct{
@@ -57,3 +67,4 @@ typedef struct {
     t_list * parametros;
 }t_instruccion;
 #endif /* SRC_UTILS_H_ */
+

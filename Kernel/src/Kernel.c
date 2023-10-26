@@ -1,8 +1,10 @@
 #include "Kernel.h"
 
 
-//VARIABLES GLOBALES
+//Sockets
 int conexionCPUDispatch, conexionCPUInterrupt,conexionMemoria,conexionFileSystem;
+
+//Otros
 char* AlgoritmoPlanificacion,* recursos,* instanciasRecursos;
 int PIDGLOBAL = 0;
 
@@ -61,7 +63,8 @@ int main(void)
 
 	/************************************INICIALIZAR CONEXIONES************************************/
 
-	conexionCPUDispatch = crear_conexion(ipCPU, puertoCPUDispatch);
+	conexionCPUDispatch = crear_conexion(ipCPU, puertoCPUDispatch,KERNEL);
+
 	//conexionCPUInterrupt = crear_conexion(ipCPU, puertoCPUInterrupt);
 	//int conexiones[4];
 	//conexiones[0]=conexionCPUDispatch;
@@ -220,7 +223,7 @@ t_config* iniciar_config(void)
 //	    }
 //}
 
-void paquete(int conexion)
+/* void paquete(int conexion)
 {
 	char* leido;
 	t_paquete* paquete=crear_paquete();
@@ -231,7 +234,7 @@ void paquete(int conexion)
 				break;
 			}
 	}
-}
+} */
 void iniciar_planificacion(){
 	if(detenida == true){
 		detenida=false;

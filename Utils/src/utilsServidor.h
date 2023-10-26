@@ -13,5 +13,6 @@ int esperar_cliente(int);
 t_list* recibir_paquete(int);
 void recibir_mensaje(int);
 int recibir_operacion(int);
-
+void * procesar_tipo(int);
+void procesar_mensaje(t_list *);
 #endif /* UTILSSERVIDOR_H_ */

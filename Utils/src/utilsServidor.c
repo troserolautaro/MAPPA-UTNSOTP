@@ -42,7 +42,9 @@ int esperar_cliente(int socket_servidor)
 int recibir_operacion(int socket_cliente)
 {
 	int cod_op;
-	if(recv(socket_cliente, &cod_op, sizeof(int), MSG_WAITALL) > 0)
+	cod_op=recv(socket_cliente, &cod_op, sizeof(int), MSG_WAITALL);
+	printf("%d",cod_op);
+	if(cod_op > 0)
 		return cod_op;
 	else
 	{
@@ -91,4 +93,33 @@ t_list* recibir_paquete(int socket_cliente)
 	}
 	free(buffer);
 	return valores;
+}
+void * procesar_tipo(int socket){
+	log_info(logger,"socket %d",socket);
+		t_list* lista = malloc(sizeof(t_list));
+		while (1) {
+			int cod_op = recibir_operacion(socket);
+			switch (cod_op) {
+			case MENSAJE:
+				recibir_mensaje(socket);
+				break;
+			case PAQUETE:
+				lista = recibir_paquete(socket);
+			//	log_info(logger, "Me llegaron los siguientes valores:\n");
+			//	list_iterate(lista, (void*) iterator);
+				return lista;
+				break;
+			case -1:
+				log_error(logger, "Un cliente se desconecto.");
+				log_destroy(logger);
+				return NULL;
+				break;
+			default:
+				log_warning(logger,"Operacion desconocida. No quieras meter la pata");
+				break;
+			}
+		}
+}
+void iterator(char* value) {
+	log_info(logger,"%s", value);
 }
