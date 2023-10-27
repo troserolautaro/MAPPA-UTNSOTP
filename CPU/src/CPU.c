@@ -40,7 +40,7 @@ int main(void) {
 
 	//HILO DE MANEJO CLIENTE KERNEL
 	pthread_t hiloKernel;
-	pthread_create(&hiloKernel,NULL,(void *) manejar_cliente,&clienteKernel);
+	pthread_create(&hiloKernel,NULL,(void *) manejar_cliente,clienteKernel);
 	/*PROBABLEMENTE SE PUEDA SEPARAR ESTO Y ABSTRAERLA COMO UNA FUNCION PARA UTILES*/
 	pthread_join(hiloKernel,NULL);
 	//manejar_cliente(NULL);
@@ -193,8 +193,8 @@ void procesar_mensaje(t_list* mensaje){
 	string_trim(&msg);
 	string_to_lower(msg);
 
-	if(strcmp(msg,"conexion")){
-		log_info(logger,"Hola! %s",(char *)list_get(mensaje,1));
+	if(!strcasecmp(msg,"conexion")){
+		log_info(logger,"Hola! %d",*(int*)list_get(mensaje,1));
 	}
 
 }

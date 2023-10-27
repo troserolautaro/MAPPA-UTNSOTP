@@ -41,10 +41,8 @@ int esperar_cliente(int socket_servidor)
 
 int recibir_operacion(int socket_cliente)
 {
-	int cod_op;
-	cod_op=recv(socket_cliente, &cod_op, sizeof(int), MSG_WAITALL);
-	printf("%d",cod_op);
-	if(cod_op > 0)
+	int cod_op=malloc(sizeof(int));
+	if(recv(socket_cliente, &cod_op, sizeof(int), MSG_WAITALL) > 0)
 		return cod_op;
 	else
 	{
@@ -95,7 +93,7 @@ t_list* recibir_paquete(int socket_cliente)
 	return valores;
 }
 void * procesar_tipo(int socket){
-	log_info(logger,"socket %d",socket);
+	//log_info(logger,"socket %d",socket);
 		t_list* lista = malloc(sizeof(t_list));
 		while (1) {
 			int cod_op = recibir_operacion(socket);
