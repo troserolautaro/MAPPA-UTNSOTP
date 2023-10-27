@@ -135,3 +135,14 @@ t_config* iniciar_config(void)
 	t_config* nuevo_config= config_create("./Memoria.config");
 	return nuevo_config;
 }
+void procesar_mensaje(t_list* mensaje){
+	char* msg = string_new();
+	string_append(&msg,list_get(mensaje,0));
+	string_trim(&msg);
+	string_to_lower(msg);
+
+	if(!strcasecmp(msg,"conexion")){
+		log_info(logger,"Hola! %d",*(int*)list_get(mensaje,1));
+	}
+
+}

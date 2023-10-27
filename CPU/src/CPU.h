@@ -16,7 +16,6 @@
 
 int serverDispatch,serverInterrupt;
 int clienteKernel;
-void * manejar_cliente(int);
 t_config* iniciar_config(void);
 t_log* iniciar_logger(void);
 void iterator(char* value);

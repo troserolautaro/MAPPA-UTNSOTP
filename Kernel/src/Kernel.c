@@ -76,7 +76,8 @@ int main(void)
 	/************************************INICIALIZAR HILOS DE ENVIO Y RECIBO DE MENSAJES************************************/
 	//HILO DE MANEJO DE CONSOLA
 	pthread_t hiloConsola;
-	pthread_create(&hiloConsola,NULL,manejar_consola,NULL );
+
+	pthread_create(&hiloConsola,NULL,manejar_consola, NULL);
 
 	//Habria que hacer un producto consumidor
 	//manejar_consola(NULL);
@@ -333,6 +334,7 @@ char* lectura_consola(){
 	}
 	return linea;
 }
+
 int validacion_contenido_consola(char* comando){
 	if(!strcasecmp(comando, "iniciar_proceso")){
 
@@ -421,8 +423,8 @@ void round_robin(){
 bool ordenar_prioridades(t_list** lista ){
 	t_list_iterator* i = list_iterator_create(*lista);
 	while (i->index	< list_size(*lista)){
-		PCB* actual = *i->actual;
-		PCB* siguiente = (!(i->next != NULL)) ?   *i->next : NULL;
+		PCB* actual =  (PCB*) i->actual;
+		PCB* siguiente = (!(i->next != NULL)) ?   (PCB*)i->next : NULL;
 
 		if(siguiente == NULL){
 			break;
@@ -437,4 +439,15 @@ bool ordenar_prioridades(t_list** lista ){
 		list_iterator_next(i);
 	}
 	return false;
+}
+void procesar_mensaje(t_list* mensaje){
+	char* msg = string_new();
+	string_append(&msg,list_get(mensaje,0));
+	string_trim(&msg);
+	string_to_lower(msg);
+
+	if(!strcasecmp(msg,"conexion")){
+		log_info(logger,"Hola! %d",*(int*)list_get(mensaje,1));
+	}
+
 }

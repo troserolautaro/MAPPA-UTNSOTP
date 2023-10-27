@@ -121,3 +121,17 @@ void * procesar_tipo(int socket){
 void iterator(char* value) {
 	log_info(logger,"%s", value);
 }
+
+void * manejar_cliente(int socket){
+	do{
+
+		log_info(logger,"socket %d",socket);
+		t_list* mensaje = procesar_tipo(socket);
+//		log_info(logger,"Llego el mensaje, lo voy a procesar");
+		if(mensaje!=NULL && !list_is_empty(mensaje)){
+			procesar_mensaje(mensaje);
+		}
+
+	}while(false);
+	return 1;
+}

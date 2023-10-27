@@ -46,17 +46,7 @@ int main(void) {
 	//manejar_cliente(NULL);
 	return EXIT_SUCCESS;
 }
-void * manejar_cliente(int socket){
 
-		log_info(logger,"socket %d",socket);
-		t_list* mensaje = procesar_tipo(socket);
-//		log_info(logger,"Llego el mensaje, lo voy a procesar");
-		if(mensaje!=NULL && !list_is_empty(mensaje)){
-			procesar_mensaje(mensaje);
-		}
-
-	return 1;
-}
 //FUNCIONES DE INICIO DE MODULO
 t_log* iniciar_logger(void)
 {
