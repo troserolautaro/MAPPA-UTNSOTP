@@ -14,6 +14,15 @@
 #include <utilsServidor.h>
 #include <utilsCliente.h>
 
+struct {
+	char* nombreArchivo;
+	int tamanioArchivo;
+	int bloqueInicial;
+}FCB;
+
 void iterator(char* value);
+
+
+
 
 #endif /* CPU_H_ */
