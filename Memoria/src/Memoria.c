@@ -2,15 +2,10 @@
 
 t_log* logger;
 t_config* config;
-
-//funcion de prueba, se puede borrar
-/*
-void * mostrar_instrucciones(void* elemento) {
-    t_instruccion* valor = (t_instruccion*)elemento;
-    printf("Elemento: %s\n", valor->comando);
-    return true;
-}
-*/
+int conexionKernel, conexionDispatch,conexionFileSystem;
+pthread_t hiloRecibirCliente, hiloKernel;
+char * pathInstrucciones;
+t_list * archivos;
 int main(void) {
 	logger = malloc(sizeof(t_log));
 	config = malloc(sizeof(t_config));
@@ -19,14 +14,14 @@ int main(void) {
 	config = iniciar_config();
 
 	char* ipFyleSystem = malloc(sizeof(char*)),
-			*puertoEscucha = malloc(sizeof(char*)),
-			*tamMemoria = malloc(sizeof(char*)),
-			*tamPagina = malloc(sizeof(char*)),
-			*pathInstrucciones = malloc(sizeof(char*)),
-			*retardoRespuesta = malloc(sizeof(char*)),
-			*algoritmoReemplazo = malloc(sizeof(char*)),
-			*puertoFyleSystem = malloc(sizeof(char*));
+		*puertoEscucha = malloc(sizeof(char*)),
+		*tamMemoria = malloc(sizeof(char*)),
+		*tamPagina = malloc(sizeof(char*)),
+		*retardoRespuesta = malloc(sizeof(char*)),
+		*algoritmoReemplazo = malloc(sizeof(char*)),
+		*puertoFyleSystem = malloc(sizeof(char*));
 
+	pathInstrucciones = malloc(sizeof(char*));
 	//CONFIGURACION DE MEMORIA
 	ipFyleSystem = config_get_string_value(config,"IP_FILESYSTEM");
 	puertoFyleSystem = config_get_string_value(config,"PUERTO_FYLESYSTEM");
@@ -37,58 +32,37 @@ int main(void) {
 	retardoRespuesta = config_get_string_value(config,"RETARDO_RESPUESTA");
 	algoritmoReemplazo = config_get_string_value(config,"ALGORITMO_REEMPLAZO");
 
-	//CARGA INSTRUCCIONES
-	t_list* listaInstrucciones =cargar_instrucciones(pathInstrucciones,"");
 	//INICIAR SERVIDOR
 	int serverMemoria = iniciar_servidor(puertoEscucha);
-
+	archivos=list_create();
 	//printf("%ld \n %ld", (long)getpid(), (long)getppid());
 	logger = log_create("log.log", "Servidor", 1, LOG_LEVEL_DEBUG);
-
 	log_info(logger, "Servidor listo para recibir al cliente");
-
 	//list_iterate(instrucciones, mostrar_instrucciones);
+	//while(1){
 	 int cliente_fd = esperar_cliente(serverMemoria);
-			t_list* lista;
-			while (1) {
-				int cod_op = recibir_operacion(cliente_fd);
-				switch (cod_op) {
-				case MENSAJE:
-					recibir_mensaje(cliente_fd);
-					break;
-				case PAQUETE:
-					lista = recibir_paquete(cliente_fd);
-					log_info(logger, "Me llegaron los siguientes valores:\n");
-					list_iterate(lista, (void*) iterator);
-					int pc =1;
-					char* instruccion=malloc(sizeof(char) * (200 + 1));
-					instruccion=list_get(listaInstrucciones,pc);
-	 	    		 printf("\n el comando es  %s \n", instruccion);
-					enviar_mensaje(instruccion,cliente_fd);
-					break;
-				case -1:
-					log_error(logger, "Un cliente se desconecto.");
-					log_destroy(logger);
-					return EXIT_SUCCESS;
-				default:
-					log_warning(logger,"Operacion desconocida. No quieras meter la pata");
-					break;
-				}
-			}
+	 pthread_t hiloFileSystem;
+	 int resultado;
+	 if ((resultado=pthread_create(&hiloRecibirCliente,NULL,manejar_cliente,( void *) &cliente_fd))!=0)
+		printf("Error al crear hilo. resultado %d",resultado);
+			//}
+	pthread_join(hiloRecibirCliente,NULL);
+	pthread_join(hiloKernel,NULL);
 	return EXIT_SUCCESS;
 }
 
 //LEER INSTRUCCIONES DEL PSEUDOCODIGO  Y CARGARLAS EN MEMORIA
 //se probo y funciona
-t_list* cargar_instrucciones(char* path, char* file){
+t_list* cargar_instrucciones(char* file){
 	FILE * fileInstrucciones = malloc(sizeof(FILE));
-		t_list * instrucciones,*lineasDeCodigo;
-		instrucciones= list_create();
+		t_list *lineasDeCodigo;
 		lineasDeCodigo= list_create();
-		char direccionIns[100];
+		char * direccionIns=malloc(sizeof(char*)*100);
 		//une la ruta de los archivos, con el archivo especificado
 		//cambiar el archivo por variable a futuro, no prioritario de momento
-		strcat(strcpy(direccionIns, path), "/instrucciones.txt");
+		strcpy(direccionIns, pathInstrucciones);
+		string_append(&direccionIns, "/");
+		string_append(&direccionIns,file);
 		//abre el archivo en modo lectura
 		fileInstrucciones = fopen ( direccionIns, "r");
 		//t_instruccion instruccion;
@@ -136,13 +110,51 @@ t_config* iniciar_config(void)
 	return nuevo_config;
 }
 void procesar_mensaje(t_list* mensaje){
-	char* msg = string_new();
+	char* msg = malloc(sizeof(char*));
+	msg = string_new();
 	string_append(&msg,list_get(mensaje,0));
 	string_trim(&msg);
 	string_to_lower(msg);
 
 	if(!strcasecmp(msg,"conexion")){
 		log_info(logger,"Hola! %d",*(int*)list_get(mensaje,1));
+		 int resultado;
+		switch(*(int*)list_get(mensaje,1)){
+			case KERNEL:
+				conexionKernel=*((int*)list_get(mensaje,2));
+				 if ((resultado=pthread_create(&hiloKernel,NULL,manejar_cliente,( void *) &conexionKernel))!=0)
+				    printf("Error al crear hilo. resultado %d",resultado);
+			break;
+			case CPUDispatch:
+				conexionDispatch=*((int*)list_get(mensaje,2));
+				pthread_t hiloCPUDistpatch;
+				if ((resultado=pthread_create(&hiloCPUDistpatch,NULL,manejar_cliente,( void *) &conexionDispatch))!=0)
+					printf("Error al crear hilo. resultado %d",resultado);
+			break;
+			case FILESYSTEM:
+				conexionFileSystem=*((int*)list_get(mensaje,2));
+				pthread_t hiloFileSystem;
+				if ((resultado=pthread_create(&hiloFileSystem,NULL,manejar_cliente,( void *) &conexionFileSystem))!=0)
+					printf("Error al crear hilo. resultado %d",resultado);
+			break;
+			default:
+				printf("TIPO NO DEFINIDO\n");
+			break;
+		}
 	}
+	//DIVIDIR EN OTRAS FUNCIONES
+	else if(!strcasecmp(msg,"cargar")){
+		printf("llego iniciar planificacion");
+		int pid=*(int*)list_get(mensaje,1);
+		char* path=malloc(sizeof(char*));
+		 path=list_get(mensaje,2);
+		t_list* instrucciones=list_create();
+		instrucciones=cargar_instrucciones(path);
+		//list_add_in_index(archivos, pid, instrucciones);
+		free(path);
+	}
+	else if(!strcasecmp(msg,"instruccion")){
 
+	}
+	free(msg);
 }

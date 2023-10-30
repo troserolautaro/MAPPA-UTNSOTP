@@ -122,16 +122,17 @@ void iterator(char* value) {
 	log_info(logger,"%s", value);
 }
 
-void * manejar_cliente(int socket){
+void * manejar_cliente(void* socket){
+	int socketint=*((int *) socket);
 	do{
-
-		log_info(logger,"socket %d",socket);
-		t_list* mensaje = procesar_tipo(socket);
+		log_info(logger,"socket %d ",socketint);
+		t_list* mensaje = procesar_tipo(socketint);
 //		log_info(logger,"Llego el mensaje, lo voy a procesar");
 		if(mensaje!=NULL && !list_is_empty(mensaje)){
+			list_add(mensaje, socket);
 			procesar_mensaje(mensaje);
 		}
 
 	}while(false);
-	return 1;
+	return NULL;
 }

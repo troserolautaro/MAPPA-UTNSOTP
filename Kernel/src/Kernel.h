@@ -60,8 +60,6 @@ void * manejar_consola( void* args);
 int validacion_contenido_consola(char* comando);
 
 
-
-
 //Planificadores
 void planificador_largo();
 void planificador_largo_salida();
@@ -72,5 +70,6 @@ void fifo();
 void prioridad(); //Multicola sin salto entre ellas
 bool ordenar_prioridades();
 void round_robin();
+
 
 #endif /* CPU_H_ */

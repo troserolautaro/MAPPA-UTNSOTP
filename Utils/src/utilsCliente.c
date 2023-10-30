@@ -116,7 +116,7 @@ void liberar_conexion(int socket_cliente)
 }
 void handshake(int cliente, int socket_cliente){
 	t_paquete * temp = crear_paquete();
-	agregar_a_paquete(temp,"conexion\0",(sizeof(char*)*9));
+	agregar_a_paquete(temp,"conexion",(sizeof(char*)*8));
 	agregar_a_paquete(temp,&cliente,sizeof(int));
 	enviar_paquete(temp,socket_cliente);
 	eliminar_paquete(temp);

@@ -102,7 +102,7 @@ uint32_t * obtener_registro(char registro[],registros_CPU* registros){
 char* fetch(int pc){
 	//busca la instruccion en memoria
 	t_paquete* paquete=crear_paquete();
-	agregar_a_paquete(paquete,"1",strlen("1")+1);
+	agregar_a_paquete(paquete,"1",strlen("1"));
 	enviar_paquete(paquete,conexionMemoria);
 	eliminar_paquete(paquete);
 	int cod_op = recibir_operacion(conexionMemoria);
@@ -120,7 +120,7 @@ t_instruccion decode( char* lineaDeCodigo){
 	instruccion.parametros= list_create();
 	char * parametros[2];
 	parametros[0]=malloc(sizeof(char) * 30 + 1);
-	parametros[1]=malloc(sizeof(char) * 30 + 1);;
+	parametros[1]=malloc(sizeof(char) * 30 + 1);
 	if (sscanf(lineaDeCodigo, "%s %s %s", instruccion.comando,parametros[0], parametros[1]) >= 1) {
 		 //printf("\n el comando es  %s \n", instruccion.comando);
 

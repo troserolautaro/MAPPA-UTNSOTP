@@ -7,7 +7,7 @@ int conexionCPUDispatch, conexionCPUInterrupt,conexionMemoria,conexionFileSystem
 //Otros
 char* AlgoritmoPlanificacion,* recursos,* instanciasRecursos;
 int PIDGLOBAL = 0;
-
+t_log* logger;
 //LISTA DE TODOS LOS PROCESOS
 t_list* procesos;
 
@@ -26,11 +26,11 @@ int gradoMultiprogramacion, quantum;
 
 int main(void)
 {
-	char* ipCPU,* ipMemoria,* ipFileSystem ;
-	char* puertoCPUDispatch,*puertoCPUInterrupt,* puertoMemoria,* puertoFileSystem ;
-	char* valor;
+	char* ipCPU=malloc(sizeof(char*)),*ipMemoria=malloc(sizeof(char*)),*ipFileSystem=malloc(sizeof(char*)) ;
+	char* puertoCPUDispatch=malloc(sizeof(char*)),*puertoCPUInterrupt=malloc(sizeof(char*)),
+		* puertoMemoria=malloc(sizeof(char*)),*puertoFileSystem=malloc(sizeof(char*));
 
-	t_log* logger=malloc(sizeof(logger));
+	logger=malloc(sizeof(t_log));
 	t_config* config=malloc(sizeof(config));
 	logger = iniciar_logger();
 	config = iniciar_config();
@@ -62,103 +62,89 @@ int main(void)
 
 
 	/************************************INICIALIZAR CONEXIONES************************************/
+	//conexionCPUDispatch = crear_conexion(ipCPU, puertoCPUDispatch,KERNEL);
+	//conexionCPUInterrupt = crear_conexion(ipCPU, puertoCPUInterrupt,KERNEL);
+	conexionMemoria = crear_conexion(ipMemoria, puertoMemoria,KERNEL);
+	//conexionFileSystem = crear_conexion(ipFileSystem, puertoFileSystem,KERNEL);
 
-	conexionCPUDispatch = crear_conexion(ipCPU, puertoCPUDispatch,KERNEL);
+	/************************************INICIALIZAR HILOS DE RECIBO DE MENSAJES************************************/
+	//HILO DE MANEJO DE MOODULOS
+	//pthread_t * hiloCPUDispatch;
+	//pthread_create(hiloCPUDispatch,NULL,manejar_cliente,conexionCPUDispatch);
+	//pthread_t * hiloCPUInterrupt;
+	//pthread_create(hiloCPUInterrupt,NULL,manejar_cliente,conexionCPUInterrupt);
+	pthread_t  hiloMemoria;
 
-	//conexionCPUInterrupt = crear_conexion(ipCPU, puertoCPUInterrupt);
-	//int conexiones[4];
-	//conexiones[0]=conexionCPUDispatch;
-	//conexiones[1]=conexionCPUInterrupt;
-
-//	conexionMemoria = crear_conexion(ipMemoria, puertoMemoria);
-//	conexionFileSystem = crear_conexion(ipFileSystem, puertoFileSystem);
-
-	/************************************INICIALIZAR HILOS DE ENVIO Y RECIBO DE MENSAJES************************************/
-	//HILO DE MANEJO DE CONSOLA
-	pthread_t hiloConsola;
-
-	pthread_create(&hiloConsola,NULL,manejar_consola, NULL);
-
-	//Habria que hacer un producto consumidor
-	//manejar_consola(NULL);
+	int resultado;
+	if ((resultado=pthread_create(&hiloMemoria,NULL,manejar_cliente,&conexionMemoria))!=0)
+		printf("Error al crear hilo. resultado %d",resultado);
+	//pthread_t * hiloFilesystem;
+	//pthread_create(hiloFilesystem,NULL,manejar_cliente, conexionFileSystem);
 	/************************************INICIO CONSOLA INTERACTIVA*************************************************/
-
+	pthread_t hiloConsola;
+	pthread_create(&hiloConsola,NULL,manejar_consola, NULL);
 	/************************************FINALIZA LOS PROGRAMAS O HILOS A FUTURO************************************/
-	pthread_join(hiloConsola,NULL);
+	//pthread_join(hiloCPUDispatch,NULL);
+	//pthread_join(hiloCPUInterrupt,NULL);
+	pthread_join(hiloMemoria,NULL);
+	//pthread_join(hiloFilesystem,NULL);
+	//pthread_join(hiloConsola,NULL);
 	config_destroy(config);
 	return EXIT_SUCCESS;
 }
 
 //pasar conexiones en el paramotro como array o struct
 void * manejar_consola( void* args ){
+	char* comando ;
+	char * parametros[3];
+	int idComando, cantValoresLeidos;
 	while(1){
-		char* comando = lectura_consola();
-		char* contexto;
-		char* token;
-
-
-		token = strtok_r(comando, " ", &contexto);
-		int idComando = validacion_contenido_consola(comando);
-		/*PROBABLEMENTE HAY QUE MEJORAR ESTO, SI BIEN FUNCIONA NO TOMA LOS PARAMETROS QEU SE INGRESAN EN
-		 * CONSOLA */
+		comando =malloc(sizeof(char*));
+		for(int i=0; i<3; i++){
+			parametros[i]=malloc(sizeof(char*));
+		}
+		cantValoresLeidos=sscanf( lectura_consola(), "%s %s %s %s", comando, parametros[0],parametros[1],parametros[2]);
+		if (cantValoresLeidos>= 1) {
+			idComando = validacion_contenido_consola(comando);
+			//printf("comando: %s, path: %s file: %s size:%s \n",comando,parametros[0],parametros[1],parametros[2]);
+		}
+		else{
+			printf("error en sscanf \n");
+			idComando=-2;
+		}
 		switch(idComando){
 			case INICIAR_PROCESO:
-					char* path=malloc(sizeof(char*));
-					int size;
-					int prioridad;
+				if(cantValoresLeidos==4){
 					/* ESTA FUNCION SE ENCARGA DE ASIGNAR LA DIFERENTES PARTES DEL COMANDO A SU RESPECTIVA VARIABLE */
-					int i=0;
-					while (token != NULL && !strcmp(token," ")) {
-						if(i==0){
-							path=token;
-						}else{
-							char* end=malloc(sizeof(char*));
-							long var = strtol(token,&end,10);
-							if(var!=0){
-								if(i==1){
-									size=atoi(token);
-								}else{
-									prioridad=atoi(token);
-								}
-							}else{
-								printf("Interrumpido el inicio del proceso, mal ingresado un valor");
-							}
-
-						}
-						i++;
-						token = strtok_r(NULL, " ", &contexto);
-					}
-
-					iniciar_proceso(path,size,prioridad);
+					iniciar_proceso(parametros[0],atoi(parametros[1]),atoi(parametros[2]));
 					planificador_largo();
-
-					free(path);
+				}
+				else{
+					printf("faltan parametros  \n");
+				}
 			break;
-
 			case FINALIZAR_PROCESO:
 					printf("FINALIZAR PROCESO \n");
-					int pid;
-					while (token != NULL) {
-						pid=atoi(token);
-						token = strtok_r(NULL, " ", &contexto);
-					}
-					finalizar_proceso(pid);
+					if(cantValoresLeidos==2)
+						finalizar_proceso(atoi(parametros[0]));
+					else
+						printf("faltan parametros  \n");
 //				enviar_mensaje("FINALIZAR PROCESO",conexionCPUDispatch);
 			break;
 
 			case INICIAR_PLANIFICACION:
 					printf("INICIAR PLANIFICACION \n");
-					enviar_mensaje("INICIAR PLANIFICACION",conexionCPUDispatch);
+					//enviar_mensaje("INICIAR PLANIFICACION",conexionCPUDispatch);
 			break;
 
 			case DETENER_PLANIFICACION:
 					printf("DETENER PLANIFICACION \n");
-					enviar_mensaje("DETENER PLANIFICACION",conexionCPUDispatch);
+					//enviar_mensaje("DETENER PLANIFICACION",conexionCPUDispatch);
 			break;
 
 			case MULTIPROGRAMACION:
 					printf("MULTIPROGRAMACION \n");
-					enviar_mensaje("MULTIPROGRAMACION",conexionCPUDispatch);
+					//enviar_mensaje("MULTIPROGRAMACION",conexionCPUDispatch);
 			break;
 
 			case PROCESO_ESTADO:
@@ -166,31 +152,30 @@ void * manejar_consola( void* args ){
 					proceso_estado();
 //				enviar_mensaje("PROCESO ESTADO",conexionCPUDispatch);
 			break;
-
-				case -1:
-					printf("Saliendo! \n");
-					enviar_mensaje("Me desconecte",conexionCPUDispatch);
-					return NULL ;
-				break;
-				default:
-					printf("No se reconocio el comando \n");
-				break;
-			}
-
-			free(comando);
-
+			case -1:
+				printf("Saliendo! \n");
+				enviar_mensaje("Me desconecte",conexionCPUDispatch);
+				return NULL ;
+			break;
+			default:
+				printf("No se reconocio el comando \n");
+			break;
+		}
+		cantValoresLeidos=0;
+		free(comando);
+		for(int i=0; i<3; i++){
+			free(parametros[i]);
+		}
 	}
-
 
 	/************************************INICIO CONSOLA INTERACTIVA*************************************************/
 
 	/************************************FINALIZA LOS PROGRAMAS O HILOS A FUTURO************************************/
 
-//	terminar_programa(conexionCPUDispatch, logger, config);
-//	terminar_programa(conexionCPUInterrupt, logger, config);
+	terminar_programa(conexionCPUDispatch, logger);
+	terminar_programa(conexionCPUInterrupt, logger);
 	terminar_programa(conexionMemoria, logger);
-
-//	terminar_programa(conexionFileSystem, logger, config);
+	terminar_programa(conexionFileSystem, logger);
 }
 
 t_log* iniciar_logger(void)
@@ -211,31 +196,6 @@ t_config* iniciar_config(void)
 	return nuevo_config;
 }
 
-//void leer_consola(t_log* logger)
-//{
-//	char* leido;
-//	   while (1) {
-//	        leido = readline(">");
-//	        if (!strcmp(leido, "")) {
-//	        	free(leido);
-//	        	break;
-//	        }
-//	        free(leido);
-//	    }
-//}
-
-/* void paquete(int conexion)
-{
-	char* leido;
-	t_paquete* paquete=crear_paquete();
-	while (1) {
-			leido = readline(">");
-			if (!strcmp(leido, "")) {
-				free(leido);
-				break;
-			}
-	}
-} */
 void iniciar_planificacion(){
 	if(detenida == true){
 		detenida=false;
@@ -265,10 +225,17 @@ void iniciar_proceso(char* path, int size, int prioridad){
 		proceso->registros.BX = 0;
 		proceso->registros.CX = 0;
 		proceso->registros.DX = 0;
+		proceso->pc=0;
 		proceso->pid = PIDGLOBAL; //Modificar en caso de que sea necesario
 		list_add(procesos,proceso);
 		queue_push(colaLargo,proceso);
-
+		t_paquete * paqueteArchivo=crear_paquete();
+		int pid=proceso->pid;
+		agregar_a_paquete(paqueteArchivo, "cargar", sizeof(char*)*6);
+		agregar_a_paquete(paqueteArchivo, &pid, sizeof(int*));
+		agregar_a_paquete(paqueteArchivo, path, strlen(path));
+		enviar_paquete(paqueteArchivo,conexionMemoria);
+		eliminar_paquete(paqueteArchivo);
 }
 
 
@@ -287,7 +254,6 @@ void finalizar_proceso(int pid){
 	}else{
 		printf("Intentando eliminar un proceso que no existe\n");
 	}
-
 }
 void proceso_estado(){
 	//POSIBLE MUTEX PARA LA LISTA DE PROCESOS
@@ -379,7 +345,11 @@ void planificador_largo(){
 }
 
 void planificador_largo_salida(PCB* proceso){
-	/*TALVEZ HABRIA QUE LIBERAR EL PROCESO(?) PERO COMO YO LO ENTIENDO AL REFERENCIAR EL PUNTERO CAMBIA DONDE ESTA APUNTANDO. */
+	/*TALVEZ HABRIA QUE LIBERA	conexionCPUDispatch = crear_conexion(ipCPU, puertoCPUDispatch,KERNEL);
+	conexionCPUInterrupt = crear_conexion(ipCPU, puertoCPUInterrupt,KERNEL);
+	conexionMemoria = crear_conexion(ipMemoria, puertoMemoria,KERNEL);
+	conexionFileSystem = crear_conexion(ipFileSystem, puertoFileSystem,KERNEL);
+	 * R EL PROCESO(?) PERO COMO YO LO ENTIENDO AL REFERENCIAR EL PUNTERO CAMBIA DONDE ESTA APUNTANDO. */
 	PCB* temp=(list_get(procesos,proceso->pid));
 	proceso=temp;
 	proceso->estado=TERMINATED;
@@ -393,15 +363,12 @@ void planificador_largo_salida(PCB* proceso){
 void planificador_corto(){
 		/*PRUEBA DE COMO HACER EL PLANIFICADOR */
 		if(prioridades){
-
 			prioridad();
 			/*Mandar mensaje con el quantum del kernel y el proceso */
 		}else{
 			if(quantum > 0){
-
 				round_robin();
 				/*Mandar mensaje con el quantum del kernel y el proceso */
-
 			}
 
 		}
@@ -440,14 +407,20 @@ bool ordenar_prioridades(t_list** lista ){
 	}
 	return false;
 }
+
 void procesar_mensaje(t_list* mensaje){
 	char* msg = string_new();
 	string_append(&msg,list_get(mensaje,0));
 	string_trim(&msg);
 	string_to_lower(msg);
-
-	if(!strcasecmp(msg,"conexion")){
-		log_info(logger,"Hola! %d",*(int*)list_get(mensaje,1));
+	if(!strcasecmp(msg,"CrearProceso")){
+		int pid=*(int*)list_get(mensaje,1);
+		int resultado=*(int*)list_get(mensaje,2);
+		//1 valido, 0 no valido
+		if(resultado>0){
+			printf("se cargo archivo en memoria, proceso %d",pid);
+		}
 	}
-
 }
+
+

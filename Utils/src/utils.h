@@ -16,8 +16,9 @@
 
 //USUARIOS DE LA RED
 typedef enum{
-	KERNEL,
-	CPU,
+	KERNEL=1,
+	CPUDispatch,
+	CPUInterrupt,
 	MEMORIA,
 	FILESYSTEM
 }usuarios;
