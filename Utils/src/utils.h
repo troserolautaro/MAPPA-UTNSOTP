@@ -16,7 +16,7 @@
 
 //USUARIOS DE LA RED
 typedef enum{
-	KERNEL=1,
+	KERNEL,
 	CPUDispatch,
 	CPUInterrupt,
 	MEMORIA,

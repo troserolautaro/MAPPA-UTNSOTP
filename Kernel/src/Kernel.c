@@ -131,19 +131,20 @@ void * manejar_consola( void* args ){
 						printf("faltan parametros  \n");
 //				enviar_mensaje("FINALIZAR PROCESO",conexionCPUDispatch);
 			break;
-
 			case INICIAR_PLANIFICACION:
 					printf("INICIAR PLANIFICACION \n");
+					iniciar_planificacion();
 					//enviar_mensaje("INICIAR PLANIFICACION",conexionCPUDispatch);
 			break;
-
 			case DETENER_PLANIFICACION:
 					printf("DETENER PLANIFICACION \n");
+					detener_planificacion();
 					//enviar_mensaje("DETENER PLANIFICACION",conexionCPUDispatch);
 			break;
-
 			case MULTIPROGRAMACION:
 					printf("MULTIPROGRAMACION \n");
+					//si hay que hacer algo mas, sacar en una funcion aparte
+					gradoMultiprogramacion=atoi(parametros[0]);
 					//enviar_mensaje("MULTIPROGRAMACION",conexionCPUDispatch);
 			break;
 
@@ -200,7 +201,6 @@ void iniciar_planificacion(){
 	if(detenida == true){
 		detenida=false;
 	}
-
 }
 void detener_planificacion(){
 	detenida=true;
@@ -216,25 +216,30 @@ void terminar_programa(int conexion, t_log* logger)
 void iniciar_proceso(char* path, int size, int prioridad){
 		//Mutex
 		PIDGLOBAL++;
+		//crea el proceso
 		PCB* proceso = malloc(sizeof(PCB));
-
 		proceso->estado = NEW;
 		proceso->prioridad = prioridad;
-
 		proceso->registros.AX= 0;
 		proceso->registros.BX = 0;
 		proceso->registros.CX = 0;
 		proceso->registros.DX = 0;
 		proceso->pc=0;
 		proceso->pid = PIDGLOBAL; //Modificar en caso de que sea necesario
+		//añade el proceso a la lista de procesos y a la cola del planificador a largo plazo
 		list_add(procesos,proceso);
 		queue_push(colaLargo,proceso);
+		//envia archivo a cargar en memoria para este proceso a el modulo de memoria
+		//SE PUEDE EXPORTAR SI ES NECESARIO EL ENVIO DE PAQUETE SI ES NECESARIO
 		t_paquete * paqueteArchivo=crear_paquete();
 		int pid=proceso->pid;
 		agregar_a_paquete(paqueteArchivo, "cargar", sizeof(char*)*6);
 		agregar_a_paquete(paqueteArchivo, &pid, sizeof(int*));
 		agregar_a_paquete(paqueteArchivo, path, strlen(path));
+		agregar_a_paquete(paqueteArchivo, &size, sizeof(int*));
+		//WAIT SEMAFORO DE CONEXION A MEORIA
 		enviar_paquete(paqueteArchivo,conexionMemoria);
+		//SIGNAL
 		eliminar_paquete(paqueteArchivo);
 }
 
@@ -242,6 +247,7 @@ void iniciar_proceso(char* path, int size, int prioridad){
 void finalizar_proceso(int pid){
 	//POSIBLE MUTEX
 	if(pid<=(list_size(procesos))){
+		//porque asigna pid= -1 ?
 		pid=-1;
 		/*POR AHORA PONGO COMENTARIOS DONDE TALVEZ HABRIA QUE HACER UN FREE! */
 		PCB* proceso= list_get(procesos,pid);
@@ -250,11 +256,11 @@ void finalizar_proceso(int pid){
 		}else{
 			printf("El proceso ya fue finalizado");
 		}
-
 	}else{
 		printf("Intentando eliminar un proceso que no existe\n");
 	}
 }
+
 void proceso_estado(){
 	//POSIBLE MUTEX PARA LA LISTA DE PROCESOS
 	if(!list_is_empty(procesos)){
@@ -262,9 +268,8 @@ void proceso_estado(){
 		for(i = 0 ; i<list_size(procesos); i++){
 
 			PCB* proceso= list_get(procesos,i);
-			printf("[PID] %d \n",proceso->pid);
-			printf("[ESTADO] ");
-
+			printf("[PID]: %d  ",proceso->pid);
+			printf("[ESTADO]: ");
 			switch(proceso->estado){
 				case NEW:
 					printf("NEW\n");
@@ -285,8 +290,7 @@ void proceso_estado(){
 					printf("Estado no definido\n");
 				break;
 				}
-			}
-
+		}
 	}else{
 		printf("No hay procesos \n");
 	}
@@ -345,18 +349,14 @@ void planificador_largo(){
 }
 
 void planificador_largo_salida(PCB* proceso){
-	/*TALVEZ HABRIA QUE LIBERA	conexionCPUDispatch = crear_conexion(ipCPU, puertoCPUDispatch,KERNEL);
-	conexionCPUInterrupt = crear_conexion(ipCPU, puertoCPUInterrupt,KERNEL);
-	conexionMemoria = crear_conexion(ipMemoria, puertoMemoria,KERNEL);
-	conexionFileSystem = crear_conexion(ipFileSystem, puertoFileSystem,KERNEL);
-	 * R EL PROCESO(?) PERO COMO YO LO ENTIENDO AL REFERENCIAR EL PUNTERO CAMBIA DONDE ESTA APUNTANDO. */
+	/*TALVEZ HABRIA QUE LIBERAR EL PROCESO(?) PERO COMO YO LO ENTIENDO AL REFERENCIAR EL PUNTERO CAMBIA DONDE ESTA APUNTANDO. */
 	PCB* temp=(list_get(procesos,proceso->pid));
 	proceso=temp;
 	proceso->estado=TERMINATED;
+	//semaforo de gradoMultiprogramacion
 	gradoMultiprogramacion +=1;
 	free(temp);
 	planificador_largo();
-
 }
 
 
@@ -372,10 +372,10 @@ void planificador_corto(){
 			}
 
 		}
+		//si no es ninguno de los anterior es fifo por que es una cola (estructura de tipo fifo)
 		PCB* proceso= queue_pop(colaCorto);
 		proceso->estado=EXEC;
 		enviar_mensaje("INICIAR PROCESO",conexionCPUDispatch);
-
 }
 
 void prioridad(){
@@ -384,7 +384,9 @@ void prioridad(){
 }
 
 void round_robin(){
-
+//si el proceso (proceso con estado en EXEC) en ejecucion completo el quantum, cambia el estado, envia interrupccion a cpu y lo manda al final de la cola
+//si termino no hace nada.
+//si se bloqueo por io lo manda al final de la cola
 }
 
 bool ordenar_prioridades(t_list** lista ){

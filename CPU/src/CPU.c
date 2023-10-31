@@ -26,9 +26,10 @@ int main(void) {
 	puertoEscuchaInterrupt = config_get_string_value(config,"PUERTO_ESCUCHA_INTERRUPT");
 
 	//Iniciar Cliente que conecta a memoria
-	/* conexionMemoria = crear_conexion(ipMemoria, puertoMemoria);
+	 conexionMemoria = crear_conexion(ipMemoria, puertoMemoria);
+	pcbPrueba.pid=1;
 	pcbPrueba.pc=1;
-	ejecutar_ciclo(); */
+	ejecutar_ciclo();
 
 	//Inicia Servidor
 	 serverDispatch = iniciar_servidor(puertoEscuchaDispatch);
@@ -99,18 +100,28 @@ uint32_t * obtener_registro(char registro[],registros_CPU* registros){
 }
 
 //FUNCIONES PARA CICLO DE EJECUCION SIMPLE
-char* fetch(int pc){
+char* fetch(int,pid,int pc){
 	//busca la instruccion en memoria
 	t_paquete* paquete=crear_paquete();
-	agregar_a_paquete(paquete,"1",strlen("1"));
+	agregar_a_paquete(paquete,"instruccion",sizeof(char*)*11);
+	agregar_a_paquete(paquete,&pid,sizeof(int*));
+	agregar_a_paquete(paquete,&pc,sizeof(int*));
+	//semaforo de conexion a memoria
 	enviar_paquete(paquete,conexionMemoria);
+	//signal
 	eliminar_paquete(paquete);
-	int cod_op = recibir_operacion(conexionMemoria);
+	//esta parte se podria mover a procesar mensaje
+	t_list* mensaje=list_create();
+	mensaje= procesar_tipo(conexionMemoria);
+	if(){
+
+	}
 	int size;
 	char * lineaInstruccion=malloc(sizeof(char)*100+1);
 	lineaInstruccion=recibir_buffer(&size,conexionMemoria);
 	return lineaInstruccion;
 }
+
 //definir como llega de memoria para definir el tipo de parametro
 t_instruccion decode( char* lineaDeCodigo){
 	//obtener registros necesarios para ejecutar la instruccion y pasarselos a execute
@@ -171,7 +182,7 @@ void check_interrupt(){
 void ejecutar_ciclo(){
 	t_instruccion instruccion;
 	char* operacion, *lineaDeCodigo;
-	lineaDeCodigo=fetch(pcbPrueba.pc);
+	lineaDeCodigo=fetch(pcbPrueba.pid,pcbPrueba.pc);
 	instruccion= decode(lineaDeCodigo);
 	execute(instruccion);
 	//check_interrupt();

@@ -3,9 +3,16 @@
 t_log* logger;
 t_config* config;
 int conexionKernel, conexionDispatch,conexionFileSystem;
-pthread_t hiloRecibirCliente, hiloKernel;
+pthread_t hiloRecibirCliente, hiloKernel,hiloCPU;
 char * pathInstrucciones;
 t_list * archivos;
+int serverMemoria;
+typedef struct{
+	int pid;
+	char* path;
+	int size;
+}proceso;
+
 int main(void) {
 	logger = malloc(sizeof(t_log));
 	config = malloc(sizeof(t_config));
@@ -33,21 +40,21 @@ int main(void) {
 	algoritmoReemplazo = config_get_string_value(config,"ALGORITMO_REEMPLAZO");
 
 	//INICIAR SERVIDOR
-	int serverMemoria = iniciar_servidor(puertoEscucha);
+	serverMemoria = iniciar_servidor(puertoEscucha);
 	archivos=list_create();
 	//printf("%ld \n %ld", (long)getpid(), (long)getppid());
 	logger = log_create("log.log", "Servidor", 1, LOG_LEVEL_DEBUG);
 	log_info(logger, "Servidor listo para recibir al cliente");
-	//list_iterate(instrucciones, mostrar_instrucciones);
-	//while(1){
+	//pthread_t hiloFileSystem
+	//LA ESPERA DE CLIENTE SE PUEDE ENCAPSULAR PERO NO ES PRIORIDAD DE MOMENTO
 	 int cliente_fd = esperar_cliente(serverMemoria);
-	 pthread_t hiloFileSystem;
 	 int resultado;
 	 if ((resultado=pthread_create(&hiloRecibirCliente,NULL,manejar_cliente,( void *) &cliente_fd))!=0)
 		printf("Error al crear hilo. resultado %d",resultado);
 			//}
-	pthread_join(hiloRecibirCliente,NULL);
 	pthread_join(hiloKernel,NULL);
+	pthread_join(hiloCPU,NULL);
+	pthread_join(hiloRecibirCliente,NULL);
 	return EXIT_SUCCESS;
 }
 
@@ -131,30 +138,44 @@ void procesar_mensaje(t_list* mensaje){
 				if ((resultado=pthread_create(&hiloCPUDistpatch,NULL,manejar_cliente,( void *) &conexionDispatch))!=0)
 					printf("Error al crear hilo. resultado %d",resultado);
 			break;
-			case FILESYSTEM:
-				conexionFileSystem=*((int*)list_get(mensaje,2));
-				pthread_t hiloFileSystem;
-				if ((resultado=pthread_create(&hiloFileSystem,NULL,manejar_cliente,( void *) &conexionFileSystem))!=0)
-					printf("Error al crear hilo. resultado %d",resultado);
-			break;
 			default:
 				printf("TIPO NO DEFINIDO\n");
 			break;
 		}
+		 pthread_detach(hiloRecibirCliente);
+		int cliente_fd = esperar_cliente(serverMemoria);
+			 //pthread_t hiloFileSystem;
+			 int resultado;
+			 if ((resultado=pthread_create(&hiloRecibirCliente,NULL,manejar_cliente,( void *) &cliente_fd))!=0)
+				printf("Error al crear hilo. resultado %d",resultado);
+					//}
+
 	}
 	//DIVIDIR EN OTRAS FUNCIONES
 	else if(!strcasecmp(msg,"cargar")){
 		printf("llego iniciar planificacion");
-		int pid=*(int*)list_get(mensaje,1);
 		char* path=malloc(sizeof(char*));
-		 path=list_get(mensaje,2);
-		t_list* instrucciones=list_create();
-		instrucciones=cargar_instrucciones(path);
-		//list_add_in_index(archivos, pid, instrucciones);
+		path=list_get(mensaje,2);
+		proceso procesoNuevo;
+		procesoNuevo.pid=*(int*)list_get(mensaje,1);
+		procesoNuevo.path=path;
+		procesoNuevo.size=*(int*)list_get(mensaje,3);
+		//t_list* instrucciones=list_create();
+		//instrucciones=cargar_instrucciones(path);
+		list_add(archivos, &procesoNuevo);
 		free(path);
 	}
 	else if(!strcasecmp(msg,"instruccion")){
-
+		int pid =*(int*)list_get(mensaje,1);
+		int pc =*(int*)list_get(mensaje,2);
+		proceso procesoActual =list_get(archivos,pid);
+		t_list* listaInstrucciones =cargar_instrucciones(pathInstrucciones,procesoActual.path);
+		log_info(logger, "Me llegaron los siguientes valores:\n");
+		char* instruccion=malloc(sizeof(char) * (200 + 1));
+		instruccion=list_get(listaInstrucciones,pc);
+		 printf("\n el comando es  %s \n", instruccion);
+		 //enviar paquete
+		//enviar_mensaje(instruccion,cliente_fd);
 	}
 	free(msg);
 }
