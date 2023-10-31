@@ -26,10 +26,10 @@ int main(void) {
 	puertoEscuchaInterrupt = config_get_string_value(config,"PUERTO_ESCUCHA_INTERRUPT");
 
 	//Iniciar Cliente que conecta a memoria
-	 conexionMemoria = crear_conexion(ipMemoria, puertoMemoria);
+	/*conexionMemoria = crear_conexion(ipMemoria, puertoMemoria,CPUDispatch);
 	pcbPrueba.pid=1;
 	pcbPrueba.pc=1;
-	ejecutar_ciclo();
+	ejecutar_ciclo(); */
 
 	//Inicia Servidor
 	 serverDispatch = iniciar_servidor(puertoEscuchaDispatch);
@@ -41,7 +41,7 @@ int main(void) {
 
 	//HILO DE MANEJO CLIENTE KERNEL
 	pthread_t hiloKernel;
-	pthread_create(&hiloKernel,NULL,(void *) manejar_cliente,clienteKernel);
+	pthread_create(&hiloKernel,NULL,(void *) manejar_cliente,&clienteKernel);
 	/*PROBABLEMENTE SE PUEDA SEPARAR ESTO Y ABSTRAERLA COMO UNA FUNCION PARA UTILES*/
 	pthread_join(hiloKernel,NULL);
 	//manejar_cliente(NULL);
@@ -100,7 +100,7 @@ uint32_t * obtener_registro(char registro[],registros_CPU* registros){
 }
 
 //FUNCIONES PARA CICLO DE EJECUCION SIMPLE
-char* fetch(int,pid,int pc){
+char* fetch(int pid,int pc){
 	//busca la instruccion en memoria
 	t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"instruccion",sizeof(char*)*11);
@@ -113,9 +113,6 @@ char* fetch(int,pid,int pc){
 	//esta parte se podria mover a procesar mensaje
 	t_list* mensaje=list_create();
 	mensaje= procesar_tipo(conexionMemoria);
-	if(){
-
-	}
 	int size;
 	char * lineaInstruccion=malloc(sizeof(char)*100+1);
 	lineaInstruccion=recibir_buffer(&size,conexionMemoria);

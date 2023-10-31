@@ -48,3 +48,21 @@
 [ERROR] 23:36:01:143 log/(42939:42942): Un cliente se desconecto.
 [INFO] 23:38:13:337 log/(43100:43103): socket 4 
 [ERROR] 23:41:53:397 log/(43100:43103): Un cliente se desconecto.
+[INFO] 19:32:39:196 log/(7520:7522): socket 4 
+[INFO] 19:40:32:282 log/(8337:8339): socket 4 
+[ERROR] 19:42:25:282 log/(8337:8339): Un cliente se desconecto.
+[INFO] 19:46:14:224 log/(8493:8495): socket 4 
+[ERROR] 19:47:59:515 log/(8493:8495): Un cliente se desconecto.
+[INFO] 19:49:03:367 log/(8681:8683): socket 4 
+[INFO] 19:51:15:760 log/(8719:8721): socket 4 
+[INFO] 19:51:48:539 log/(8773:8775): socket 4 
+[INFO] 19:52:31:100 log/(8791:8793): socket 4 
+[INFO] 19:54:25:672 log/(8888:8890): socket 4 
+[INFO] 19:55:29:897 log/(8906:8908): socket 4 
+[ERROR] 19:57:26:908 log/(8906:8908): Un cliente se desconecto.
+[INFO] 19:58:49:934 log/(8972:8974): socket 4 
+[ERROR] 20:03:20:871 log/(8972:8974): Un cliente se desconecto.
+[INFO] 20:04:22:856 log/(9144:9149): socket 4 
+[ERROR] 20:04:22:857 log/(9144:9149): Un cliente se desconecto.
+[INFO] 20:04:36:501 log/(9157:9163): socket 4 
+[INFO] 20:04:56:189 log/(9169:9171): socket 4 

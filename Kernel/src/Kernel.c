@@ -60,7 +60,6 @@ int main(void)
 
 
 
-
 	/************************************INICIALIZAR CONEXIONES************************************/
 	//conexionCPUDispatch = crear_conexion(ipCPU, puertoCPUDispatch,KERNEL);
 	//conexionCPUInterrupt = crear_conexion(ipCPU, puertoCPUInterrupt,KERNEL);
@@ -69,17 +68,21 @@ int main(void)
 
 	/************************************INICIALIZAR HILOS DE RECIBO DE MENSAJES************************************/
 	//HILO DE MANEJO DE MOODULOS
-	//pthread_t * hiloCPUDispatch;
-	//pthread_create(hiloCPUDispatch,NULL,manejar_cliente,conexionCPUDispatch);
+	//pthread_t hiloCPUDispatch;
+	//pthread_create(&hiloCPUDispatch,NULL,manejar_cliente,&conexionCPUDispatch);
+
 	//pthread_t * hiloCPUInterrupt;
 	//pthread_create(hiloCPUInterrupt,NULL,manejar_cliente,conexionCPUInterrupt);
+
 	pthread_t  hiloMemoria;
 
 	int resultado;
 	if ((resultado=pthread_create(&hiloMemoria,NULL,manejar_cliente,&conexionMemoria))!=0)
 		printf("Error al crear hilo. resultado %d",resultado);
+
 	//pthread_t * hiloFilesystem;
 	//pthread_create(hiloFilesystem,NULL,manejar_cliente, conexionFileSystem);
+
 	/************************************INICIO CONSOLA INTERACTIVA*************************************************/
 	pthread_t hiloConsola;
 	pthread_create(&hiloConsola,NULL,manejar_consola, NULL);
@@ -105,7 +108,7 @@ void * manejar_consola( void* args ){
 		}
 		cantValoresLeidos=sscanf( lectura_consola(), "%s %s %s %s", comando, parametros[0],parametros[1],parametros[2]);
 		if (cantValoresLeidos>= 1) {
-			idComando = validacion_contenido_consola(comando);
+			idComando = validacion_contenido_consola(parametros[0]);
 			//printf("comando: %s, path: %s file: %s size:%s \n",comando,parametros[0],parametros[1],parametros[2]);
 		}
 		else{
@@ -235,7 +238,7 @@ void iniciar_proceso(char* path, int size, int prioridad){
 		int pid=proceso->pid;
 		agregar_a_paquete(paqueteArchivo, "cargar", sizeof(char*)*6);
 		agregar_a_paquete(paqueteArchivo, &pid, sizeof(int*));
-		agregar_a_paquete(paqueteArchivo, path, strlen(path));
+		agregar_a_paquete(paqueteArchivo, path, (sizeof(path)-1));
 		agregar_a_paquete(paqueteArchivo, &size, sizeof(int*));
 		//WAIT SEMAFORO DE CONEXION A MEORIA
 		enviar_paquete(paqueteArchivo,conexionMemoria);
@@ -306,31 +309,32 @@ char* lectura_consola(){
 }
 
 int validacion_contenido_consola(char* comando){
-	if(!strcasecmp(comando, "iniciar_proceso")){
+
+	if(!strcasecmp(comando, "iniciar_proceso\0")){
 
 		return INICIAR_PROCESO;
 	}
-	if(!strcasecmp(comando, "finalizar_proceso")){
+	if(!strcasecmp(comando, "finalizar_proceso\0")){
 
 		return FINALIZAR_PROCESO;
 	}
-	if(!strcasecmp(comando, "iniciar_planificacion")){
+	if(!strcasecmp(comando, "iniciar_planificacion\0")){
 
 		return INICIAR_PLANIFICACION;
 	}
-	if(!strcasecmp(comando, "detener_planificacion")){
+	if(!strcasecmp(comando, "detener_planificacion\0")){
 
 		return DETENER_PLANIFICACION;
 	}
-	if(!strcasecmp(comando, "multiprogramacion")){
+	if(!strcasecmp(comando, "multiprogramacion\0")){
 
 		return MULTIPROGRAMACION;
 	}
-	if(!strcasecmp(comando, "proceso_estado")){
+	if(!strcasecmp(comando, "proceso_estado\0")){
 
 		return PROCESO_ESTADO;
 	}
-	if(!strcasecmp(comando,"Exit")){
+	if(!strcasecmp(comando,"Exit\0")){
 		return EXIT;
 	}
 
@@ -423,6 +427,7 @@ void procesar_mensaje(t_list* mensaje){
 			printf("se cargo archivo en memoria, proceso %d",pid);
 		}
 	}
+	free(msg);
 }
 
 

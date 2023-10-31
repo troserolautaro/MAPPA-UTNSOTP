@@ -145,8 +145,7 @@ void procesar_mensaje(t_list* mensaje){
 		 pthread_detach(hiloRecibirCliente);
 		int cliente_fd = esperar_cliente(serverMemoria);
 			 //pthread_t hiloFileSystem;
-			 int resultado;
-			 if ((resultado=pthread_create(&hiloRecibirCliente,NULL,manejar_cliente,( void *) &cliente_fd))!=0)
+		if ((resultado=pthread_create(&hiloRecibirCliente,NULL,manejar_cliente,( void *) &cliente_fd))!=0)
 				printf("Error al crear hilo. resultado %d",resultado);
 					//}
 
@@ -168,8 +167,8 @@ void procesar_mensaje(t_list* mensaje){
 	else if(!strcasecmp(msg,"instruccion")){
 		int pid =*(int*)list_get(mensaje,1);
 		int pc =*(int*)list_get(mensaje,2);
-		proceso procesoActual =list_get(archivos,pid);
-		t_list* listaInstrucciones =cargar_instrucciones(pathInstrucciones,procesoActual.path);
+		proceso* procesoActual = list_get(archivos,pid);
+		t_list* listaInstrucciones =cargar_instrucciones(procesoActual->path);
 		log_info(logger, "Me llegaron los siguientes valores:\n");
 		char* instruccion=malloc(sizeof(char) * (200 + 1));
 		instruccion=list_get(listaInstrucciones,pc);
