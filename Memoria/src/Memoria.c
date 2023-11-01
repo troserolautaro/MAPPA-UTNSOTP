@@ -5,13 +5,8 @@ t_config* config;
 int conexionKernel, conexionDispatch,conexionFileSystem;
 pthread_t hiloRecibirCliente, hiloKernel,hiloCPU;
 char * pathInstrucciones;
-t_list * archivos;
 int serverMemoria;
-typedef struct{
-	int pid;
-	char* path;
-	int size;
-}proceso;
+t_dictionary *archivosCargados;
 
 int main(void) {
 	logger = malloc(sizeof(t_log));
@@ -41,7 +36,7 @@ int main(void) {
 
 	//INICIAR SERVIDOR
 	serverMemoria = iniciar_servidor(puertoEscucha);
-	archivos=list_create();
+	archivosCargados=dictionary_create();
 	//printf("%ld \n %ld", (long)getpid(), (long)getppid());
 	logger = log_create("log.log", "Servidor", 1, LOG_LEVEL_DEBUG);
 	log_info(logger, "Servidor listo para recibir al cliente");
@@ -145,7 +140,7 @@ void procesar_mensaje(t_list* mensaje){
 		 pthread_detach(hiloRecibirCliente);
 		int cliente_fd = esperar_cliente(serverMemoria);
 			 //pthread_t hiloFileSystem;
-		if ((resultado=pthread_create(&hiloRecibirCliente,NULL,manejar_cliente,( void *) &cliente_fd))!=0)
+			 if ((resultado=pthread_create(&hiloRecibirCliente,NULL,manejar_cliente,( void *) &cliente_fd))!=0)
 				printf("Error al crear hilo. resultado %d",resultado);
 					//}
 
@@ -155,25 +150,25 @@ void procesar_mensaje(t_list* mensaje){
 		printf("llego iniciar planificacion");
 		char* path=malloc(sizeof(char*));
 		path=list_get(mensaje,2);
-		proceso procesoNuevo;
-		procesoNuevo.pid=*(int*)list_get(mensaje,1);
-		procesoNuevo.path=path;
-		procesoNuevo.size=*(int*)list_get(mensaje,3);
-		//t_list* instrucciones=list_create();
-		//instrucciones=cargar_instrucciones(path);
-		list_add(archivos, &procesoNuevo);
-		free(path);
+		int pid=*(int*)list_get(mensaje,1);
+		int size=*(int*)list_get(mensaje,3);
+		t_list* instrucciones=list_create();
+		instrucciones=cargar_instrucciones(path);
+		dictionary_put(archivosCargados,string_itoa(pid),instrucciones);
 	}
 	else if(!strcasecmp(msg,"instruccion")){
 		int pid =*(int*)list_get(mensaje,1);
 		int pc =*(int*)list_get(mensaje,2);
-		proceso* procesoActual = list_get(archivos,pid);
-		t_list* listaInstrucciones =cargar_instrucciones(procesoActual->path);
-		log_info(logger, "Me llegaron los siguientes valores:\n");
+		t_list* listaInstrucciones =dictionary_get(archivosCargados,string_itoa(pid));
 		char* instruccion=malloc(sizeof(char) * (200 + 1));
 		instruccion=list_get(listaInstrucciones,pc);
 		 printf("\n el comando es  %s \n", instruccion);
-		 //enviar paquete
+		 t_paquete* paquete=crear_paquete();
+		agregar_a_paquete(paquete,"instruccion",sizeof(char*)*11);
+		//agregar_a_paquete(paquete,&pid,sizeof(int*));
+		agregar_a_paquete(paquete,instruccion,sizeof(instruccion));
+		enviar_paquete(paquete,conexionDispatch);
+		eliminar_paquete(paquete);
 		//enviar_mensaje(instruccion,cliente_fd);
 	}
 	free(msg);
