@@ -127,12 +127,11 @@ void * manejar_cliente(void* socket){
 	do{
 		log_info(logger,"socket %d ",socketint);
 		t_list* mensaje = procesar_tipo(socketint);
-//		log_info(logger,"Llego el mensaje, lo voy a procesar");
 		if(mensaje!=NULL && !list_is_empty(mensaje)){
 			list_add(mensaje, socket);
 			procesar_mensaje(mensaje);
 		}
-
-	}while(false);
+		list_destroy(mensaje);
+	}while(true);
 	return NULL;
 }

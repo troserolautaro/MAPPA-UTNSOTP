@@ -28,7 +28,12 @@ typedef struct{
 	//char* tablaArchivos[];
 }PCB;
 
+typedef enum{
+	FIFO,
+	PRIORIDADES,
+	ROUNDROBIN,
 
+}planificacion;
 typedef enum{
 	INICIAR_PROCESO,
 	FINALIZAR_PROCESO,
@@ -64,6 +69,7 @@ int validacion_contenido_consola(char* comando);
 void planificador_largo();
 void planificador_largo_salida();
 void planificador_corto();
+int planificador_enum();
 
 //Planificador de corto plazo
 void fifo();

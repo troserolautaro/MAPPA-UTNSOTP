@@ -5,7 +5,7 @@
 int conexionCPUDispatch, conexionCPUInterrupt,conexionMemoria,conexionFileSystem;
 
 //Otros
-char* AlgoritmoPlanificacion,* recursos,* instanciasRecursos;
+char* AlgoritmoPlanificacion, *recursos,* instanciasRecursos;
 int PIDGLOBAL = 0;
 t_log* logger;
 //LISTA DE TODOS LOS PROCESOS
@@ -19,7 +19,6 @@ t_queue* colaCorto;
 
 /*TEMPORAL BOOLEANO PARA CONTROLAR LA INICIACION Y DETENCION DE PLANIFICACION*/
 bool detenida=false;
-bool prioridades = false;
 
 
 int gradoMultiprogramacion, quantum;
@@ -46,10 +45,11 @@ int main(void)
 	ipCPU = config_get_string_value(config,"IP_CPU");
 	puertoCPUDispatch=config_get_string_value(config,"PUERTO_CPU_DISPATCH");
 	puertoCPUInterrupt=config_get_string_value(config,"PUERTO_CPU_INTERRUPT");
+
 	AlgoritmoPlanificacion=config_get_string_value(config,"ALGORITMO_PLANIFICACION");
 	quantum=atoi(config_get_string_value(config,"QUANTUM"));
 	gradoMultiprogramacion=atoi(config_get_string_value(config,"GRADO_MULTIPROGRAMACION_INI"));
-
+	//MEJOR => atoi: (int)strtol(nptr, (char **)NULL, 10)
 	//CONFIGURACION DE MEMORIA
 	ipMemoria = config_get_string_value(config,"IP_MEMORIA");
 	puertoMemoria=config_get_string_value(config,"PUERTO_MEMORIA");
@@ -61,15 +61,15 @@ int main(void)
 
 
 	/************************************INICIALIZAR CONEXIONES************************************/
-	//conexionCPUDispatch = crear_conexion(ipCPU, puertoCPUDispatch,KERNEL);
+	conexionCPUDispatch = crear_conexion(ipCPU, puertoCPUDispatch,KERNEL);
 	//conexionCPUInterrupt = crear_conexion(ipCPU, puertoCPUInterrupt,KERNEL);
 	conexionMemoria = crear_conexion(ipMemoria, puertoMemoria,KERNEL);
 	//conexionFileSystem = crear_conexion(ipFileSystem, puertoFileSystem,KERNEL);
 
 	/************************************INICIALIZAR HILOS DE RECIBO DE MENSAJES************************************/
 	//HILO DE MANEJO DE MOODULOS
-	//pthread_t hiloCPUDispatch;
-	//pthread_create(&hiloCPUDispatch,NULL,manejar_cliente,&conexionCPUDispatch);
+	pthread_t hiloCPUDispatch;
+	pthread_create(&hiloCPUDispatch,NULL,manejar_cliente,&conexionCPUDispatch);
 
 	//pthread_t * hiloCPUInterrupt;
 	//pthread_create(hiloCPUInterrupt,NULL,manejar_cliente,conexionCPUInterrupt);
@@ -87,7 +87,7 @@ int main(void)
 	pthread_t hiloConsola;
 	pthread_create(&hiloConsola,NULL,manejar_consola, NULL);
 	/************************************FINALIZA LOS PROGRAMAS O HILOS A FUTURO************************************/
-	//pthread_join(hiloCPUDispatch,NULL);
+	pthread_join(hiloCPUDispatch,NULL);
 	//pthread_join(hiloCPUInterrupt,NULL);
 	pthread_join(hiloMemoria,NULL);
 	//pthread_join(hiloFilesystem,NULL);
@@ -98,40 +98,42 @@ int main(void)
 
 //pasar conexiones en el paramotro como array o struct
 void * manejar_consola( void* args ){
-	char* comando ;
-	char * parametros[3];
-	int idComando, cantValoresLeidos;
+	int idComando;
 	while(1){
-		comando =malloc(sizeof(char*));
-		for(int i=0; i<3; i++){
-			parametros[i]=malloc(sizeof(char*));
-		}
-		cantValoresLeidos=sscanf( lectura_consola(), "%s %s %s %s", comando, parametros[0],parametros[1],parametros[2]);
-		if (cantValoresLeidos>= 1) {
-			idComando = validacion_contenido_consola(parametros[0]);
-			//printf("comando: %s, path: %s file: %s size:%s \n",comando,parametros[0],parametros[1],parametros[2]);
-		}
-		else{
-			printf("error en sscanf \n");
-			idComando=-2;
-		}
+		char * lectura = string_new();
+		string_append(&lectura,lectura_consola());
+		char** parametros = string_array_new();
+		parametros = string_n_split(lectura,4," ");
+		idComando = validacion_contenido_consola(parametros[0]);
+		free(lectura);
+		/*PROBABLEMENTE HAY QUE MEJORAR ESTO, SI BIEN FUNCIONA NO TOMA LOS PARAMETROS QEU SE INGRESAN EN
+		 * CONSOLA */
 		switch(idComando){
 			case INICIAR_PROCESO:
-				if(cantValoresLeidos==4){
-					/* ESTA FUNCION SE ENCARGA DE ASIGNAR LA DIFERENTES PARTES DEL COMANDO A SU RESPECTIVA VARIABLE */
-					iniciar_proceso(parametros[0],atoi(parametros[1]),atoi(parametros[2]));
+					if(parametros[1]==NULL){
+						break;
+					}
+					char* path = malloc(sizeof(parametros[1]));
+					path = string_duplicate(parametros[1]);
+					printf("%s", path);
+					if(parametros[2]==NULL){
+						free(path);
+						break;
+					}
+					int size = (int) *parametros[2];
+
+					if(parametros[3]==NULL){
+						free(path);
+						break;
+					}
+					int prioridad = (int) *parametros[3];
+					iniciar_proceso(path,size,prioridad);
 					planificador_largo();
-				}
-				else{
-					printf("faltan parametros  \n");
-				}
+
 			break;
 			case FINALIZAR_PROCESO:
 					printf("FINALIZAR PROCESO \n");
-					if(cantValoresLeidos==2)
-						finalizar_proceso(atoi(parametros[0]));
-					else
-						printf("faltan parametros  \n");
+				//	finalizar_proceso(atoi(parametros[0]));
 //				enviar_mensaje("FINALIZAR PROCESO",conexionCPUDispatch);
 			break;
 			case INICIAR_PLANIFICACION:
@@ -147,7 +149,7 @@ void * manejar_consola( void* args ){
 			case MULTIPROGRAMACION:
 					printf("MULTIPROGRAMACION \n");
 					//si hay que hacer algo mas, sacar en una funcion aparte
-					gradoMultiprogramacion=atoi(parametros[0]);
+				//	gradoMultiprogramacion=atoi(parametros[0]);
 					//enviar_mensaje("MULTIPROGRAMACION",conexionCPUDispatch);
 			break;
 
@@ -165,11 +167,10 @@ void * manejar_consola( void* args ){
 				printf("No se reconocio el comando \n");
 			break;
 		}
-		cantValoresLeidos=0;
-		free(comando);
-		for(int i=0; i<3; i++){
+		for(size_t i = 0; parametros[i]!=NULL; i++ ){
 			free(parametros[i]);
 		}
+
 	}
 
 	/************************************INICIO CONSOLA INTERACTIVA*************************************************/
@@ -268,9 +269,9 @@ void proceso_estado(){
 	//POSIBLE MUTEX PARA LA LISTA DE PROCESOS
 	if(!list_is_empty(procesos)){
 		int i;
+		PCB* proceso;
 		for(i = 0 ; i<list_size(procesos); i++){
-
-			PCB* proceso= list_get(procesos,i);
+			proceso= list_get(procesos,i);
 			printf("[PID]: %d  ",proceso->pid);
 			printf("[ESTADO]: ");
 			switch(proceso->estado){
@@ -294,6 +295,7 @@ void proceso_estado(){
 				break;
 				}
 		}
+		free(proceso);
 	}else{
 		printf("No hay procesos \n");
 	}
@@ -347,7 +349,6 @@ void planificador_largo(){
 		PCB* proceso=queue_pop(colaLargo);
 		proceso->estado=READY;
 		queue_push(colaCorto,proceso);
-		gradoMultiprogramacion -=1;
 	}
 	planificador_corto();
 }
@@ -358,7 +359,6 @@ void planificador_largo_salida(PCB* proceso){
 	proceso=temp;
 	proceso->estado=TERMINATED;
 	//semaforo de gradoMultiprogramacion
-	gradoMultiprogramacion +=1;
 	free(temp);
 	planificador_largo();
 }
@@ -366,17 +366,24 @@ void planificador_largo_salida(PCB* proceso){
 
 void planificador_corto(){
 		/*PRUEBA DE COMO HACER EL PLANIFICADOR */
-		if(prioridades){
-			prioridad();
-			/*Mandar mensaje con el quantum del kernel y el proceso */
-		}else{
-			if(quantum > 0){
-				round_robin();
-				/*Mandar mensaje con el quantum del kernel y el proceso */
-			}
+		int idPlanificador = planificador_enum();
+		switch(idPlanificador){
+			case PRIORIDADES:
+				prioridad();
+				break;
 
+			case ROUNDROBIN:
+				round_robin();
+				break;
+			case FIFO:
+
+				break;
+			default:
+				printf("No se reconocio el algoritmo");
+				break;
 		}
 		//si no es ninguno de los anterior es fifo por que es una cola (estructura de tipo fifo)
+
 		PCB* proceso= queue_pop(colaCorto);
 		proceso->estado=EXEC;
 		enviar_mensaje("INICIAR PROCESO",conexionCPUDispatch);
@@ -414,6 +421,21 @@ bool ordenar_prioridades(t_list** lista ){
 	return false;
 }
 
+int planificador_enum(){
+	if(!strcasecmp(AlgoritmoPlanificacion, "prioridades\0")){
+
+			return PRIORIDADES;
+	}
+	if(!strcasecmp(AlgoritmoPlanificacion, "round robin\0")){
+
+			return ROUNDROBIN;
+	}
+	if(!strcasecmp(AlgoritmoPlanificacion, "fifo\0")){
+
+			return FIFO;
+	}
+	return -1;
+}
 void procesar_mensaje(t_list* mensaje){
 	char* msg = string_new();
 	string_append(&msg,list_get(mensaje,0));
