@@ -48,3 +48,10 @@
 [ERROR] 23:36:01:143 log/(42939:42942): Un cliente se desconecto.
 [INFO] 23:38:13:337 log/(43100:43103): socket 4 
 [ERROR] 23:41:53:397 log/(43100:43103): Un cliente se desconecto.
+[INFO] 02:12:30:473 log/(54373:54375): socket 4 
+[ERROR] 02:12:54:568 log/(54373:54375): Un cliente se desconecto.
+[INFO] 02:15:32:000 log/(54496:54498): socket 4 
+[INFO] 02:16:48:759 log/(54524:54526): socket 4 
+[ERROR] 02:18:23:286 log/(54524:54526): Un cliente se desconecto.
+[INFO] 02:25:46:132 log/(54652:54655): socket 4 
+[ERROR] 02:28:55:850 log/(54652:54655): Un cliente se desconecto.
