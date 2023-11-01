@@ -8,10 +8,8 @@
 #include <commons/config.h>
 
 //includes de utils globales
-#include <utils.h>
-#include <utilsServidor.h>
-#include <utilsCliente.h>
-#include <pthread.h>
+#include<utilsServidor.h>
+#include<utilsCliente.h>
 
 int serverDispatch,serverInterrupt;
 int clienteKernel;

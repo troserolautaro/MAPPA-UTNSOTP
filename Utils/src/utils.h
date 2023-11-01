@@ -13,6 +13,8 @@
 #include<string.h>
 #include<assert.h>
 #include<signal.h>
+#include<pthread.h>
+#include <semaphore.h>
 
 //USUARIOS DE LA RED
 typedef enum{

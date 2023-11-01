@@ -10,9 +10,9 @@
 
 
 //includes de utils globales
-#include <utils.h>
-#include <utilsServidor.h>
-#include <utilsCliente.h>
+#include<utilsServidor.h>
+#include<utilsCliente.h>
+
 
 struct {
 	char* nombreArchivo;

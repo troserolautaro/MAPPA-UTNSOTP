@@ -8,7 +8,6 @@
 #include <commons/config.h>
 #include <pthread.h>
 //includes de utils globales
-#include <utils.h>
 #include <utilsServidor.h>
 #include <utilsCliente.h>
 

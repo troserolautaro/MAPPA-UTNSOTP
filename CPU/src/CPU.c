@@ -7,6 +7,7 @@ int clienteKernel;
 int reloj = 0; //Es el encargado de revisar el quantum
 t_log* logger ;
 PCB pcbPrueba;
+sem_t ciclo;
 int main(void) {
 	logger = malloc(sizeof(t_log));
 	t_config* config = malloc(sizeof(t_config));
@@ -25,11 +26,10 @@ int main(void) {
 	puertoEscuchaDispatch = config_get_string_value(config,"PUERTO_ESCUCHA_DISPATCH");
 	puertoEscuchaInterrupt = config_get_string_value(config,"PUERTO_ESCUCHA_INTERRUPT");
 
+	//Iniciar semaforos
+	sem_init(&ciclo,0,0);
 	//Iniciar Cliente que conecta a memoria
 	conexionMemoria = crear_conexion(ipMemoria, puertoMemoria,CPUDispatch);
-	pcbPrueba.pid=1;
-	pcbPrueba.pc=1;
-	ejecutar_ciclo();
 
 	//Inicia Servidor
 	 serverDispatch = iniciar_servidor(puertoEscuchaDispatch);
@@ -39,11 +39,16 @@ int main(void) {
 
 
 
-	//HILO DE MANEJO CLIENTE KERNEL
-	pthread_t hiloKernel;
+	//HILOS
+	pthread_t hiloKernel, hiloCiclo,hiloMemoria;
+	//Hilos conexion
 	pthread_create(&hiloKernel,NULL,(void *) manejar_cliente,&clienteKernel);
+	pthread_create(&hiloMemoria,NULL,(void *)manejar_cliente,&conexionMemoria);
+	//Hilos proceso
+	pthread_create(&hiloCiclo,NULL,(void*)ejecutar_ciclo,NULL);
 	/*PROBABLEMENTE SE PUEDA SEPARAR ESTO Y ABSTRAERLA COMO UNA FUNCION PARA UTILES*/
 	pthread_join(hiloKernel,NULL);
+	pthread_join(hiloCiclo,NULL);
 	//manejar_cliente(NULL);
 	return EXIT_SUCCESS;
 }
@@ -185,6 +190,7 @@ void check_interrupt(){
 //FUNCION QUE EJECUTA CICLO DE INSTRUCCION
 //agregar luego parametro pcb a ejecutar ciclo de instruccion;
 void ejecutar_ciclo(){
+	sem_wait(&ciclo);
 	t_instruccion instruccion;
 	char* operacion, *lineaDeCodigo;
 	lineaDeCodigo=fetch(pcbPrueba.pid,pcbPrueba.pc);
@@ -201,6 +207,9 @@ void procesar_mensaje(t_list* mensaje){
 
 	if(!strcasecmp(msg,"conexion")){
 		log_info(logger,"Hola! %d",*(int*)list_get(mensaje,1));
+	}
+	if(!strcasecmp(msg,"instruccion")){
+		sem_post(&ciclo);
 	}
 
 }
