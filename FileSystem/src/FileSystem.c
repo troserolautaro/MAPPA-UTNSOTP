@@ -65,3 +65,53 @@ void procesar_mensaje(t_list* mensaje){
 	}
 
 }
+
+//Comunicacion con kernel
+
+
+void chequear_existencia_archivo(FCB archivo){}
+
+void abrir_archivo(FCB archivo){
+	if(chequearExistenciaArchivo(archivo))
+		return archivo->tamanioArchivo;
+
+	else
+		printf("El archivo no existe");
+}
+
+void crear_archivo(char* nombreArchivo){
+	FCB archivo;
+
+	archivo->nombreArchivo = nombreArchivo;
+	archivo->tamanioArchivo = 0;
+	archivo->bloqueInicial = NULL;
+}
+
+void truncar_archivo(char* situacionDeseada, FCB archivo, int tamanio){ //situacionDeseada : ampliar o reducir tamanio
+	if(strcmp(situacionDeseada,"ampliarTamanio")){
+		archivo->tamanioArchivo += tamanio;
+		//no entendi lo de los bloques
+	}
+	else if(strcmp(situacionDeseada,"reducirTamanio")){
+		archivo->tamanioArchivo -= tamanio;
+		//no entendi lo de los bloques
+	}
+	else
+		printf("Ingresar una situacion correcta");
+
+}
+
+void leer_archivo(){}
+
+void escribir_archivo(){}
+
+//-----------------------
+
+//Comunicacion con Memoria
+
+void iniciar_proceso(){}
+
+void finalizar_proceso(){}
+
+//------------------------
+
