@@ -14,14 +14,15 @@
 #include<utilsCliente.h>
 
 
-struct {
+typedef struct {
 	char* nombreArchivo;
 	int tamanioArchivo;
 	int bloqueInicial;
 }FCB;
 
 void iterator(char* value);
-
+int abrir_archivo(FCB*);
+bool chequear_existencia_archivo(FCB* archivo);
 
 
 

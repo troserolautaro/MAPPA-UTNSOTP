@@ -69,25 +69,28 @@ void procesar_mensaje(t_list* mensaje){
 //Comunicacion con kernel
 
 
-void chequear_existencia_archivo(FCB archivo){}
-
-void abrir_archivo(FCB archivo){
-	if(chequearExistenciaArchivo(archivo))
+bool chequear_existencia_archivo(FCB* archivo){
+	return true;
+}
+int abrir_archivo(FCB* archivo){
+	if(chequear_existencia_archivo(archivo)){
 		return archivo->tamanioArchivo;
-
-	else
+	}
+	else{
 		printf("El archivo no existe");
+		return -1;
+	}
 }
 
 void crear_archivo(char* nombreArchivo){
-	FCB archivo;
+	FCB* archivo;
 
 	archivo->nombreArchivo = nombreArchivo;
 	archivo->tamanioArchivo = 0;
-	archivo->bloqueInicial = NULL;
+	archivo->bloqueInicial = 0;
 }
 
-void truncar_archivo(char* situacionDeseada, FCB archivo, int tamanio){ //situacionDeseada : ampliar o reducir tamanio
+void truncar_archivo(char* situacionDeseada, FCB* archivo, int tamanio){ //situacionDeseada : ampliar o reducir tamanio
 	if(strcmp(situacionDeseada,"ampliarTamanio")){
 		archivo->tamanioArchivo += tamanio;
 		//no entendi lo de los bloques

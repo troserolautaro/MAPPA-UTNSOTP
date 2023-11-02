@@ -131,7 +131,62 @@ void * manejar_cliente(void* socket){
 			list_add(mensaje, socket);
 			procesar_mensaje(mensaje);
 		}
-		list_destroy(mensaje);
+		if(mensaje==NULL){
+			break;
+		}
+		//list_destroy(mensaje);
 	}while(true);
 	return NULL;
+}
+void * recibir_conexiones(int * serverMemoria){
+	do{
+		int cliente_fd = esperar_cliente(serverMemoria);
+		log_info(logger,"socket %d ",cliente_fd);
+		t_list* mensaje = procesar_tipo(cliente_fd);
+		if(mensaje!=NULL && !list_is_empty(mensaje)){
+			char* msg = malloc(sizeof(char*));
+			msg = string_new();
+			string_append(&msg,list_get(mensaje,0));
+			string_trim(&msg);
+			string_to_lower(msg);
+			if(!strcasecmp(msg,"conexion")){
+				log_info(logger,"Hola! %d",*(int*)list_get(mensaje,1));
+				 int resultado;
+				switch(*(int*)list_get(mensaje,1)){
+					case KERNEL:
+						pthread_t hiloKernel;
+						 if ((resultado=pthread_create(&hiloKernel,NULL,manejar_cliente,( void *) &cliente_fd))!=0)
+							printf("Error al crear hilo. resultado %d",resultado);
+					break;
+					case CPUDispatch:
+						pthread_t hiloCPUDistpatch;
+						if ((resultado=pthread_create(&hiloCPUDistpatch,NULL,manejar_cliente,( void *) &cliente_fd))!=0)
+							printf("Error al crear hilo. resultado %d",resultado);
+					break;
+					case CPUInterrupt:
+						pthread_t hiloCPUInterrupt;
+						if ((resultado=pthread_create(&hiloCPUInterrupt,NULL,manejar_cliente,( void *) &cliente_fd))!=0)
+												printf("Error al crear hilo. resultado %d",resultado);
+					break;
+					case MEMORIA:
+						pthread_t hiloMemoria;
+						if ((resultado=pthread_create(&hiloMemoria,NULL,manejar_cliente,( void *) &cliente_fd))!=0)
+												printf("Error al crear hilo. resultado %d",resultado);
+					break;
+					case FILESYSTEM:
+						pthread_t hiloFileSystem;
+						if ((resultado=pthread_create(&hiloFileSystem,NULL,manejar_cliente,( void *) &cliente_fd))!=0)
+												printf("Error al crear hilo. resultado %d",resultado);
+
+					break;
+
+					default:
+						printf("TIPO NO DEFINIDO\n");
+					break;
+				}
+			}
+			free(msg);
+		}
+
+	}while(true);
 }

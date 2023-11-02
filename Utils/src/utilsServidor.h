@@ -16,4 +16,5 @@ int recibir_operacion(int);
 void * procesar_tipo(int);
 void procesar_mensaje(t_list *);
 void * manejar_cliente(void *);
+void * recibir_conexiones(int *);
 #endif /* UTILSSERVIDOR_H_ */

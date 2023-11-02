@@ -58,3 +58,32 @@
 [INFO] 17:40:19:306 log/(16494:16498): socket 4 
 [INFO] 17:40:19:405 log/(16494:16500): socket 5 
 [ERROR] 17:40:53:958 log/(16494:16500): Un cliente se desconecto.
+[INFO] 18:03:33:196 log/(17531:17535): socket 4 
+[INFO] 18:03:33:382 log/(17531:17538): socket 5 
+[ERROR] 18:03:33:680 log/(17531:17538): Un cliente se desconecto.
+[INFO] 18:04:15:765 log/(17577:17583): socket 5 
+[ERROR] 18:04:15:774 log/(17577:17583): Un cliente se desconecto.
+[INFO] 18:04:15:774 log/(17577:17582): socket 4 
+[INFO] 18:04:44:434 log/(17624:17630): socket 5 
+[INFO] 18:04:44:427 log/(17624:17627): socket 4 
+[ERROR] 18:26:46:725 log/(17624:17630): Un cliente se desconecto.
+[INFO] 00:05:54:154 log/(18849:18853): socket 4 
+[INFO] 00:05:54:224 log/(18849:18856): socket 5 
+[ERROR] 00:05:54:522 log/(18849:18856): Un cliente se desconecto.
+[INFO] 00:42:14:642 log/(19461:19470): socket 5 
+[ERROR] 00:42:14:643 log/(19461:19470): Un cliente se desconecto.
+[INFO] 00:42:14:643 log/(19461:19469): socket 4 
+[INFO] 00:44:49:893 log/(19585:19591): socket 5 
+[ERROR] 00:44:49:895 log/(19585:19591): Un cliente se desconecto.
+[INFO] 00:45:05:272 log/(19657:19666): socket 5 
+[INFO] 00:45:05:272 log/(19657:19665): socket 4 
+[ERROR] 00:45:05:273 log/(19657:19666): Un cliente se desconecto.
+[INFO] 00:47:17:891 log/(19845:19854): socket 5 
+[INFO] 00:47:17:892 log/(19845:19853): socket 4 
+[ERROR] 00:47:17:892 log/(19845:19854): Un cliente se desconecto.
+[INFO] 00:48:03:206 log/(19888:19898): socket 5 
+[INFO] 00:48:03:220 log/(19888:19897): socket 4 
+[ERROR] 00:48:03:379 log/(19888:19898): Un cliente se desconecto.
+[INFO] 00:50:43:225 log/(20015:20021): socket 5 
+[INFO] 00:50:43:216 log/(20015:20018): socket 4 
+[ERROR] 00:50:53:991 log/(20015:20021): Un cliente se desconecto.

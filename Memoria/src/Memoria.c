@@ -42,9 +42,8 @@ int main(void) {
 	log_info(logger, "Servidor listo para recibir al cliente");
 	//pthread_t hiloFileSystem
 	//LA ESPERA DE CLIENTE SE PUEDE ENCAPSULAR PERO NO ES PRIORIDAD DE MOMENTO
-	 int cliente_fd = esperar_cliente(serverMemoria);
-	 int resultado;
-	 if ((resultado=pthread_create(&hiloRecibirCliente,NULL,manejar_cliente,( void *) &cliente_fd))!=0)
+	int resultado;
+	if ((resultado=pthread_create(&hiloRecibirCliente,NULL,recibir_conexiones,( void *) &serverMemoria))!=0)
 		printf("Error al crear hilo. resultado %d",resultado);
 			//}
 	pthread_join(hiloKernel,NULL);
@@ -83,12 +82,12 @@ t_list* cargar_instrucciones(char* file){
 		 	    {
 		 			char* lineaTemporal=malloc(sizeof(char) * 100 + 1);
 		 			lineaDeCodigo[strcspn(lineaDeCodigo, "\n")] = '\0';
-		 	        strncpy(lineaTemporal, lineaDeCodigo, sizeof(lineaTemporal));
+		 	        strncpy(lineaTemporal, lineaDeCodigo, sizeof(lineaDeCodigo));
 			 	    printf("p = %s\n",lineaTemporal);
 		 	    	list_add(lineasDeCodigo,lineaTemporal);
 		 	    }
 		    }
-		    fclose(fileInstrucciones);
+	    fclose(fileInstrucciones);
 		    char* primerComando=malloc(sizeof(char) * 100 + 1);
 		    primerComando=list_get(lineasDeCodigo,0);
 		    printf("Línea %d: %s\n", 0, primerComando);

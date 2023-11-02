@@ -252,7 +252,7 @@ void finalizar_proceso(int pid){
 	//POSIBLE MUTEX
 	if(pid<=(list_size(procesos))){
 		//porque asigna pid= -1 ?
-		pid=-1;
+		pid-=1;
 		/*POR AHORA PONGO COMENTARIOS DONDE TALVEZ HABRIA QUE HACER UN FREE! */
 		PCB* proceso= list_get(procesos,pid);
 		if(proceso->estado!=TERMINATED){
