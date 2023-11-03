@@ -3,7 +3,7 @@
 //VARIABLES GLOBALES
 int serverDispatch,serverInterrupt;
 int conexionMemoria;
-int clienteKernel;
+int clienteKernel,clienteKernelInterrupt;
 int reloj = 0; //Es el encargado de revisar el quantum
 t_log* logger ;
 PCB pcbPrueba;
@@ -36,8 +36,7 @@ int main(void) {
 	 serverInterrupt = iniciar_servidor(puertoEscuchaInterrupt);
 	 log_info(logger, "Servidor listo para recibir al cliente");
 	 clienteKernel = esperar_cliente(serverDispatch);
-
-
+	 clienteKernelInterrupt = esperar_cliente(serverInterrupt);
 
 	//HILOS
 	pthread_t hiloKernel, hiloCiclo,hiloMemoria;
@@ -84,6 +83,14 @@ void sub(uint32_t * registroDestino,uint32_t * registroOrigen){
 
 void exit_p(){
 	pcbPrueba.estado=TERMINATED;
+	//busca la instruccion en memoria
+	t_paquete* paquete=crear_paquete();
+	agregar_a_paquete(paquete,"proceso_exit",sizeof(char*)*11);
+	agregar_a_paquete(paquete,pcbPrueba,sizeof(PCB*));
+	//semaforo de conexion a memoria
+	enviar_paquete(paquete,clienteKernel);
+	//signal
+	eliminar_paquete(paquete);
 }
 
 
@@ -205,12 +212,8 @@ void procesar_mensaje(t_list* mensaje){
 	string_trim(&msg);
 	string_to_lower(msg);
 
-	if(!strcasecmp(msg,"conexion")){
-		log_info(logger,"Hola! %d",*(int*)list_get(mensaje,1));
-	}
 	if(!strcasecmp(msg,"instruccion")){
 		sem_post(&ciclo);
 	}
-
 }
 

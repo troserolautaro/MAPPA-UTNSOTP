@@ -3,28 +3,24 @@
 
 //Sockets
 int conexionCPUDispatch, conexionCPUInterrupt,conexionMemoria,conexionFileSystem;
-
-//Otros
-char* AlgoritmoPlanificacion, *recursos,* instanciasRecursos;
-int PIDGLOBAL = 0;
+//CONFIGURACIONES GLOBALES
+int gradoMultiprogramacion, quantum;
 t_log* logger;
 //LISTA DE TODOS LOS PROCESOS
 t_list* procesos;
-
 //COLA LARGO PLAZO
 t_queue* colaLargo;
-
 /*DECIDI HACERLO UNA COLA PORQUE CREI QUE ERA LO MEJOR */
 t_queue* colaCorto;
-
 /*TEMPORAL BOOLEANO PARA CONTROLAR LA INICIACION Y DETENCION DE PLANIFICACION*/
 bool detenida=false;
-
-
-int gradoMultiprogramacion, quantum;
+//Otros
+char* AlgoritmoPlanificacion, *recursos,* instanciasRecursos;
+int PIDGLOBAL = 0;
 
 int main(void)
 {
+	//MEMORY ALLOCATION
 	char* ipCPU=malloc(sizeof(char*)),*ipMemoria=malloc(sizeof(char*)),*ipFileSystem=malloc(sizeof(char*)) ;
 	char* puertoCPUDispatch=malloc(sizeof(char*)),*puertoCPUInterrupt=malloc(sizeof(char*)),
 		* puertoMemoria=malloc(sizeof(char*)),*puertoFileSystem=malloc(sizeof(char*));
@@ -58,11 +54,9 @@ int main(void)
 	ipMemoria = config_get_string_value(config,"IP_MEMORIA");
 	puertoFileSystem=config_get_string_value(config,"PUERTO_FILESYSTEM");
 
-
-
 	/************************************INICIALIZAR CONEXIONES************************************/
 	conexionCPUDispatch = crear_conexion(ipCPU, puertoCPUDispatch,KERNEL);
-	//conexionCPUInterrupt = crear_conexion(ipCPU, puertoCPUInterrupt,KERNEL);
+	conexionCPUInterrupt = crear_conexion(ipCPU, puertoCPUInterrupt,KERNEL);
 	conexionMemoria = crear_conexion(ipMemoria, puertoMemoria,KERNEL);
 	//conexionFileSystem = crear_conexion(ipFileSystem, puertoFileSystem,KERNEL);
 
@@ -204,6 +198,7 @@ t_config* iniciar_config(void)
 void iniciar_planificacion(){
 	if(detenida == true){
 		detenida=false;
+		planificador_largo();
 	}
 }
 void detener_planificacion(){
@@ -275,71 +270,33 @@ void proceso_estado(){
 			printf("[PID]: %d  ",proceso->pid);
 			printf("[ESTADO]: ");
 			switch(proceso->estado){
-				case NEW:
-					printf("NEW\n");
-				break;
-				case READY:
-					printf("READY\n");
-				break;
-				case EXEC:
-					printf("EXEC\n");
-				break;
-				case BLOCKED:
-					printf("BLOCKED\n");
-				break;
-				case TERMINATED:
-					printf("TERMINATED\n");
-				break;
-				default:
-					printf("Estado no definido\n");
-				break;
+				case NEW:printf("NEW\n");break;
+				case READY:printf("READY\n");break;
+				case EXEC:printf("EXEC\n");break;
+				case BLOCKED:printf("BLOCKED\n");break;
+				case TERMINATED:printf("TERMINATED\n");break;
+				default:printf("Estado no definido\n");break;
 				}
 		}
 		free(proceso);
-	}else{
-		printf("No hay procesos \n");
-	}
+	}else{printf("No hay procesos \n");}
 }
 
 char* lectura_consola(){
 	char* linea;
 	linea = readline(">>");
-	if (linea) {
-		add_history(linea);
-	}
+	if (linea) add_history(linea);
 	return linea;
 }
 
 int validacion_contenido_consola(char* comando){
-
-	if(!strcasecmp(comando, "iniciar_proceso\0")){
-
-		return INICIAR_PROCESO;
-	}
-	if(!strcasecmp(comando, "finalizar_proceso\0")){
-
-		return FINALIZAR_PROCESO;
-	}
-	if(!strcasecmp(comando, "iniciar_planificacion\0")){
-
-		return INICIAR_PLANIFICACION;
-	}
-	if(!strcasecmp(comando, "detener_planificacion\0")){
-
-		return DETENER_PLANIFICACION;
-	}
-	if(!strcasecmp(comando, "multiprogramacion\0")){
-
-		return MULTIPROGRAMACION;
-	}
-	if(!strcasecmp(comando, "proceso_estado\0")){
-
-		return PROCESO_ESTADO;
-	}
-	if(!strcasecmp(comando,"Exit\0")){
-		return EXIT;
-	}
-
+	if(!strcasecmp(comando, "iniciar_proceso\0"))return INICIAR_PROCESO;
+	if(!strcasecmp(comando, "finalizar_proceso\0"))return FINALIZAR_PROCESO;
+	if(!strcasecmp(comando, "iniciar_planificacion\0"))return INICIAR_PLANIFICACION;
+	if(!strcasecmp(comando, "detener_planificacion\0"))return DETENER_PLANIFICACION;
+	if(!strcasecmp(comando, "multiprogramacion\0"))return MULTIPROGRAMACION;
+	if(!strcasecmp(comando, "proceso_estado\0"))return PROCESO_ESTADO;
+	if(!strcasecmp(comando,"Exit\0"))return EXIT;
 	return -2;
 }
 /*PROBABLEMENTE AL SER LLAMADOS EN MUCHOS LADOS LOS PLANIFICADORES DEBERIAMOS O HACERLOS THREAD SAFE O CADA VEZ QUE LOS USEMOS
@@ -363,27 +320,16 @@ void planificador_largo_salida(PCB* proceso){
 	planificador_largo();
 }
 
-
 void planificador_corto(){
 		/*PRUEBA DE COMO HACER EL PLANIFICADOR */
 		int idPlanificador = planificador_enum();
 		switch(idPlanificador){
-			case PRIORIDADES:
-				prioridad();
-				break;
-
-			case ROUNDROBIN:
-				round_robin();
-				break;
-			case FIFO:
-
-				break;
-			default:
-				printf("No se reconocio el algoritmo");
-				break;
+			case PRIORIDADES:prioridad();break;
+			case ROUNDROBIN:round_robin();break;
+			case FIFO:break;
+			default:printf("No se reconocio el algoritmo");break;
 		}
 		//si no es ninguno de los anterior es fifo por que es una cola (estructura de tipo fifo)
-
 		PCB* proceso= queue_pop(colaCorto);
 		proceso->estado=EXEC;
 		//ENVIAR PROCESO
@@ -406,35 +352,21 @@ bool ordenar_prioridades(t_list** lista ){
 	while (i->index	< list_size(*lista)){
 		PCB* actual =  (PCB*) i->actual;
 		PCB* siguiente = (!(i->next != NULL)) ?   (PCB*)i->next : NULL;
-
-		if(siguiente == NULL){
-			break;
-		}
-
+		if(siguiente == NULL)break;
 		if(actual->prioridad > siguiente->prioridad){
 			PCB* temp = actual;
 			actual = siguiente;
 			siguiente = temp;
 		}
-
 		list_iterator_next(i);
 	}
 	return false;
 }
 
 int planificador_enum(){
-	if(!strcasecmp(AlgoritmoPlanificacion, "prioridades\0")){
-
-			return PRIORIDADES;
-	}
-	if(!strcasecmp(AlgoritmoPlanificacion, "round robin\0")){
-
-			return ROUNDROBIN;
-	}
-	if(!strcasecmp(AlgoritmoPlanificacion, "fifo\0")){
-
-			return FIFO;
-	}
+	if(!strcasecmp(AlgoritmoPlanificacion, "prioridades\0"))return PRIORIDADES;
+	if(!strcasecmp(AlgoritmoPlanificacion, "round robin\0"))return ROUNDROBIN;
+	if(!strcasecmp(AlgoritmoPlanificacion, "fifo\0"))return FIFO;
 	return -1;
 }
 void procesar_mensaje(t_list* mensaje){
@@ -446,9 +378,7 @@ void procesar_mensaje(t_list* mensaje){
 		int pid=*(int*)list_get(mensaje,1);
 		int resultado=*(int*)list_get(mensaje,2);
 		//1 valido, 0 no valido
-		if(resultado>0){
-			printf("se cargo archivo en memoria, proceso %d",pid);
-		}
+		if(resultado>0)printf("se cargo archivo en memoria, proceso %d",pid);
 	}
 	free(msg);
 }
