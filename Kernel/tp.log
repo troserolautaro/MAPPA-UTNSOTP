@@ -87,3 +87,9 @@
 [INFO] 00:50:43:225 log/(20015:20021): socket 5 
 [INFO] 00:50:43:216 log/(20015:20018): socket 4 
 [ERROR] 00:50:53:991 log/(20015:20021): Un cliente se desconecto.
+[INFO] 02:07:04:528 log/(4089:4094): socket 5 
+[INFO] 02:07:04:503 log/(4089:4093): socket 4 
+[ERROR] 02:27:25:807 log/(4089:4093): Un cliente se desconecto.
+[INFO] 02:29:06:537 log/(4263:4266): socket 4 
+[INFO] 02:29:06:579 log/(4263:4268): socket 5 
+[ERROR] 18:59:53:873 log/(4263:4266): Un cliente se desconecto.

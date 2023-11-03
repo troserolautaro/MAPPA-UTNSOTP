@@ -139,8 +139,9 @@ void * manejar_cliente(void* socket){
 	return NULL;
 }
 void * recibir_conexiones(int * serverMemoria){
+	int serverMemoriaInt=*((int* )serverMemoria);
 	do{
-		int cliente_fd = esperar_cliente(serverMemoria);
+		int cliente_fd = esperar_cliente(serverMemoriaInt);
 		log_info(logger,"socket %d ",cliente_fd);
 		t_list* mensaje = procesar_tipo(cliente_fd);
 		if(mensaje!=NULL && !list_is_empty(mensaje)){

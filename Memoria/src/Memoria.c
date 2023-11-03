@@ -116,36 +116,7 @@ void procesar_mensaje(t_list* mensaje){
 	string_append(&msg,list_get(mensaje,0));
 	string_trim(&msg);
 	string_to_lower(msg);
-
-	if(!strcasecmp(msg,"conexion")){
-		log_info(logger,"Hola! %d",*(int*)list_get(mensaje,1));
-		 int resultado;
-		switch(*(int*)list_get(mensaje,1)){
-			case KERNEL:
-				conexionKernel=*((int*)list_get(mensaje,2));
-				 if ((resultado=pthread_create(&hiloKernel,NULL,manejar_cliente,( void *) &conexionKernel))!=0)
-				    printf("Error al crear hilo. resultado %d",resultado);
-			break;
-			case CPUDispatch:
-				conexionDispatch=*((int*)list_get(mensaje,2));
-				pthread_t hiloCPUDistpatch;
-				if ((resultado=pthread_create(&hiloCPUDistpatch,NULL,manejar_cliente,( void *) &conexionDispatch))!=0)
-					printf("Error al crear hilo. resultado %d",resultado);
-			break;
-			default:
-				printf("TIPO NO DEFINIDO\n");
-			break;
-		}
-		 pthread_detach(hiloRecibirCliente);
-		int cliente_fd = esperar_cliente(serverMemoria);
-			 //pthread_t hiloFileSystem;
-			 if ((resultado=pthread_create(&hiloRecibirCliente,NULL,manejar_cliente,( void *) &cliente_fd))!=0)
-				printf("Error al crear hilo. resultado %d",resultado);
-					//}
-
-	}
-	//DIVIDIR EN OTRAS FUNCIONES
-	else if(!strcasecmp(msg,"cargar")){
+	 if(!strcasecmp(msg,"cargar")){
 		printf("llego iniciar planificacion");
 		char* path=malloc(sizeof(char*));
 		path=list_get(mensaje,2);
@@ -155,7 +126,7 @@ void procesar_mensaje(t_list* mensaje){
 		instrucciones=cargar_instrucciones(path);
 		dictionary_put(archivosCargados,string_itoa(pid),instrucciones);
 	}
-	else if(!strcasecmp(msg,"instruccion")){
+	 if(!strcasecmp(msg,"instruccion")){
 		int pid =*(int*)list_get(mensaje,1);
 		int pc =*(int*)list_get(mensaje,2);
 		t_list* listaInstrucciones =dictionary_get(archivosCargados,string_itoa(pid));

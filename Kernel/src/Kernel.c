@@ -386,6 +386,7 @@ void planificador_corto(){
 
 		PCB* proceso= queue_pop(colaCorto);
 		proceso->estado=EXEC;
+		//ENVIAR PROCESO
 		enviar_mensaje("INICIAR PROCESO",conexionCPUDispatch);
 }
 
@@ -451,5 +452,3 @@ void procesar_mensaje(t_list* mensaje){
 	}
 	free(msg);
 }
-
-
