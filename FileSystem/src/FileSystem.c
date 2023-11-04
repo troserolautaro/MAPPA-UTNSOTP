@@ -1,16 +1,25 @@
+
 #include "FileSystem.h"
 
-int main(void) {
+#define valor_EOF UINT32_MAX  Este valor representa al EOF (End of File)
 
-	t_log *logger = log_create("log.log", "Servidor", 1, LOG_LEVEL_DEBUG);
+	t_dictionary* tablaFat = dictionary_create();
 
-	t_config* config;
 	char* ipMemoria;
 	char* puertoEscucha,* puertoMemoria;
 	char* path_fat, * path_bloques, * path_fcb;
 	char* cant_bloques_total,* cant_bloques_swap;
 	char* tam_bloque;
 	char* retardo_acceso_bloque,* retardo_acceso_fat;
+
+	int tamanio_fat;  Tamaño de los bloques FAT (lo defino en el main)
+
+
+int main(void) {
+
+	t_log *logger = log_create("log.log", "Servidor", 1, LOG_LEVEL_DEBUG);
+
+	t_config* config;
 
 	//CONFIGURACION DE FILESYSTEM
 	ipMemoria = config_get_string_value(config,"IP_MEMORIA");
@@ -25,6 +34,8 @@ int main(void) {
 	retardo_acceso_bloque = config_get_string_value(config,"RETARDO_ACCESO_BLOQUE");
 	retardo_acceso_fat = config_get_string_value(config,"RETARDO_ACCESO_FAT");
 
+	tamanio_fat = (cant_bloques_total - cant_bloques_swap) * sizeof(uint32_t);
+
 	int server_fd = iniciar_servidor(puertoEscucha);
 	log_info(logger, "Servidor listo para recibir al cliente");
 	int cliente_fd = esperar_cliente(server_fd);
@@ -38,7 +49,7 @@ int main(void) {
 				case PAQUETE:
 					lista = recibir_paquete(cliente_fd);
 					log_info(logger, "Me llegaron los siguientes valores:\n");
-//					list_iterate(lista, (void*) iterator);
+					list_iterate(lista, (void*) iterator);
 					break;
 				case -1:
 					log_error(logger, "Un cliente se desconecto.");
@@ -49,6 +60,17 @@ int main(void) {
 					break;
 				}
 			}
+
+		  FILE *archivobloques = fopen("archivobloques.bin", "w");
+			if (archivobloques == NULL) {
+				perror("Error al abrir archivo");
+				return 1;
+			}
+
+
+
+			 fclose(archivobloques);
+
 
 	return EXIT_SUCCESS;
 }
@@ -69,46 +91,59 @@ void procesar_mensaje(t_list* mensaje){
 //Comunicacion con kernel
 
 
-bool chequear_existencia_archivo(FCB* archivo){
-	return true;
-}
-int abrir_archivo(FCB* archivo){
-	if(chequear_existencia_archivo(archivo)){
-		return archivo->tamanioArchivo;
-	}
-	else{
-		printf("El archivo no existe");
-		return -1;
-	}
+int chequear_existencia_archivo(FCB archivo){
+	  return dictionary_has_key(tablaFat, archivo->bloqueInicial);
 }
 
-void crear_archivo(char* nombreArchivo){
-	FCB* archivo;
+
+t_config* abrir_archivo(char* archivo){
+	t_config* archivoReturn = config_create(archivoReturn) ;
+	if(archivoReturn != NULL)
+		return archivoReturn;
+
+	printf ("No existe el archivo");
+
+	return NULL;
+}
+
+
+bool crear_archivo(char* nombreArchivo){
+	char * path=malloc(sizeof(char*)*100);
+	strcpy(path, path_fcb);
+	string_append(&path, "/");
+	string_append(&path,nombreArchivo);
+	FILE * nuevofcb = fopen(path,"w");
+
+	fclose(nuevofcb);
+	return true;
+}
+
+void crear_fcb(char* nombreArchivo){
+	FCB archivo;
 
 	archivo->nombreArchivo = nombreArchivo;
 	archivo->tamanioArchivo = 0;
-	archivo->bloqueInicial = 0;
+	archivo->bloqueInicial = NULL;
 }
 
-void truncar_archivo(char* situacionDeseada, FCB* archivo, int tamanio){ //situacionDeseada : ampliar o reducir tamanio
-	if(strcmp(situacionDeseada,"ampliarTamanio")){
-		archivo->tamanioArchivo += tamanio;
-		//no entendi lo de los bloques
+void truncar_archivo(int tamanioNuevo, FCB archivo, int tamanio){ situacionDeseada : ampliar o reducir tamanio
+	archivo->tamanioArchivo = tamanioNuevo;
+	if(tamanioNuevo > archivo->tamanioArchivo)){
+		no entendi lo de los bloques
 	}
-	else if(strcmp(situacionDeseada,"reducirTamanio")){
-		archivo->tamanioArchivo -= tamanio;
-		//no entendi lo de los bloques
+	else if(tamanioNuevo < archivo->tamanioArchivo){
+		no entendi lo de los bloques
 	}
-	else
-		printf("Ingresar una situacion correcta");
 
 }
 
-void leer_archivo(){}
+void leer_archivo(FCB archivo){
+	comunicacion con memoria
+}
 
 void escribir_archivo(){}
 
-//-----------------------
+-----------------------
 
 //Comunicacion con Memoria
 
@@ -116,5 +151,4 @@ void iniciar_proceso(){}
 
 void finalizar_proceso(){}
 
-//------------------------
-
+------------------------
