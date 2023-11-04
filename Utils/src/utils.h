@@ -7,6 +7,7 @@
 #include<unistd.h>
 #include<netdb.h>
 #include<commons/log.h>
+#include<commons/config.h>
 #include<commons/collections/list.h>
 #include<commons/collections/queue.h>
 #include<commons/string.h>
@@ -89,6 +90,8 @@ t_instruccion *instruccion_create();
 registros_CPU* registros_create();
 void proceso_destroy(PCB* proceso);
 void instruccion_destroy(t_instruccion*);
+t_log* iniciar_logger(void);
+t_config* iniciar_config(void);
 
 #endif /* SRC_UTILS_H_ */
 

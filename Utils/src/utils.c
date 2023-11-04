@@ -34,4 +34,21 @@ void instruccion_destroy(t_instruccion* instruccion){
 	free(instruccion->comando);
 	free(instruccion);
 }
+t_log* iniciar_logger(void)
+{
+	t_log* nuevo_logger =log_create("./tp.log","log",1,LOG_LEVEL_INFO);
+	if(nuevo_logger == NULL){
+			perror("No se ha encontrado el logger\n");
+		}
+	return nuevo_logger;
+}
+
+t_config* iniciar_config(void)
+{
+	t_config* nuevo_config = config_create("./Kernel.config");
+	if(nuevo_config == NULL){
+		perror("No se ha encontrado el config\n");
+	}
+	return nuevo_config;
+}
 
