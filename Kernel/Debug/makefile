@@ -40,7 +40,7 @@ main-build: Kernel
 Kernel: $(OBJS) $(USER_OBJS) makefile $(OPTIONAL_TOOL_DEPS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C Linker'
-	gcc -L"/home/utnso/git/tp-2023-2c-GrupoX/Utils/Debug" -o "Kernel" $(OBJS) $(USER_OBJS) $(LIBS) -lcommons -lUtils -lreadline
+	gcc -L"/home/utnso/tp-2023-2c-GrupoX/Utils/Debug" -o "Kernel" $(OBJS) $(USER_OBJS) $(LIBS) -lcommons -lUtils -lreadline
 	@echo 'Finished building target: $@'
 	@echo ' '
 

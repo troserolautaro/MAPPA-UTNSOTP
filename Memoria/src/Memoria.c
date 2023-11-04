@@ -43,7 +43,7 @@ int main(void) {
 	//pthread_t hiloFileSystem
 	//LA ESPERA DE CLIENTE SE PUEDE ENCAPSULAR PERO NO ES PRIORIDAD DE MOMENTO
 	int resultado;
-	if ((resultado=pthread_create(&hiloRecibirCliente,NULL,recibir_conexiones,( void *) &serverMemoria))!=0)
+	if ((resultado=pthread_create(&hiloRecibirCliente,NULL,(void *)recibir_conexiones,( void *) &serverMemoria))!=0)
 		printf("Error al crear hilo. resultado %d",resultado);
 			//}
 	pthread_join(hiloKernel,NULL);
@@ -54,23 +54,19 @@ int main(void) {
 
 //LEER INSTRUCCIONES DEL PSEUDOCODIGO  Y CARGARLAS EN MEMORIA
 //se probo y funciona
-t_list* cargar_instrucciones(char* file){
-	FILE * fileInstrucciones = malloc(sizeof(FILE));
-		t_list *lineasDeCodigo;
-		lineasDeCodigo= list_create();
-		char * direccionIns=malloc(sizeof(char*)*100);
+t_list* cargar_instrucciones(char** file){
+	FILE * fileInstrucciones;
+		t_list *listaInstrucciones;
+		listaInstrucciones= list_create();
+		char * direccionIns=string_new();
 		//une la ruta de los archivos, con el archivo especificado
 		//cambiar el archivo por variable a futuro, no prioritario de momento
-		strcpy(direccionIns, pathInstrucciones);
+		string_append(&direccionIns, pathInstrucciones);
 		string_append(&direccionIns, "/");
-		string_append(&direccionIns,file);
+		string_append(&direccionIns,*file);
 		//abre el archivo en modo lectura
-		fileInstrucciones = fopen ( direccionIns, "r");
-		//t_instruccion instruccion;
-		//instruccion.comando=malloc(sizeof(char*));
-		//instruccion.parametros= list_create();
-		//char parametros[2][30];
-		char* lineaDeCodigo=malloc(sizeof(char) * 100 + 1);
+		fileInstrucciones = fopen(direccionIns, "r");
+		char* lineaDeCodigo=calloc(101,sizeof(char));
 		if (fileInstrucciones == NULL)
 		    {
 			 printf("no hay insctrucciones o hubo error con el archivo");
@@ -78,22 +74,21 @@ t_list* cargar_instrucciones(char* file){
 		 	else
 		    {
 		 	    printf("\nEl contenido del archivo de prueba es \n");
-		 	    while (fgets(lineaDeCodigo,sizeof(char) * 100,fileInstrucciones )!=NULL)
+		 	    while (fgets(lineaDeCodigo,sizeof(lineaDeCodigo),fileInstrucciones )!=NULL)
 		 	    {
-		 			char* lineaTemporal=malloc(sizeof(char) * 100 + 1);
-		 			lineaDeCodigo[strcspn(lineaDeCodigo, "\n")] = '\0';
-		 	        strncpy(lineaTemporal, lineaDeCodigo, sizeof(lineaDeCodigo));
-			 	    printf("p = %s\n",lineaTemporal);
-		 	    	list_add(lineasDeCodigo,lineaTemporal);
+		 			char* lineaTemporal=calloc(101,sizeof(char));
+		 	        string_append(&lineaTemporal, lineaDeCodigo);
+		 	    	list_add(listaInstrucciones,lineaTemporal);
 		 	    }
 		    }
 	    fclose(fileInstrucciones);
-		    char* primerComando=malloc(sizeof(char) * 100 + 1);
-		    primerComando=list_get(lineasDeCodigo,0);
+		    char* primerComando=list_get(listaInstrucciones,0);
 		    printf("Línea %d: %s\n", 0, primerComando);
-			printf("\n tamaño de lista %d \n", list_size(lineasDeCodigo));
+			printf("\n tamaño de lista %d \n", list_size(listaInstrucciones));
 
-		    return lineasDeCodigo;
+			free(lineaDeCodigo);
+			free(primerComando);
+		    return listaInstrucciones;
 }
 void iterator(char* value) {
 	log_info(logger,"%s", value);
@@ -117,25 +112,37 @@ void procesar_mensaje(t_list* mensaje){
 	string_trim(&msg);
 	string_to_lower(msg);
 	 if(!strcasecmp(msg,"cargar")){
-		printf("llego iniciar planificacion");
-		char* path=malloc(sizeof(char*));
-		path=list_get(mensaje,2);
+
 		int pid=*(int*)list_get(mensaje,1);
+
+		char* path=string_new();
+		string_append(&path,(char*)list_get(mensaje,2));
+
 		int size=*(int*)list_get(mensaje,3);
 		t_list* instrucciones=list_create();
-		instrucciones=cargar_instrucciones(path);
-		dictionary_put(archivosCargados,string_itoa(pid),instrucciones);
+
+		instrucciones=cargar_instrucciones(&path);
+		dictionary_put(archivosCargados,string_itoa(pid),instrucciones); //Acordarse liberar diccionario
+
+		t_paquete * paquete = crear_paquete();
+		agregar_a_paquete(paquete,"cargado",sizeof(char *)*8);
+		agregar_a_paquete(paquete,&pid,sizeof(int));
+		enviar_paquete(paquete,conexionKernel);
+		eliminar_paquete(paquete);
+
+		free(path);
 	}
 	 if(!strcasecmp(msg,"instruccion")){
 		int pid =*(int*)list_get(mensaje,1);
 		int pc =*(int*)list_get(mensaje,2);
+
 		t_list* listaInstrucciones =dictionary_get(archivosCargados,string_itoa(pid));
-		char* instruccion=malloc(sizeof(char) * (200 + 1));
-		instruccion=list_get(listaInstrucciones,pc);
+		char* instruccion=string_new();
+		string_append(&instruccion,(char *)list_get(listaInstrucciones,pc));
 		 printf("\n el comando es  %s \n", instruccion);
+
 		 t_paquete* paquete=crear_paquete();
 		agregar_a_paquete(paquete,"instruccion",sizeof(char*)*11);
-		//agregar_a_paquete(paquete,&pid,sizeof(int*));
 		agregar_a_paquete(paquete,instruccion,sizeof(instruccion));
 		enviar_paquete(paquete,conexionDispatch);
 		eliminar_paquete(paquete);

@@ -5,9 +5,19 @@ int serverDispatch,serverInterrupt;
 int conexionMemoria;
 int clienteKernel,clienteKernelInterrupt;
 int reloj = 0; //Es el encargado de revisar el quantum
+//
 t_log* logger ;
-PCB pcbPrueba;
-sem_t ciclo;
+t_instruccion * instruccion;
+PCB* proceso;
+
+/*struct{
+	t_instruccion * instruccion;
+	sem_t instruccion_s;
+}semaforo_instruccion;
+ *
+ */
+//Semaforos
+sem_t ciclo,instruccion_s;
 int main(void) {
 	logger = malloc(sizeof(t_log));
 	t_config* config = malloc(sizeof(t_config));
@@ -28,6 +38,7 @@ int main(void) {
 
 	//Iniciar semaforos
 	sem_init(&ciclo,0,0);
+	sem_init(&instruccion_s,0,0);
 	//Iniciar Cliente que conecta a memoria
 	conexionMemoria = crear_conexion(ipMemoria, puertoMemoria,CPUDispatch);
 
@@ -81,113 +92,131 @@ void sub(uint32_t * registroDestino,uint32_t * registroOrigen){
 	*registroDestino -= *registroOrigen;
 }
 
-void exit_p(){
-	pcbPrueba.estado=TERMINATED;
+void exit_i(){
 	//busca la instruccion en memoria
 	t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"proceso_exit",sizeof(char*)*11);
-	agregar_a_paquete(paquete,pcbPrueba,sizeof(PCB*));
-	//semaforo de conexion a memoria
+	serializar_proceso(paquete,proceso);
 	enviar_paquete(paquete,clienteKernel);
-	//signal
 	eliminar_paquete(paquete);
 }
 
 
 //FUNCION AUXILIAR PARA OBTENER LOS REGISTROS INDICADOS EN LAS INSTRUCCIONES
-uint32_t * obtener_registro(char registro[],registros_CPU* registros){
+uint32_t * obtener_registro(char* registro){
 	if(!strcasecmp(registro, "AX")){
-		return &registros->AX;
+		return &proceso->registros->AX;
 	}
 	if(!strcasecmp(registro, "BX")){
-		return &registros->BX;
+		return &proceso->registros->BX;
 	}
 	if(!strcasecmp(registro, "CX")){
-		return &registros->CX;
+		return &proceso->registros->CX;
 	}
 	if(!strcasecmp(registro, "DX")){
-		return  &registros->DX;
+		return &proceso->registros->DX;
 	}
-	return -2;
+	return (uint32_t*)NULL;
 }
 
 //FUNCIONES PARA CICLO DE EJECUCION SIMPLE
-char* fetch(int pid,int pc){
+void fetch(int pid,int pc){
 	//busca la instruccion en memoria
 	t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"instruccion",sizeof(char*)*11);
-	agregar_a_paquete(paquete,&pid,sizeof(int*));
-	agregar_a_paquete(paquete,&pc,sizeof(int*));
-	//semaforo de conexion a memoria
+	agregar_a_paquete(paquete,&pid,sizeof(uint32_t));
+	agregar_a_paquete(paquete,&pc,sizeof(uint32_t));
 	enviar_paquete(paquete,conexionMemoria);
-	//signal
 	eliminar_paquete(paquete);
 	//esta parte se podria mover a procesar mensaje
-	t_list* mensaje=list_create();
-	mensaje= procesar_tipo(conexionMemoria);
-	char* msg = malloc(sizeof(char*));
-	msg = string_new();
-	string_append(&msg,list_get(mensaje,0));
-	string_trim(&msg);
-	string_to_lower(msg);
-	int size;
-	char * lineaInstruccion=malloc(sizeof(char)*100+1);
-	if(!strcasecmp(msg,"instruccion")){
-		lineaInstruccion=list_get(mensaje,1);
-		return lineaInstruccion;
-	}
-	return "exit";
+	//CONSUMIDOR esperando respuesta memoria
 }
 
 //definir como llega de memoria para definir el tipo de parametro
-t_instruccion decode( char* lineaDeCodigo){
+void decode(){
 	//obtener registros necesarios para ejecutar la instruccion y pasarselos a execute
 	//DECODIFICACION DE LA INSTRUCCION
-	t_instruccion instruccion;
-	instruccion.comando=malloc(sizeof(char*));
-	instruccion.parametros= list_create();
-	char * parametros[2];
+/*	char * parametros[2];
 	parametros[0]=malloc(sizeof(char) * 30 + 1);
 	parametros[1]=malloc(sizeof(char) * 30 + 1);
-	if (sscanf(lineaDeCodigo, "%s %s %s", instruccion.comando,parametros[0], parametros[1]) >= 1) {
+	if (sscanf(lineaDeCodigo, "%s %s %s", instruccion->comando,parametros[0], parametros[1]) >= 1) {
 		 //printf("\n el comando es  %s \n", instruccion.comando);
 
 		for (int i = 0; i < 2; i++) {
 			if (strlen(parametros[i]) > 0) {
 				parametros[i][strcspn(parametros[i], "\n")] = '\0';
-				list_add(instruccion.parametros,parametros[i]);
+				list_add(instruccion->parametros,parametros[i]);
 				printf("parametro %d tiene : %s \n", i,parametros[i]);
 			}
 		}
-	}
-	return instruccion;
+	} */
 }
-void execute(t_instruccion instruccion){
-	t_list * parametros=instruccion.parametros;
+void execute(){
+	t_list * parametros=instruccion->parametros;
 	uint32_t *registroOrigen, *registroDestino;
 	//obtengo parametros
-	char* parametro1=malloc(sizeof(char)*30+1);
+	/*char* parametro1=malloc(sizeof(char)*30+1);
 	parametro1=list_get(parametros,0);
 	if(parametro1!=NULL){
-		registroOrigen=obtener_registro(parametro1,&pcbPrueba.registros);
+		registroOrigen=obtener_registro(parametro1,&proceso->registros);
 	}
 	char* parametro2=malloc(sizeof(char)*30+1);
 	parametro2=list_get(parametros,1);
-	if(parametro2!=NULL && strcasecmp(instruccion.comando, "SET")){
-		registroDestino=obtener_registro(parametro2,&pcbPrueba.registros);
+	if(parametro2!=NULL && strcasecmp(instruccion->comando, "SET")){
+		registroDestino=obtener_registro(parametro2,&proceso->registros);
+	}*/
+	/*executo funcion, talvez es mejor que la funcion reciba un int y esto este dentro de un switch en el que adentro
+	revisemos las variables que haya que utilizar*/
+	if(!strcasecmp(instruccion->comando, "SET")){
+		registroDestino=obtener_registro((char*)list_get(parametros,0));
+		int valor = *(int*) list_get(parametros,1);
+
+		set(registroDestino,valor);
 	}
-	//executo funcion
-	if(!strcasecmp(instruccion.comando, "SET")){
-		set(registroOrigen,(int)*parametro2);
+	if(!strcasecmp(instruccion->comando, "SUM")){
+		sum(registroDestino,registroOrigen);
 	}
-	if(!strcasecmp(instruccion.comando, "SUM")){
-		sum(registroOrigen,registroDestino);
+	if(!strcasecmp(instruccion->comando, "SUB")){
+		sub(registroDestino,registroOrigen);
 	}
-	if(!strcasecmp(instruccion.comando, "SUB")){
-		sub(registroOrigen,registroDestino);
+	if(!strcasecmp(instruccion->comando,"JNZ")){
+		//jnz();
 	}
-	if(!strcasecmp(instruccion.comando, "EXIT")){
-		exit_p();
+	if(!strcasecmp(instruccion->comando,"SLEEP")){
+		//sleep();
+	}
+	if(!strcasecmp(instruccion->comando,"WAIT")){
+		//WAIT();
+	}
+	if(!strcasecmp(instruccion->comando,"SIGNAL")){
+		//SIGNAL();
+	}
+	if(!strcasecmp(instruccion->comando,"MOV_IN")){
+		//MOV_IN();
+	}
+	if(!strcasecmp(instruccion->comando,"MOV_OUT")){
+		//MOV_OUT();
+	}
+	if(!strcasecmp(instruccion->comando,"F_OPEN")){
+		//F_OPEN();
+	}
+	if(!strcasecmp(instruccion->comando,"F_CLOSE")){
+		//F_CLOSE();
+	}
+	if(!strcasecmp(instruccion->comando,"F_SEEK")){
+		//F_SEEK();
+	}
+	if(!strcasecmp(instruccion->comando,"F_READ")){
+		//F_READ();
+	}
+	if(!strcasecmp(instruccion->comando,"F_WRITE")){
+		//F_WRITE();
+	}
+	if(!strcasecmp(instruccion->comando,"F_TRUNCATE")){
+		//F_TRUNCATE();
+	}
+	if(!strcasecmp(instruccion->comando, "EXIT")){
+		exit_i();
 	}
 }
 void check_interrupt(){
@@ -197,12 +226,13 @@ void check_interrupt(){
 //FUNCION QUE EJECUTA CICLO DE INSTRUCCION
 //agregar luego parametro pcb a ejecutar ciclo de instruccion;
 void ejecutar_ciclo(){
+	//Esperando un PCB
 	sem_wait(&ciclo);
-	t_instruccion instruccion;
-	char* operacion, *lineaDeCodigo;
-	lineaDeCodigo=fetch(pcbPrueba.pid,pcbPrueba.pc);
-	instruccion= decode(lineaDeCodigo);
-	execute(instruccion);
+	fetch(proceso->pid,proceso->pc);
+	sem_wait(&instruccion_s);
+	decode();
+	//instruccion= decode(lineaDeCodigo);
+	//execute(instruccion);
 	//check_interrupt();
 }
 
@@ -212,8 +242,23 @@ void procesar_mensaje(t_list* mensaje){
 	string_trim(&msg);
 	string_to_lower(msg);
 
-	if(!strcasecmp(msg,"instruccion")){
+	if(!strcasecmp(msg,"proceso")){
 		sem_post(&ciclo);
+	}
+	if(!strcasecmp(msg,"instruccion")){
+		char* comando = string_new();
+		string_append(&comando,list_get(mensaje,1));
+		string_trim_right(&comando);
+		char** parametros = string_array_new();
+		parametros = string_n_split(comando,3," ");
+		instruccion->comando=parametros[0];
+		for(int i=1; parametros[i]!=NULL;i++){
+			list_add(instruccion->parametros,parametros[i]);
+		}
+		sem_post(&instruccion_s);
+	}
+	if(!strcasecmp(msg,"interrupcion")){
+
 	}
 }
 

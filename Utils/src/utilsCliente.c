@@ -122,3 +122,11 @@ void handshake(int cliente, int socket_cliente){
 	enviar_paquete(temp,socket_cliente);
 	eliminar_paquete(temp);
 }
+void serializar_proceso(t_paquete* paquete,PCB* proceso){
+	agregar_a_paquete(paquete,&proceso->pid,sizeof(uint32_t));
+	agregar_a_paquete(paquete,&proceso->pc,sizeof(uint32_t));
+	agregar_a_paquete(paquete,&proceso->registros->AX,sizeof(uint32_t));
+	agregar_a_paquete(paquete,&proceso->registros->BX,sizeof(uint32_t));
+	agregar_a_paquete(paquete,&proceso->registros->CX,sizeof(uint32_t));
+	agregar_a_paquete(paquete,&proceso->registros->DX,sizeof(uint32_t));
+}

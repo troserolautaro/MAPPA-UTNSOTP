@@ -6,6 +6,7 @@ int conexionCPUDispatch, conexionCPUInterrupt,conexionMemoria,conexionFileSystem
 //CONFIGURACIONES GLOBALES
 int gradoMultiprogramacion, quantum;
 t_log* logger;
+t_config* config;
 //LISTA DE TODOS LOS PROCESOS
 t_list* procesos;
 //COLA LARGO PLAZO
@@ -13,7 +14,7 @@ t_queue* colaLargo;
 /*DECIDI HACERLO UNA COLA PORQUE CREI QUE ERA LO MEJOR */
 t_queue* colaCorto;
 /*TEMPORAL BOOLEANO PARA CONTROLAR LA INICIACION Y DETENCION DE PLANIFICACION*/
-bool detenida=false;
+bool detenida=true;
 //Otros
 char* AlgoritmoPlanificacion, *recursos,* instanciasRecursos;
 int PIDGLOBAL = 0;
@@ -26,7 +27,7 @@ int main(void)
 		* puertoMemoria=malloc(sizeof(char*)),*puertoFileSystem=malloc(sizeof(char*));
 
 	logger=malloc(sizeof(t_log));
-	t_config* config=malloc(sizeof(config));
+	config=malloc(sizeof(config));
 	logger = iniciar_logger();
 	config = iniciar_config();
 
@@ -65,7 +66,7 @@ int main(void)
 	pthread_t hiloCPUDispatch;
 	pthread_create(&hiloCPUDispatch,NULL,manejar_cliente,&conexionCPUDispatch);
 
-	//pthread_t * hiloCPUInterrupt;
+	//pthread_t  hiloCPUInterrupt;
 	//pthread_create(hiloCPUInterrupt,NULL,manejar_cliente,conexionCPUInterrupt);
 
 	pthread_t  hiloMemoria;
@@ -86,7 +87,6 @@ int main(void)
 	pthread_join(hiloMemoria,NULL);
 	//pthread_join(hiloFilesystem,NULL);
 	//pthread_join(hiloConsola,NULL);
-	config_destroy(config);
 	return EXIT_SUCCESS;
 }
 
@@ -96,6 +96,7 @@ void * manejar_consola( void* args ){
 	while(1){
 		char * lectura = string_new();
 		string_append(&lectura,lectura_consola());
+		string_trim(&lectura);
 		char** parametros = string_array_new();
 		parametros = string_n_split(lectura,4," ");
 		idComando = validacion_contenido_consola(parametros[0]);
@@ -110,6 +111,7 @@ void * manejar_consola( void* args ){
 					char* path = malloc(sizeof(parametros[1]));
 					path = string_duplicate(parametros[1]);
 					printf("%s", path);
+
 					if(parametros[2]==NULL){
 						free(path);
 						break;
@@ -122,7 +124,6 @@ void * manejar_consola( void* args ){
 					}
 					int prioridad = (int) *parametros[3];
 					iniciar_proceso(path,size,prioridad);
-					planificador_largo();
 
 			break;
 			case FINALIZAR_PROCESO:
@@ -171,10 +172,7 @@ void * manejar_consola( void* args ){
 
 	/************************************FINALIZA LOS PROGRAMAS O HILOS A FUTURO************************************/
 
-	terminar_programa(conexionCPUDispatch, logger);
-	terminar_programa(conexionCPUInterrupt, logger);
-	terminar_programa(conexionMemoria, logger);
-	terminar_programa(conexionFileSystem, logger);
+	terminar_programa();
 }
 
 t_log* iniciar_logger(void)
@@ -205,10 +203,22 @@ void detener_planificacion(){
 	detenida=true;
 }
 
-void terminar_programa(int conexion, t_log* logger)
+void terminar_programa()
 {
 	log_destroy(logger);
-	liberar_conexion(conexion);
+	config_destroy(config);
+	liberar_conexion(conexionCPUDispatch);
+	liberar_conexion(conexionCPUDispatch);
+	liberar_conexion(conexionMemoria);
+	liberar_conexion(conexionFileSystem);
+	for(int i = 0;list_get(procesos,i)!=NULL;i++){
+		proceso_destroy((PCB*)list_get(procesos,i));
+	}
+	list_destroy(procesos);
+	queue_destroy(colaCorto);
+	queue_destroy(colaLargo);
+	//terminar_hilos();
+	//int conexionCPUDispatch, conexionCPUInterrupt,conexionMemoria,conexionFileSystem;
 
 }
 
@@ -216,30 +226,28 @@ void iniciar_proceso(char* path, int size, int prioridad){
 		//Mutex
 		PIDGLOBAL++;
 		//crea el proceso
-		PCB* proceso = malloc(sizeof(PCB));
+		PCB* proceso = proceso_create();
 		proceso->estado = NEW;
 		proceso->prioridad = prioridad;
-		proceso->registros.AX= 0;
-		proceso->registros.BX = 0;
-		proceso->registros.CX = 0;
-		proceso->registros.DX = 0;
+		proceso->registros->AX= 0;
+		proceso->registros->BX = 0;
+		proceso->registros->CX = 0;
+		proceso->registros->DX = 0;
 		proceso->pc=0;
 		proceso->pid = PIDGLOBAL; //Modificar en caso de que sea necesario
 		//añade el proceso a la lista de procesos y a la cola del planificador a largo plazo
-		list_add(procesos,proceso);
-		queue_push(colaLargo,proceso);
+
 		//envia archivo a cargar en memoria para este proceso a el modulo de memoria
 		//SE PUEDE EXPORTAR SI ES NECESARIO EL ENVIO DE PAQUETE SI ES NECESARIO
 		t_paquete * paqueteArchivo=crear_paquete();
 		int pid=proceso->pid;
 		agregar_a_paquete(paqueteArchivo, "cargar", sizeof(char*)*6);
 		agregar_a_paquete(paqueteArchivo, &pid, sizeof(int*));
-		agregar_a_paquete(paqueteArchivo, path, (sizeof(path)-1));
+		agregar_a_paquete(paqueteArchivo, path, (sizeof(path)));
 		agregar_a_paquete(paqueteArchivo, &size, sizeof(int*));
-		//WAIT SEMAFORO DE CONEXION A MEORIA
 		enviar_paquete(paqueteArchivo,conexionMemoria);
-		//SIGNAL
 		eliminar_paquete(paqueteArchivo);
+		list_add(procesos,proceso);
 }
 
 
@@ -302,7 +310,7 @@ int validacion_contenido_consola(char* comando){
 /*PROBABLEMENTE AL SER LLAMADOS EN MUCHOS LADOS LOS PLANIFICADORES DEBERIAMOS O HACERLOS THREAD SAFE O CADA VEZ QUE LOS USEMOS
  * USAR UN MUTEX */
 void planificador_largo(){
-	while(gradoMultiprogramacion>=queue_size(colaCorto) && !detenida && !queue_is_empty(colaLargo)){
+	while(gradoMultiprogramacion>queue_size(colaCorto) /*CAMBIAR*/ && !detenida && !queue_is_empty(colaLargo)){
 		PCB* proceso=queue_pop(colaLargo);
 		proceso->estado=READY;
 		queue_push(colaCorto,proceso);
@@ -322,18 +330,23 @@ void planificador_largo_salida(PCB* proceso){
 
 void planificador_corto(){
 		/*PRUEBA DE COMO HACER EL PLANIFICADOR */
-		int idPlanificador = planificador_enum();
-		switch(idPlanificador){
-			case PRIORIDADES:prioridad();break;
-			case ROUNDROBIN:round_robin();break;
-			case FIFO:break;
-			default:printf("No se reconocio el algoritmo");break;
+		if(!queue_is_empty(colaCorto)){
+			int idPlanificador = planificador_enum();
+			switch(idPlanificador){
+				case PRIORIDADES: prioridad(); break;
+				case ROUNDROBIN: round_robin(); break;
+				case FIFO: break;
+				default:printf("No se reconocio el algoritmo");break;
+			}
+			//si no es ninguno de los anterior es fifo por que es una cola (estructura de tipo fifo)
+			PCB* proceso= queue_pop(colaCorto);
+			proceso->estado=EXEC;
+			//ENVIAR PROCESO
+			t_paquete* paquete = crear_paquete();
+			agregar_a_paquete(paquete, "proceso", sizeof(char*)*8);
+			agregar_a_paquete(paquete,proceso,sizeof(PCB*));
 		}
-		//si no es ninguno de los anterior es fifo por que es una cola (estructura de tipo fifo)
-		PCB* proceso= queue_pop(colaCorto);
-		proceso->estado=EXEC;
-		//ENVIAR PROCESO
-		enviar_mensaje("INICIAR PROCESO",conexionCPUDispatch);
+
 }
 
 void prioridad(){
@@ -377,8 +390,14 @@ void procesar_mensaje(t_list* mensaje){
 	if(!strcasecmp(msg,"CrearProceso")){
 		int pid=*(int*)list_get(mensaje,1);
 		int resultado=*(int*)list_get(mensaje,2);
-		//1 valido, 0 no valido
 		if(resultado>0)printf("se cargo archivo en memoria, proceso %d",pid);
+	}
+	if(!strcasecmp(msg,"proceso_exit")){
+		planificador_largo_salida(list_get(mensaje,1));
+	}
+	if(!strcasecmp(msg,"cargado")){
+		int pid = *(int*)list_get(mensaje,1);
+		queue_push(colaLargo,list_get(procesos,pid));
 	}
 	free(msg);
 }

@@ -18,14 +18,7 @@
 
 
 
-typedef struct{
-	int pid;
-	int pc;
-	int prioridad;
-	int estado;
-	registros_CPU registros;
-	//char* tablaArchivos[];
-}PCB;
+
 
 typedef enum{
 	FIFO,
@@ -53,7 +46,7 @@ void paquete(int);
 //Comandos
 void iniciar_planificacion();
 void detener_planificacion();
-void terminar_programa(int conexion, t_log* logger);
+void terminar_programa();
 void iniciar_proceso(char* path, int size, int prioridad);
 void finalizar_proceso(int pid);
 void proceso_estado();

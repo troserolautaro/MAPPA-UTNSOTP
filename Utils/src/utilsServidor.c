@@ -125,7 +125,6 @@ void iterator(char* value) {
 void * manejar_cliente(void* socket){
 	int socketint=*((int *) socket);
 	do{
-		log_info(logger,"socket %d ",socketint);
 		t_list* mensaje = procesar_tipo(socketint);
 		if(mensaje!=NULL && !list_is_empty(mensaje)){
 			list_add(mensaje, socket);
@@ -138,10 +137,10 @@ void * manejar_cliente(void* socket){
 	}while(true);
 	return NULL;
 }
-void * recibir_conexiones(int * serverMemoria){
-	int serverMemoriaInt=*((int* )serverMemoria);
+void * recibir_conexiones(int * server){
+	int serverInt=*((int* )server);
 	do{
-		int cliente_fd = esperar_cliente(serverMemoriaInt);
+		int cliente_fd = esperar_cliente(serverInt);
 		log_info(logger,"socket %d ",cliente_fd);
 		t_list* mensaje = procesar_tipo(cliente_fd);
 		if(mensaje!=NULL && !list_is_empty(mensaje)){
@@ -178,7 +177,6 @@ void * recibir_conexiones(int * serverMemoria){
 						pthread_t hiloFileSystem;
 						if ((resultado=pthread_create(&hiloFileSystem,NULL,manejar_cliente,( void *) &cliente_fd))!=0)
 												printf("Error al crear hilo. resultado %d",resultado);
-
 					break;
 
 					default:
