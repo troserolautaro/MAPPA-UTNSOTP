@@ -8,8 +8,6 @@ typedef enum{
 
 }planificacion;
 
-char* AlgoritmoPlanificacion, *recursos,* instanciasRecursos;
-
 int planificador_enum();
 void fifo();
 void prioridad(); //Multicola sin salto entre ellas

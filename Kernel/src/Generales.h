@@ -8,16 +8,19 @@
 #include<commons/config.h>
 #include<readline/readline.h>
 #include<readline/history.h>
-
 //includes de utils globales
 #include <utilsServidor.h>
 #include <utilsCliente.h>
-int PIDGLOBAL = 0;
-bool detenida=true;
-t_queue* colaCorto;
-t_list* procesos;
-t_log* logger;
-t_config* config;
-int conexionCPUDispatch, conexionCPUInterrupt,conexionMemoria,conexionFileSystem,pidGlobal;
+
+extern int PIDGLOBAL ;
+extern bool detenida;
+extern t_queue* colaLargo;
+extern t_queue* colaCorto;
+extern t_list* procesos;
+extern t_log* logger;
+extern t_config* config;
+extern int conexionCPUDispatch, conexionCPUInterrupt,conexionMemoria,conexionFileSystem,pidGlobal;
+extern int gradoMultiprogramacion, quantum;
+extern char* AlgoritmoPlanificacion;
 
 #endif /* GENERALES_H_ */

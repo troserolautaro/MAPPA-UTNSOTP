@@ -1,11 +1,5 @@
 #include "Kernel.h"
 
-
-//CONFIGURACIONES GLOBALES
-t_log* logger;
-t_config* config;
-//LISTA DE TODOS LOS PROCESOS
-
 int main(void)
 {
 	//MEMORY ALLOCATION
