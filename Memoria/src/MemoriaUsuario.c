@@ -1,8 +1,34 @@
-/*
- * MemoriaUsuario.c
- *
- *  Created on: Nov 4, 2023
- *      Author: utnso
- */
+#include "MemoriaUsuario.h"
 
+RegistroTablaPagina * TablaPaginacion;
+void* espacioContiguoMemoria;
+char *tamMemoria,
+	 *tamPagina,
+	 *retardoRespuesta,
+	 *algoritmoReemplazo;
+int cantPaginas;
+
+//INICIAR  MEMORIA DE USUARIO
+void iniciar_memoria_usuario(){
+	//algoritmo de remplazo
+	espacioContiguoMemoria=malloc((tamMemoria,NULL, 10));
+	cantPaginas=strtol(tamMemoria,NULL,10)/strtol(tamPagina,NULL,10);
+	TablaPaginacion=malloc(cantPaginas*sizeof(RegistroTablaPagina));
+}
+
+//CREAR PROCESO
+
+//FINALIZAR PROCESO
+
+//ACCESO A TABLA DE PAGINAS y LLAMADO A PAGE FAULT
+
+//ACCESO A ESPACIO DE USUARIO LECTURA
+
+//ACCESO A ESPACIO DE USUARIO ESCRITURA
+
+//PAGE FAULT
+
+//FIFO
+
+//LRU
 

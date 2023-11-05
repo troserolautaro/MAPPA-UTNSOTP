@@ -9,8 +9,8 @@ int main(void)
 
 	logger=malloc(sizeof(t_log));
 	config=malloc(sizeof(config));
-	logger = iniciar_logger(/*nombre config por estar en utils*/);
-	config = iniciar_config(/*nombre config por estar en utils*/);
+	logger = iniciar_logger("./log.log");
+	config = iniciar_config("./Kernel.config");
 
 	/*INICIALIZAR LISTAS */
 	procesos=list_create();

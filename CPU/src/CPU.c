@@ -22,8 +22,8 @@ int main(void) {
 	logger = malloc(sizeof(t_log));
 	t_config* config = malloc(sizeof(t_config));
 
-	logger = log_create("log.log", "Servidor", 1, LOG_LEVEL_DEBUG);
-	config = iniciar_config();
+	logger = iniciar_logger("./log.log");
+	config = iniciar_config("./CPU.config");
 
 	char* ipMemoria = malloc(sizeof(char*)),
 			*puertoEscuchaDispatch = malloc(sizeof(char*)),
@@ -63,23 +63,6 @@ int main(void) {
 	return EXIT_SUCCESS;
 }
 
-//FUNCIONES DE INICIO DE MODULO
-t_log* iniciar_logger(void)
-{
-	t_log* nuevo_logger =log_create("./tp.log","log",1,LOG_LEVEL_INFO);
-	return nuevo_logger;
-}
-
-t_config* iniciar_config(void)
-{
-	t_config* nuevo_config= config_create("./CPU.config");
-	return nuevo_config;
-}
-
-//
-
-
-
 //FUNCIONES DE INSTRUCCION
 void set(uint32_t *registro, int valor){
 	*registro = valor;
@@ -90,6 +73,10 @@ void sum(uint32_t * registroDestino,uint32_t *registroOrigen){
 }
 void sub(uint32_t * registroDestino,uint32_t * registroOrigen){
 	*registroDestino -= *registroOrigen;
+}
+
+void jnz(uint32_t * registro,uint32_t pc){
+	if(*registro==0)proceso->pc=pc;
 }
 
 void exit_i(){
@@ -141,6 +128,7 @@ void decode(){
 void execute(){
 	t_list * parametros=instruccion->parametros;
 	void *registroOrigen, *registroDestino;
+	uint32_t jnzPC;
 	//obtengo parametros
 	/*executo funcion, talvez es mejor que la funcion reciba un int y esto este dentro de un switch en el que adentro
 	revisemos las variables que haya que utilizar*/
@@ -160,7 +148,9 @@ void execute(){
 		sub(registroDestino,registroOrigen);
 	}
 	if(!strcasecmp(instruccion->comando,"JNZ")){
-		//jnz();
+		registroOrigen = obtener_registro((char*)list_get(parametros,0));
+		jnzPC=(uint32_t)strtol(list_get(parametros,1),NULL,10);
+		jnz(registroOrigen,jnzPC);
 	}
 	if(!strcasecmp(instruccion->comando,"SLEEP")){
 		//sleep();

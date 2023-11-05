@@ -90,8 +90,8 @@ t_instruccion *instruccion_create();
 registros_CPU* registros_create();
 void proceso_destroy(PCB* proceso);
 void instruccion_destroy(t_instruccion*);
-t_log* iniciar_logger(void);
-t_config* iniciar_config(void);
+t_log* iniciar_logger(char* log);
+t_config* iniciar_config(char* config);
 
 #endif /* SRC_UTILS_H_ */
 

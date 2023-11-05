@@ -6,6 +6,8 @@
 #include <string.h>
 #include <commons/log.h>
 #include <commons/config.h>
+#include <commons/string.h>
+
 
 //includes de utils globales
 #include<utilsServidor.h>
@@ -13,8 +15,6 @@
 
 int serverDispatch,serverInterrupt;
 int clienteKernel;
-t_config* iniciar_config(void);
-t_log* iniciar_logger(void);
 void iterator(char* value);
 void ejecutar_ciclo();
 

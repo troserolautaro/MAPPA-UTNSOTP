@@ -1,9 +1,8 @@
-
 #include "FileSystem.h"
 
-#define valor_EOF UINT32_MAX  Este valor representa al EOF (End of File)
+#define valor_EOF UINT32_MAX  //Este valor representa al EOF (End of File)
 
-	t_dictionary* tablaFat = dictionary_create();
+	t_dictionary* tablaFat;
 
 	char* ipMemoria;
 	char* puertoEscucha,* puertoMemoria;
@@ -12,14 +11,13 @@
 	char* tam_bloque;
 	char* retardo_acceso_bloque,* retardo_acceso_fat;
 
-	int tamanio_fat;  Tamaño de los bloques FAT (lo defino en el main)
+	int tamanio_fat;  //Tamaño de los bloques FAT (lo defino en el main)
 
 
 int main(void) {
-
-	t_log *logger = log_create("log.log", "Servidor", 1, LOG_LEVEL_DEBUG);
-
-	t_config* config;
+	tablaFat = dictionary_create();
+	t_log *logger = iniciar_logger("./log.log");
+	t_config* config=iniciar_config("./FileSystem.config");
 
 	//CONFIGURACION DE FILESYSTEM
 	ipMemoria = config_get_string_value(config,"IP_MEMORIA");
@@ -33,45 +31,17 @@ int main(void) {
 	tam_bloque = config_get_string_value(config,"TAM_BLOQUE");
 	retardo_acceso_bloque = config_get_string_value(config,"RETARDO_ACCESO_BLOQUE");
 	retardo_acceso_fat = config_get_string_value(config,"RETARDO_ACCESO_FAT");
-
 	tamanio_fat = (cant_bloques_total - cant_bloques_swap) * sizeof(uint32_t);
 
 	int server_fd = iniciar_servidor(puertoEscucha);
 	log_info(logger, "Servidor listo para recibir al cliente");
 	int cliente_fd = esperar_cliente(server_fd);
-			t_list* lista;
-			while (1) {
-				int cod_op = recibir_operacion(cliente_fd);
-				switch (cod_op) {
-				case MENSAJE:
-					recibir_mensaje(cliente_fd);
-					break;
-				case PAQUETE:
-					lista = recibir_paquete(cliente_fd);
-					log_info(logger, "Me llegaron los siguientes valores:\n");
-					list_iterate(lista, (void*) iterator);
-					break;
-				case -1:
-					log_error(logger, "Un cliente se desconecto.");
-					log_destroy(logger);
-					return EXIT_SUCCESS;
-				default:
-					log_warning(logger,"Operacion desconocida. No quieras meter la pata");
-					break;
-				}
-			}
-
-		  FILE *archivobloques = fopen("archivobloques.bin", "w");
-			if (archivobloques == NULL) {
-				perror("Error al abrir archivo");
-				return 1;
-			}
-
-
-
-			 fclose(archivobloques);
-
-
+	FILE *archivobloques = fopen("archivobloques.bin", "w");
+	if (archivobloques == NULL) {
+		perror("Error al abrir archivo");
+		return 1;
+	}
+	fclose(archivobloques);
 	return EXIT_SUCCESS;
 }
 
@@ -91,8 +61,8 @@ void procesar_mensaje(t_list* mensaje){
 //Comunicacion con kernel
 
 
-int chequear_existencia_archivo(FCB archivo){
-	  return dictionary_has_key(tablaFat, archivo->bloqueInicial);
+int chequear_existencia_archivo(FCB *archivo){
+	  return dictionary_has_key(tablaFat,string_itoa( archivo->bloqueInicial));
 }
 
 
@@ -121,34 +91,42 @@ bool crear_archivo(char* nombreArchivo){
 void crear_fcb(char* nombreArchivo){
 	FCB archivo;
 
-	archivo->nombreArchivo = nombreArchivo;
+	/*archivo->nombreArchivo = nombreArchivo;
 	archivo->tamanioArchivo = 0;
 	archivo->bloqueInicial = NULL;
+	*/
 }
-
-void truncar_archivo(int tamanioNuevo, FCB archivo, int tamanio){ situacionDeseada : ampliar o reducir tamanio
+/*
+void truncar_archivo(int tamanioNuevo, FCB archivo, int tamanio){ //situacionDeseada : ampliar o reducir tamanio
 	archivo->tamanioArchivo = tamanioNuevo;
-	if(tamanioNuevo > archivo->tamanioArchivo)){
-		no entendi lo de los bloques
+	if(tamanioNuevo > archivo->tamanioArchivo){
+		//no entendi lo de los bloques
 	}
 	else if(tamanioNuevo < archivo->tamanioArchivo){
-		no entendi lo de los bloques
+		//no entendi lo de los bloques
 	}
 
 }
+*/
 
 void leer_archivo(FCB archivo){
-	comunicacion con memoria
+	//comunicacion con memoria
 }
 
-void escribir_archivo(){}
+void escribir_archivo(){
 
------------------------
+}
+
+/*-----------------------*/
 
 //Comunicacion con Memoria
 
-void iniciar_proceso(){}
+void iniciar_proceso(){
 
-void finalizar_proceso(){}
+}
 
-------------------------
+void finalizar_proceso(){
+
+}
+
+/*------------------------*/

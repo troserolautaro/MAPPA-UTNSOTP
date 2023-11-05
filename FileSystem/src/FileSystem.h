@@ -6,7 +6,9 @@
 #include <string.h>
 #include <commons/log.h>
 #include <commons/config.h>
-#include <commons/config.h>
+#include <commons/string.h>
+#include <stdbool.h>
+#include <commons/collections/dictionary.h>
 
 
 //includes de utils globales
@@ -21,8 +23,8 @@ typedef struct {
 }FCB;
 
 void iterator(char* value);
-int abrir_archivo(FCB*);
-bool chequear_existencia_archivo(FCB* archivo);
+t_config* abrir_archivo(char* archivo);
+int chequear_existencia_archivo(FCB* archivo);
 
 
 
