@@ -136,47 +136,27 @@ void fetch(int pid,int pc){
 void decode(){
 	//obtener registros necesarios para ejecutar la instruccion y pasarselos a execute
 	//DECODIFICACION DE LA INSTRUCCION
-/*	char * parametros[2];
-	parametros[0]=malloc(sizeof(char) * 30 + 1);
-	parametros[1]=malloc(sizeof(char) * 30 + 1);
-	if (sscanf(lineaDeCodigo, "%s %s %s", instruccion->comando,parametros[0], parametros[1]) >= 1) {
-		 //printf("\n el comando es  %s \n", instruccion.comando);
-
-		for (int i = 0; i < 2; i++) {
-			if (strlen(parametros[i]) > 0) {
-				parametros[i][strcspn(parametros[i], "\n")] = '\0';
-				list_add(instruccion->parametros,parametros[i]);
-				printf("parametro %d tiene : %s \n", i,parametros[i]);
-			}
-		}
-	} */
+	//MMU (Direcciones logicas y fisicas)
 }
 void execute(){
 	t_list * parametros=instruccion->parametros;
-	uint32_t *registroOrigen, *registroDestino;
+	void *registroOrigen, *registroDestino;
 	//obtengo parametros
-	/*char* parametro1=malloc(sizeof(char)*30+1);
-	parametro1=list_get(parametros,0);
-	if(parametro1!=NULL){
-		registroOrigen=obtener_registro(parametro1,&proceso->registros);
-	}
-	char* parametro2=malloc(sizeof(char)*30+1);
-	parametro2=list_get(parametros,1);
-	if(parametro2!=NULL && strcasecmp(instruccion->comando, "SET")){
-		registroDestino=obtener_registro(parametro2,&proceso->registros);
-	}*/
 	/*executo funcion, talvez es mejor que la funcion reciba un int y esto este dentro de un switch en el que adentro
 	revisemos las variables que haya que utilizar*/
 	if(!strcasecmp(instruccion->comando, "SET")){
 		registroDestino=obtener_registro((char*)list_get(parametros,0));
-		int valor = *(int*) list_get(parametros,1);
-
+		int valor = (int)strtol(list_get(parametros,1), (char **)NULL, 10);
 		set(registroDestino,valor);
 	}
 	if(!strcasecmp(instruccion->comando, "SUM")){
+		registroDestino = obtener_registro((char*)list_get(parametros,0));
+		registroOrigen =  obtener_registro((char*)list_get(parametros,1));
 		sum(registroDestino,registroOrigen);
 	}
 	if(!strcasecmp(instruccion->comando, "SUB")){
+		registroDestino = obtener_registro((char*)list_get(parametros,0));
+		registroOrigen =  obtener_registro((char*)list_get(parametros,1));
 		sub(registroDestino,registroOrigen);
 	}
 	if(!strcasecmp(instruccion->comando,"JNZ")){
@@ -221,19 +201,22 @@ void execute(){
 }
 void check_interrupt(){
 	//pendiente a definir que hace
+	//Encargarse de sacar proceso por quantum
 }
 
 //FUNCION QUE EJECUTA CICLO DE INSTRUCCION
 //agregar luego parametro pcb a ejecutar ciclo de instruccion;
 void ejecutar_ciclo(){
+	do{
+		sem_wait(&ciclo);
+		fetch(proceso->pid,proceso->pc);
+		sem_wait(&instruccion_s);
+		decode();
+		execute(instruccion);
+		//check_interrupt();
+	}while(true);
 	//Esperando un PCB
-	sem_wait(&ciclo);
-	fetch(proceso->pid,proceso->pc);
-	sem_wait(&instruccion_s);
-	decode();
-	//instruccion= decode(lineaDeCodigo);
-	//execute(instruccion);
-	//check_interrupt();
+
 }
 
 void procesar_mensaje(t_list* mensaje){
@@ -249,12 +232,16 @@ void procesar_mensaje(t_list* mensaje){
 		char* comando = string_new();
 		string_append(&comando,list_get(mensaje,1));
 		string_trim_right(&comando);
+
 		char** parametros = string_array_new();
 		parametros = string_n_split(comando,3," ");
+
 		instruccion->comando=parametros[0];
+
 		for(int i=1; parametros[i]!=NULL;i++){
 			list_add(instruccion->parametros,parametros[i]);
 		}
+
 		sem_post(&instruccion_s);
 	}
 	if(!strcasecmp(msg,"interrupcion")){

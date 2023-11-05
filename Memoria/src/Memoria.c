@@ -129,7 +129,6 @@ void procesar_mensaje(t_list* mensaje){
 		agregar_a_paquete(paquete,&pid,sizeof(int));
 		enviar_paquete(paquete,conexionKernel);
 		eliminar_paquete(paquete);
-
 		free(path);
 	}
 	 if(!strcasecmp(msg,"instruccion")){

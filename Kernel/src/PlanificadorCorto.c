@@ -1,8 +1,9 @@
 #include"PlanificadorCorto.h"
 
 /*DECIDI HACERLO UNA COLA PORQUE CREI QUE ERA LO MEJOR */
-void planificador_corto(){
-		/*PRUEBA DE COMO HACER EL PLANIFICADOR */
+void* planificador_corto(){
+	do{
+		pthread_mutex_lock(&mutexPlaniCorto);
 		if(!queue_is_empty(colaCorto)){
 			int idPlanificador = planificador_enum();
 			switch(idPlanificador){
@@ -19,6 +20,10 @@ void planificador_corto(){
 			agregar_a_paquete(paquete, "proceso", sizeof(char*)*8);
 			agregar_a_paquete(paquete,proceso,sizeof(PCB*));
 		}
+		return NULL;
+	}while(true);
+		/*PRUEBA DE COMO HACER EL PLANIFICADOR */
+
 
 }
 

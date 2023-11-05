@@ -9,14 +9,18 @@ int main(void)
 
 	logger=malloc(sizeof(t_log));
 	config=malloc(sizeof(config));
-	logger = iniciar_logger();
-	config = iniciar_config();
+	logger = iniciar_logger(/*nombre config por estar en utils*/);
+	config = iniciar_config(/*nombre config por estar en utils*/);
 
 	/*INICIALIZAR LISTAS */
 	procesos=list_create();
 	colaLargo=queue_create();
 	colaCorto=queue_create();
-
+	//Inicializar_semaforos
+	pthread_mutex_init(&mutexPlaniLargo,NULL);
+	pthread_mutex_init(&mutexPlaniCorto,NULL);
+	pthread_mutex_init(&mutexColaCorto,NULL);
+	pthread_mutex_init(&mutexColaLargo,NULL);
 	/************************************RECUPERA DATOS DE ARCHIVO DE CONFIGURACION************************************/
 	//TALVEZ SE PUEDE GLOBALIZAR Y PASAR A UNA FUNCION PARA QUE QUEDE MEJOR PARA LA LECTURA
 	//CONFIGURACION DE CPU
@@ -51,7 +55,6 @@ int main(void)
 	//pthread_create(hiloCPUInterrupt,NULL,manejar_cliente,conexionCPUInterrupt);
 
 	pthread_t  hiloMemoria;
-
 	int resultado;
 	if ((resultado=pthread_create(&hiloMemoria,NULL,manejar_cliente,&conexionMemoria))!=0)
 		printf("Error al crear hilo. resultado %d",resultado);
@@ -60,12 +63,17 @@ int main(void)
 	//pthread_create(hiloFilesystem,NULL,manejar_cliente, conexionFileSystem);
 
 	/************************************INICIO CONSOLA INTERACTIVA*************************************************/
-	pthread_t hiloConsola;
+	pthread_t hiloConsola, hiloCorto,hiloLargo;
 	pthread_create(&hiloConsola,NULL,manejar_consola,NULL);
+	pthread_create(&hiloCorto,NULL,planificador_corto,NULL);
+	pthread_create(&hiloLargo,NULL,planificador_largo,NULL);
 	/************************************FINALIZA LOS PROGRAMAS O HILOS A FUTURO************************************/
 	pthread_join(hiloCPUDispatch,NULL);
 	//pthread_join(hiloCPUInterrupt,NULL);
 	pthread_join(hiloMemoria,NULL);
+	pthread_join(hiloCorto,NULL);
+	pthread_join(hiloLargo,NULL);
+	pthread_join(hiloConsola,NULL);
 	//pthread_join(hiloFilesystem,NULL);
 	//pthread_join(hiloConsola,NULL);
 	return EXIT_SUCCESS;
@@ -78,10 +86,7 @@ void terminar_programa()
 	liberar_conexion(conexionCPUDispatch);
 	liberar_conexion(conexionMemoria);
 	liberar_conexion(conexionFileSystem);
-	for(int i = 0;list_get(procesos,i)!=NULL;i++){
-		proceso_destroy((PCB*)list_get(procesos,i));
-	}
-	list_destroy(procesos);
+	list_destroy_and_destroy_elements(procesos,(void*)proceso_destroy);
 	queue_destroy(colaCorto);
 	queue_destroy(colaLargo);
 	//terminar_hilos();

@@ -21,7 +21,7 @@ int validacion_contenido_consola(char* comando){
 void iniciar_planificacion(){
 	if(detenida == true){
 		detenida=false;
-		planificador_largo();
+		pthread_mutex_unlock(&mutexPlaniLargo);
 	}
 }
 void detener_planificacion(){
