@@ -37,7 +37,7 @@ void f_truncate(void *nombreArchivo,void *tamaño);
 void exit_i();
 
 //CICLO
-void fetch(int pid,int pc);
+void fetch(uint32_t pid,uint32_t pc);
 void decode();
 void execute();
 void check_interrupt();

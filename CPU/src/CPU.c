@@ -25,6 +25,8 @@ int main(void) {
 	logger = log_create("log.log", "Servidor", 1, LOG_LEVEL_DEBUG);
 	config = iniciar_config();
 
+	proceso = proceso_create();
+	instruccion = instruccion_create();
 	char* ipMemoria = malloc(sizeof(char*)),
 			*puertoEscuchaDispatch = malloc(sizeof(char*)),
 			*puertoEscuchaInterrupt = malloc(sizeof(char*)),
@@ -52,8 +54,8 @@ int main(void) {
 	//HILOS
 	pthread_t hiloKernel, hiloCiclo,hiloMemoria;
 	//Hilos conexion
-	pthread_create(&hiloKernel,NULL,(void *) manejar_cliente,&clienteKernel);
-	pthread_create(&hiloMemoria,NULL,(void *)manejar_cliente,&conexionMemoria);
+	pthread_create(&hiloKernel,NULL,manejar_cliente,(void*)&clienteKernel);
+	pthread_create(&hiloMemoria,NULL,manejar_cliente,(void*)&conexionMemoria);
 	//Hilos proceso
 	pthread_create(&hiloCiclo,NULL,(void*)ejecutar_ciclo,NULL);
 	/*PROBABLEMENTE SE PUEDA SEPARAR ESTO Y ABSTRAERLA COMO UNA FUNCION PARA UTILES*/
@@ -120,7 +122,7 @@ uint32_t * obtener_registro(char* registro){
 }
 
 //FUNCIONES PARA CICLO DE EJECUCION SIMPLE
-void fetch(int pid,int pc){
+void fetch(uint32_t pid,uint32_t pc){
 	//busca la instruccion en memoria
 	t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"instruccion",sizeof(char*)*11);
@@ -128,8 +130,11 @@ void fetch(int pid,int pc){
 	agregar_a_paquete(paquete,&pc,sizeof(uint32_t));
 	enviar_paquete(paquete,conexionMemoria);
 	eliminar_paquete(paquete);
-	//esta parte se podria mover a procesar mensaje
-	//CONSUMIDOR esperando respuesta memoria
+	char* mensaje = string_from_format("PID: %d",pid);
+	string_append_with_format(&mensaje," - FETCH - Program Counter: %d",pc);
+	log_info(logger,"%s",mensaje);
+	free(mensaje);
+// Fetch Instrucción: “PID: <PID> - FETCH - Program Counter: <PROGRAM_COUNTER>”.
 }
 
 //definir como llega de memoria para definir el tipo de parametro
@@ -198,6 +203,9 @@ void execute(){
 	if(!strcasecmp(instruccion->comando, "EXIT")){
 		exit_i();
 	}
+
+
+	//	Instrucción Ejecutada: “PID: <PID> - Ejecutando: <INSTRUCCION> - <PARAMETROS>”.
 }
 void check_interrupt(){
 	//pendiente a definir que hace
@@ -224,11 +232,13 @@ void procesar_mensaje(t_list* mensaje){
 	string_append(&msg,list_get(mensaje,0));
 	string_trim(&msg);
 	string_to_lower(msg);
-
+//Seria excelente cuanto menos aprovechar que dentro de la lista "mensaje" se encuentra al final el socket para dividir con un switch las funciones
 	if(!strcasecmp(msg,"proceso")){
+		deserializar_proceso(proceso,mensaje);
 		sem_post(&ciclo);
 	}
 	if(!strcasecmp(msg,"instruccion")){
+		printf("Recibi instruccion");
 		char* comando = string_new();
 		string_append(&comando,list_get(mensaje,1));
 		string_trim_right(&comando);
@@ -238,10 +248,16 @@ void procesar_mensaje(t_list* mensaje){
 
 		instruccion->comando=parametros[0];
 
+		char * mensaje = string_from_format("PID: %d",proceso->pid);
+		string_append_with_format(&mensaje,"Ejecutando: %s",instruccion->comando);
+
 		for(int i=1; parametros[i]!=NULL;i++){
 			list_add(instruccion->parametros,parametros[i]);
+			string_append(&mensaje,(char *)parametros[i]);
 		}
 
+		log_info(logger,"%s",mensaje);
+		free(mensaje);
 		sem_post(&instruccion_s);
 	}
 	if(!strcasecmp(msg,"interrupcion")){

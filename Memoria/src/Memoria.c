@@ -56,8 +56,7 @@ int main(void) {
 //se probo y funciona
 t_list* cargar_instrucciones(char** file){
 	FILE * fileInstrucciones;
-		t_list *listaInstrucciones;
-		listaInstrucciones= list_create();
+		t_list *listaInstrucciones = list_create();
 		char * direccionIns=string_new();
 		//une la ruta de los archivos, con el archivo especificado
 		//cambiar el archivo por variable a futuro, no prioritario de momento
@@ -74,7 +73,7 @@ t_list* cargar_instrucciones(char** file){
 		 	else
 		    {
 		 	    printf("\nEl contenido del archivo de prueba es \n");
-		 	    while (fgets(lineaDeCodigo,sizeof(lineaDeCodigo),fileInstrucciones )!=NULL)
+		 	while (fgets(lineaDeCodigo,sizeof(lineaDeCodigo),fileInstrucciones )!=NULL)
 		 	    {
 		 			char* lineaTemporal=calloc(101,sizeof(char));
 		 	        string_append(&lineaTemporal, lineaDeCodigo);
@@ -111,23 +110,22 @@ void procesar_mensaje(t_list* mensaje){
 	string_append(&msg,list_get(mensaje,0));
 	string_trim(&msg);
 	string_to_lower(msg);
+	int conexion = *(int*) (list_get(mensaje,list_size(mensaje)-1));
+	//Seria excelente cuanto menos aprovechar que dentro de la lista "mensaje" se encuentra al final el socket para dividir con un switch las funciones
 	 if(!strcasecmp(msg,"cargar")){
 
 		int pid=*(int*)list_get(mensaje,1);
-
 		char* path=string_new();
 		string_append(&path,(char*)list_get(mensaje,2));
 
 		int size=*(int*)list_get(mensaje,3);
-		t_list* instrucciones=list_create();
-
-		instrucciones=cargar_instrucciones(&path);
+		t_list* instrucciones=cargar_instrucciones(&path);
 		dictionary_put(archivosCargados,string_itoa(pid),instrucciones); //Acordarse liberar diccionario
 
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"cargado",sizeof(char *)*8);
 		agregar_a_paquete(paquete,&pid,sizeof(int));
-		enviar_paquete(paquete,conexionKernel);
+		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
 		free(path);
 	}
@@ -136,16 +134,12 @@ void procesar_mensaje(t_list* mensaje){
 		int pc =*(int*)list_get(mensaje,2);
 
 		t_list* listaInstrucciones =dictionary_get(archivosCargados,string_itoa(pid));
-		char* instruccion=string_new();
-		string_append(&instruccion,(char *)list_get(listaInstrucciones,pc));
-		 printf("\n el comando es  %s \n", instruccion);
-
-		 t_paquete* paquete=crear_paquete();
+		char* instruccion=list_get(listaInstrucciones,pc);
+		t_paquete* paquete=crear_paquete();
 		agregar_a_paquete(paquete,"instruccion",sizeof(char*)*11);
-		agregar_a_paquete(paquete,instruccion,sizeof(instruccion));
-		enviar_paquete(paquete,conexionDispatch);
+		agregar_a_paquete(paquete,&instruccion,sizeof(instruccion));
+		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
-		//enviar_mensaje(instruccion,cliente_fd);
 	}
 	free(msg);
 }

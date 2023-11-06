@@ -13,5 +13,6 @@ void enviar_paquete(t_paquete* paquete, int socket_cliente);
 void liberar_conexion(int socket_cliente);
 void eliminar_paquete(t_paquete* paquete);
 void serializar_proceso(t_paquete* paquete,PCB* proceso);
+void deserializar_proceso(PCB* proceso, t_list * msg);
 
 #endif /* UTILSCLIENTE_H_ */

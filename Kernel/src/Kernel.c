@@ -17,10 +17,11 @@ int main(void)
 	colaLargo=queue_create();
 	colaCorto=queue_create();
 	//Inicializar_semaforos
-	pthread_mutex_init(&mutexPlaniLargo,NULL);
-	pthread_mutex_init(&mutexPlaniCorto,NULL);
+	sem_init(&planiLargo,0,0);
+	sem_init(&planiCorto,0,0);
 	pthread_mutex_init(&mutexColaCorto,NULL);
 	pthread_mutex_init(&mutexColaLargo,NULL);
+	pthread_mutex_init(&mutexProcesos,NULL);
 	/************************************RECUPERA DATOS DE ARCHIVO DE CONFIGURACION************************************/
 	//TALVEZ SE PUEDE GLOBALIZAR Y PASAR A UNA FUNCION PARA QUE QUEDE MEJOR PARA LA LECTURA
 	//CONFIGURACION DE CPU
@@ -98,6 +99,8 @@ void procesar_mensaje(t_list* mensaje){
 	string_append(&msg,list_get(mensaje,0));
 	string_trim(&msg);
 	string_to_lower(msg);
+	//Seria excelente cuanto menos aprovechar que dentro de la lista "mensaje" se encuentra al final el socket para dividir con un switch las funciones
+
 	if(!strcasecmp(msg,"CrearProceso")){
 		int pid=*(int*)list_get(mensaje,1);
 		int resultado=*(int*)list_get(mensaje,2);
@@ -108,7 +111,11 @@ void procesar_mensaje(t_list* mensaje){
 	}
 	if(!strcasecmp(msg,"cargado")){
 		int pid = *(int*)list_get(mensaje,1);
-		queue_push(colaLargo,list_get(procesos,pid));
+		PCB * proceso = list_get(procesos,(pid-1));
+		queue_push(colaLargo,proceso);
+		char * mensaje = string_from_format("Se crea el proceso %d",proceso->pid,"en NEW");
+		log_info(logger,mensaje);
+		free(mensaje);
 	}
 	free(msg);
 }
