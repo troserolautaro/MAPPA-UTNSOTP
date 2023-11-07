@@ -18,11 +18,11 @@ PCB* proceso;
  */
 //Semaforos
 sem_t ciclo,instruccion_s;
-int main(void) {
+int main() {
 	logger = malloc(sizeof(t_log));
 	t_config* config = malloc(sizeof(t_config));
 
-	logger = log_create("log.log", "Servidor", 1, LOG_LEVEL_DEBUG);
+	logger = iniciar_logger();
 	config = iniciar_config();
 
 	proceso = proceso_create();
@@ -45,11 +45,11 @@ int main(void) {
 	conexionMemoria = crear_conexion(ipMemoria, puertoMemoria,CPUDispatch);
 
 	//Inicia Servidor
-	 serverDispatch = iniciar_servidor(puertoEscuchaDispatch);
-	 serverInterrupt = iniciar_servidor(puertoEscuchaInterrupt);
+	serverDispatch = iniciar_servidor(puertoEscuchaDispatch);
+	serverInterrupt = iniciar_servidor(puertoEscuchaInterrupt);
 	 log_info(logger, "Servidor listo para recibir al cliente");
-	 clienteKernelDispatch = esperar_cliente(serverDispatch);
-	 clienteKernelInterrupt = esperar_cliente(serverInterrupt);
+	clienteKernelDispatch = esperar_cliente(serverDispatch);
+	clienteKernelInterrupt = esperar_cliente(serverInterrupt);
 
 	//HILOS
 	pthread_t hiloKernelDispatch, hiloCiclo,hiloMemoria,hiloKernelInterrupt;
@@ -264,7 +264,7 @@ void procesar_mensaje(t_list* mensaje){
 			string_append(&mensaje,string_duplicate(parametros[i]));
 		}
 
-		log_info(logger,"%s",mensaje);
+		//log_info(logger,"%s",mensaje);
 		free(mensaje);
 		//free(parametros);?
 		sem_post(&instruccion_s);

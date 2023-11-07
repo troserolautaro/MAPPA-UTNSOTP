@@ -8,7 +8,7 @@ char * pathInstrucciones;
 int serverMemoria;
 t_dictionary *archivosCargados;
 
-int main(void) {
+int main() {
 	logger = malloc(sizeof(t_log));
 	config = malloc(sizeof(t_config));
 
@@ -63,7 +63,7 @@ t_list* cargar_instrucciones(char** file){
 		string_append(&direccionIns,*file);
 		//abre el archivo en modo lectura
 		fileInstrucciones = fopen(direccionIns, "r");
-		char* lineaDeCodigo=calloc(101,sizeof(char));
+
 		if (fileInstrucciones == NULL)
 		    {
 			 printf("no hay insctrucciones o hubo error con el archivo");
@@ -71,21 +71,21 @@ t_list* cargar_instrucciones(char** file){
 		 	else
 		    {
 		 	    printf("\nEl contenido del archivo de prueba es \n");
-		 	while (fgets(lineaDeCodigo,sizeof(lineaDeCodigo),fileInstrucciones )!=NULL)
-		 	    {
-		 			char* lineaTemporal=calloc(101,sizeof(char));
-		 	        string_append(&lineaTemporal, lineaDeCodigo);
-		 	    	list_add(listaInstrucciones,lineaTemporal);
-		 	    }
-		    }
-	    fclose(fileInstrucciones);
-		    char* primerComando=list_get(listaInstrucciones,0);
-		    printf("Línea %d: %s\n", 0, primerComando);
-			printf("\n tamaño de lista %d \n", list_size(listaInstrucciones));
 
-			free(lineaDeCodigo);
-			free(primerComando);
-		    return listaInstrucciones;
+			char* lineaDeCodigo=NULL;
+			size_t lineLength = 0;
+			while (getline(&lineaDeCodigo, &lineLength, fileInstrucciones) != -1) {
+				if (lineaDeCodigo[strlen(lineaDeCodigo) - 1] == '\n') {
+					lineaDeCodigo[strlen(lineaDeCodigo) - 1] = '\0';
+				}
+				char* lineaTemporal = strdup(lineaDeCodigo);
+				list_add(listaInstrucciones, lineaTemporal);
+			}
+				free(lineaDeCodigo);
+			}
+			fclose(fileInstrucciones);
+			printf("\n tamaño de lista %d \n", list_size(listaInstrucciones));
+			return listaInstrucciones;
 }
 void iterator(char* value) {
 	log_info(logger,"%s", value);
@@ -108,7 +108,6 @@ void procesar_mensaje(t_list* mensaje){
 	string_trim(&msg);
 	string_to_lower(msg);
 	int conexion = *(int*) (list_get(mensaje,list_size(mensaje)-1));
-	printf("/////%s",msg);
 	//Seria excelente cuanto menos aprovechar que dentro de la lista "mensaje" se encuentra al final el socket para dividir con un switch las funciones
 	 if(!strcasecmp(msg,"cargar")){
 
@@ -118,26 +117,31 @@ void procesar_mensaje(t_list* mensaje){
 
 		int size=*(int*)list_get(mensaje,3);
 		t_list* instrucciones=cargar_instrucciones(&path);
+		list_add(instrucciones,"1");
+		printf("La primera linea es : %s",(char *)list_get(instrucciones,0));
 		dictionary_put(archivosCargados,string_itoa(pid),instrucciones); //Acordarse liberar diccionario
-
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"cargado",sizeof("cargado"));
 		agregar_a_paquete(paquete,&pid,sizeof(int));
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
+		list_destroy(instrucciones);
 		free(path);
 	}
 	 if(!strcasecmp(msg,"instruccion")){
 		uint32_t pid =*(uint32_t*)list_get(mensaje,1);
 		uint32_t pc =*(uint32_t*)list_get(mensaje,2);
 
-		t_list* listaInstrucciones =dictionary_get(archivosCargados,string_itoa(pid));
-		char* instruccion=list_get(listaInstrucciones,pc);
+		t_list* listaInstrucciones =(t_list*)dictionary_get(archivosCargados,string_itoa(pid));
+		char* instruccion=(char*)list_get(listaInstrucciones,pc);
+
 		t_paquete* paquete=crear_paquete();
 		agregar_a_paquete(paquete,"instruccion",sizeof("instruccion"));
-		agregar_a_paquete(paquete,&instruccion,sizeof(instruccion));
+		agregar_a_paquete(paquete,instruccion,sizeof(instruccion));
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
+		list_destroy(listaInstrucciones);
+		free(instruccion);
 	}
 	free(msg);
 }

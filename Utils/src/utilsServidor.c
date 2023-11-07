@@ -127,7 +127,7 @@ void * manejar_cliente(void* socket){
 	do{
 		t_list* mensaje = procesar_tipo(socketint);
 		if(mensaje!=NULL && !list_is_empty(mensaje)){
-			printf("%d",socketint);
+			//printf("%d",socketint);
 			list_add(mensaje, socket);
 			procesar_mensaje(mensaje);
 		}
@@ -143,7 +143,7 @@ void * recibir_conexiones(void * server){
 	int serverInt=*((int* )server);
 	do{
 		int cliente_fd = esperar_cliente(serverInt);
-		printf("%d",cliente_fd);
+	//	printf("%d",cliente_fd);
 		t_list* mensaje = procesar_tipo(cliente_fd);
 		if(mensaje!=NULL && !list_is_empty(mensaje)){
 			char* msg = malloc(sizeof(char*));
