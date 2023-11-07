@@ -12,8 +12,6 @@
 #include <utilsCliente.h>
 
 void iterator(char* value);
-t_log* iniciar_logger(void);
-t_config* iniciar_config(void);
 t_list* cargar_instrucciones(char** file);
 
 #endif /* CPU_H_ */

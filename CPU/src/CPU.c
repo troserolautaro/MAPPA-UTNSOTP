@@ -22,8 +22,8 @@ int main() {
 	logger = malloc(sizeof(t_log));
 	t_config* config = malloc(sizeof(t_config));
 
-	logger = iniciar_logger();
-	config = iniciar_config();
+	logger = iniciar_logger("./log.log");
+	config = iniciar_config("./CPU.config");
 
 	proceso = proceso_create();
 	instruccion = instruccion_create();
@@ -73,23 +73,6 @@ int main() {
 	pthread_join(hiloKernelInterrupt,NULL);
 	return EXIT_SUCCESS;
 }
-
-//FUNCIONES DE INICIO DE MODULO
-t_log* iniciar_logger(void)
-{
-	t_log* nuevo_logger =log_create("./tp.log","log",1,LOG_LEVEL_INFO);
-	return nuevo_logger;
-}
-
-t_config* iniciar_config(void)
-{
-	t_config* nuevo_config= config_create("./CPU.config");
-	return nuevo_config;
-}
-
-//
-
-
 
 //FUNCIONES DE INSTRUCCION
 void set(uint32_t *registro, int valor){

@@ -13,7 +13,7 @@ int main() {
 	config = malloc(sizeof(t_config));
 
 	logger = log_create("log.log", "Servidor", 1, LOG_LEVEL_DEBUG);
-	config = iniciar_config();
+	config = iniciar_config("./Memoria.config");
 
 	char* ipFyleSystem = malloc(sizeof(char*)),
 		*puertoEscucha = malloc(sizeof(char*)),
@@ -87,21 +87,7 @@ t_list* cargar_instrucciones(char** file){
 			printf("\n tamaño de lista %d \n", list_size(listaInstrucciones));
 			return listaInstrucciones;
 }
-void iterator(char* value) {
-	log_info(logger,"%s", value);
-}
 
-t_log* iniciar_logger(void)
-{
-	t_log* nuevo_logger =log_create("./tp.log","log",1,LOG_LEVEL_INFO);
-	return nuevo_logger;
-}
-
-t_config* iniciar_config(void)
-{
-	t_config* nuevo_config= config_create("./Memoria.config");
-	return nuevo_config;
-}
 void procesar_mensaje(t_list* mensaje){
 	char* msg = string_new();
 	string_append(&msg,list_get(mensaje,0));

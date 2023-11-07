@@ -13,8 +13,6 @@
 
 int serverDispatch,serverInterrupt;
 int clienteKernel;
-t_config* iniciar_config(void);
-t_log* iniciar_logger(void);
 void iterator(char* value);
 void ejecutar_ciclo();
 
@@ -42,9 +40,6 @@ void decode();
 void execute();
 void check_interrupt();
 uint32_t * obtener_registro(char* registro);
-
-
-
 
 #endif /* CPU_H_ */
 
