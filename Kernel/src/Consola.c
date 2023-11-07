@@ -48,9 +48,9 @@ void iniciar_proceso(char* path, int size, int prioridad){
 		//envia archivo a cargar en memoria para este proceso a el modulo de memoria
 		//SE PUEDE EXPORTAR SI ES NECESARIO EL ENVIO DE PAQUETE SI ES NECESARIO
 		t_paquete * paqueteArchivo=crear_paquete();
-		int pid=proceso->pid;
-		agregar_a_paquete(paqueteArchivo, "cargar", sizeof(char*)*6);
-		agregar_a_paquete(paqueteArchivo, &pid, sizeof(int*));
+		uint32_t pid=proceso->pid;
+		agregar_a_paquete(paqueteArchivo, "cargar", sizeof("cargar"));
+		agregar_a_paquete(paqueteArchivo, &pid, sizeof(uint32_t));
 		agregar_a_paquete(paqueteArchivo, path, (sizeof(path)));
 		agregar_a_paquete(paqueteArchivo, &size, sizeof(int*));
 		enviar_paquete(paqueteArchivo,conexionMemoria);

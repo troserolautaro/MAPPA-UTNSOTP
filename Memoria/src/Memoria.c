@@ -3,7 +3,7 @@
 t_log* logger;
 t_config* config;
 int conexionKernel, conexionDispatch,conexionFileSystem;
-pthread_t hiloRecibirCliente, hiloKernel,hiloCPU;
+pthread_t hiloRecibirCliente;
 char * pathInstrucciones;
 int serverMemoria;
 t_dictionary *archivosCargados;
@@ -46,8 +46,6 @@ int main(void) {
 	if ((resultado=pthread_create(&hiloRecibirCliente,NULL,(void *)recibir_conexiones,( void *) &serverMemoria))!=0)
 		printf("Error al crear hilo. resultado %d",resultado);
 			//}
-	pthread_join(hiloKernel,NULL);
-	pthread_join(hiloCPU,NULL);
 	pthread_join(hiloRecibirCliente,NULL);
 	return EXIT_SUCCESS;
 }
@@ -105,12 +103,12 @@ t_config* iniciar_config(void)
 	return nuevo_config;
 }
 void procesar_mensaje(t_list* mensaje){
-	char* msg = malloc(sizeof(char*));
-	msg = string_new();
+	char* msg = string_new();
 	string_append(&msg,list_get(mensaje,0));
 	string_trim(&msg);
 	string_to_lower(msg);
 	int conexion = *(int*) (list_get(mensaje,list_size(mensaje)-1));
+	printf("/////%s",msg);
 	//Seria excelente cuanto menos aprovechar que dentro de la lista "mensaje" se encuentra al final el socket para dividir con un switch las funciones
 	 if(!strcasecmp(msg,"cargar")){
 
@@ -123,20 +121,20 @@ void procesar_mensaje(t_list* mensaje){
 		dictionary_put(archivosCargados,string_itoa(pid),instrucciones); //Acordarse liberar diccionario
 
 		t_paquete * paquete = crear_paquete();
-		agregar_a_paquete(paquete,"cargado",sizeof(char *)*8);
+		agregar_a_paquete(paquete,"cargado",sizeof("cargado"));
 		agregar_a_paquete(paquete,&pid,sizeof(int));
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
 		free(path);
 	}
 	 if(!strcasecmp(msg,"instruccion")){
-		int pid =*(int*)list_get(mensaje,1);
-		int pc =*(int*)list_get(mensaje,2);
+		uint32_t pid =*(uint32_t*)list_get(mensaje,1);
+		uint32_t pc =*(uint32_t*)list_get(mensaje,2);
 
 		t_list* listaInstrucciones =dictionary_get(archivosCargados,string_itoa(pid));
 		char* instruccion=list_get(listaInstrucciones,pc);
 		t_paquete* paquete=crear_paquete();
-		agregar_a_paquete(paquete,"instruccion",sizeof(char*)*11);
+		agregar_a_paquete(paquete,"instruccion",sizeof("instruccion"));
 		agregar_a_paquete(paquete,&instruccion,sizeof(instruccion));
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);

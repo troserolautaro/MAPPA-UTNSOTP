@@ -3,7 +3,7 @@
 t_instruccion *instruccion_create() {
 	t_instruccion *instruccion = malloc(sizeof(t_instruccion));
 	instruccion->comando = "0";
-	instruccion->parametros= NULL;
+	instruccion->parametros= list_create();
 	return instruccion;
 }
 

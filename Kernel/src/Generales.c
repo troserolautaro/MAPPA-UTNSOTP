@@ -1,6 +1,6 @@
 #include"Generales.h"
 
-int PIDGLOBAL;
+uint32_t PIDGLOBAL;
 bool detenida;
 t_queue* colaLargo;
 t_queue* colaCorto;

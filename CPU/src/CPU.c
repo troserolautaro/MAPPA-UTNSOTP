@@ -3,7 +3,7 @@
 //VARIABLES GLOBALES
 int serverDispatch,serverInterrupt;
 int conexionMemoria;
-int clienteKernel,clienteKernelInterrupt;
+int clienteKernelDispatch,clienteKernelInterrupt;
 int reloj = 0; //Es el encargado de revisar el quantum
 //
 t_log* logger ;
@@ -48,20 +48,29 @@ int main(void) {
 	 serverDispatch = iniciar_servidor(puertoEscuchaDispatch);
 	 serverInterrupt = iniciar_servidor(puertoEscuchaInterrupt);
 	 log_info(logger, "Servidor listo para recibir al cliente");
-	 clienteKernel = esperar_cliente(serverDispatch);
+	 clienteKernelDispatch = esperar_cliente(serverDispatch);
 	 clienteKernelInterrupt = esperar_cliente(serverInterrupt);
 
 	//HILOS
-	pthread_t hiloKernel, hiloCiclo,hiloMemoria;
+	pthread_t hiloKernelDispatch, hiloCiclo,hiloMemoria,hiloKernelInterrupt;
 	//Hilos conexion
-	pthread_create(&hiloKernel,NULL,manejar_cliente,(void*)&clienteKernel);
-	pthread_create(&hiloMemoria,NULL,manejar_cliente,(void*)&conexionMemoria);
+	int resultado;
+	if ((resultado = pthread_create(&hiloKernelDispatch,NULL,manejar_cliente,(void*)&clienteKernelDispatch))!=0){
+		printf("Error al crear hilo. resultado %d",resultado);
+	}
+	if ((resultado = pthread_create(&hiloKernelInterrupt,NULL,manejar_cliente,&clienteKernelInterrupt))!=0){
+		printf("Error al crear hilo. resultado %d",resultado);
+	}
+	if ((resultado = pthread_create(&hiloMemoria,NULL,manejar_cliente,(void*)&conexionMemoria))!=0){
+		printf("Error al crear hilo. resultado %d",resultado);
+	}
 	//Hilos proceso
 	pthread_create(&hiloCiclo,NULL,(void*)ejecutar_ciclo,NULL);
-	/*PROBABLEMENTE SE PUEDA SEPARAR ESTO Y ABSTRAERLA COMO UNA FUNCION PARA UTILES*/
-	pthread_join(hiloKernel,NULL);
+
+	pthread_join(hiloKernelDispatch,NULL);
 	pthread_join(hiloCiclo,NULL);
-	//manejar_cliente(NULL);
+	pthread_join(hiloMemoria,NULL);
+	pthread_join(hiloKernelInterrupt,NULL);
 	return EXIT_SUCCESS;
 }
 
@@ -124,16 +133,17 @@ uint32_t * obtener_registro(char* registro){
 //FUNCIONES PARA CICLO DE EJECUCION SIMPLE
 void fetch(uint32_t pid,uint32_t pc){
 	//busca la instruccion en memoria
-	t_paquete* paquete=crear_paquete();
-	agregar_a_paquete(paquete,"instruccion",sizeof(char*)*11);
-	agregar_a_paquete(paquete,&pid,sizeof(uint32_t));
-	agregar_a_paquete(paquete,&pc,sizeof(uint32_t));
-	enviar_paquete(paquete,conexionMemoria);
-	eliminar_paquete(paquete);
 	char* mensaje = string_from_format("PID: %d",pid);
 	string_append_with_format(&mensaje," - FETCH - Program Counter: %d",pc);
 	log_info(logger,"%s",mensaje);
 	free(mensaje);
+	t_paquete* paquete=crear_paquete();
+	agregar_a_paquete(paquete,"instruccion",sizeof("instruccion"));
+	agregar_a_paquete(paquete,&pid,sizeof(uint32_t));
+	agregar_a_paquete(paquete,&pc,sizeof(uint32_t));
+	enviar_paquete(paquete,conexionMemoria);
+	eliminar_paquete(paquete);
+
 // Fetch Instrucción: “PID: <PID> - FETCH - Program Counter: <PROGRAM_COUNTER>”.
 }
 
@@ -238,26 +248,25 @@ void procesar_mensaje(t_list* mensaje){
 		sem_post(&ciclo);
 	}
 	if(!strcasecmp(msg,"instruccion")){
-		printf("Recibi instruccion");
 		char* comando = string_new();
 		string_append(&comando,list_get(mensaje,1));
 		string_trim_right(&comando);
 
 		char** parametros = string_array_new();
 		parametros = string_n_split(comando,3," ");
-
-		instruccion->comando=parametros[0];
+		instruccion->comando=string_duplicate(parametros[0]);
 
 		char * mensaje = string_from_format("PID: %d",proceso->pid);
 		string_append_with_format(&mensaje,"Ejecutando: %s",instruccion->comando);
 
 		for(int i=1; parametros[i]!=NULL;i++){
-			list_add(instruccion->parametros,parametros[i]);
-			string_append(&mensaje,(char *)parametros[i]);
+			list_add(instruccion->parametros,string_duplicate(parametros[i]));
+			string_append(&mensaje,string_duplicate(parametros[i]));
 		}
 
 		log_info(logger,"%s",mensaje);
 		free(mensaje);
+		//free(parametros);?
 		sem_post(&instruccion_s);
 	}
 	if(!strcasecmp(msg,"interrupcion")){

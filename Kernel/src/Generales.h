@@ -12,7 +12,7 @@
 #include <utilsServidor.h>
 #include <utilsCliente.h>
 
-extern int PIDGLOBAL ;
+extern uint32_t PIDGLOBAL ;
 extern bool detenida;
 extern t_queue* colaLargo;
 extern t_queue* colaCorto;

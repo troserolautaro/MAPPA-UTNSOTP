@@ -78,7 +78,6 @@ t_paquete* crear_paquete(void)
 {
 	t_paquete* paquete = malloc(sizeof(t_paquete));
 	paquete->codigo_operacion = PAQUETE;
-	printf("%d",paquete->codigo_operacion);
 	crear_buffer(paquete);
 	return paquete;
 }
@@ -116,7 +115,7 @@ void liberar_conexion(int socket_cliente)
 }
 void handshake(int cliente, int socket_cliente){
 	t_paquete * temp = crear_paquete();
-	agregar_a_paquete(temp,"conexion",(sizeof(char*)*8));
+	agregar_a_paquete(temp,"conexion",sizeof("conexion"));
 	agregar_a_paquete(temp,&cliente,sizeof(cliente));
 	agregar_a_paquete(temp,&socket_cliente,sizeof(socket_cliente));
 	enviar_paquete(temp,socket_cliente);

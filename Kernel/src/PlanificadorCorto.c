@@ -25,7 +25,7 @@ void* planificador_corto(){
 			free(mensaje);
 			//ENVIAR PROCESO
 			t_paquete* paquete = crear_paquete();
-			agregar_a_paquete(paquete, "proceso", sizeof(char*)*8);
+			agregar_a_paquete(paquete, "proceso", sizeof("proceso"));
 			serializar_proceso(paquete,proceso);
 			enviar_paquete(paquete,conexionCPUDispatch);
 			eliminar_paquete(paquete);
