@@ -5,6 +5,7 @@ int serverDispatch,serverInterrupt;
 int conexionMemoria;
 int clienteKernel,clienteKernelInterrupt;
 int reloj = 0; //Es el encargado de revisar el quantum
+bool bloquear, interrupcion;
 //
 t_log* logger ;
 t_instruccion * instruccion;
@@ -55,6 +56,8 @@ int main(void) {
 	pthread_create(&hiloKernel,NULL,(void *) manejar_cliente,&clienteKernel);
 	pthread_create(&hiloMemoria,NULL,(void *)manejar_cliente,&conexionMemoria);
 	//Hilos proceso
+	bloquear= false;
+	interrupcion=false;
 	pthread_create(&hiloCiclo,NULL,(void*)ejecutar_ciclo,NULL);
 	/*PROBABLEMENTE SE PUEDA SEPARAR ESTO Y ABSTRAERLA COMO UNA FUNCION PARA UTILES*/
 	pthread_join(hiloKernel,NULL);
@@ -77,6 +80,36 @@ void sub(uint32_t * registroDestino,uint32_t * registroOrigen){
 
 void jnz(uint32_t * registro,uint32_t pc){
 	if(*registro==0)proceso->pc=pc;
+}
+
+void sleep(uint32_t tiempo){
+	//busca la instruccion en memoria
+	t_paquete* paquete=crear_paquete();
+	agregar_a_paquete(paquete,"sleep",sizeof(char*)*5);
+	agregar_a_paquete(paquete,&tiempo,sizeof(int*));
+	serializar_proceso(paquete,proceso);
+	enviar_paquete(paquete,clienteKernel);
+	bloquear=true;
+}
+
+void wait(char* recurso){
+	//busca la instruccion en memoria
+	t_paquete* paquete=crear_paquete();
+	agregar_a_paquete(paquete,"wait",strlen("wait")+1);
+	agregar_a_paquete(paquete,&recurso,strlen(recurso)+1);
+	serializar_proceso(paquete,proceso);
+	enviar_paquete(paquete,clienteKernel);
+	bloquear=true;
+}
+
+void signal(char* recurso){
+	//busca la instruccion en memoria
+	t_paquete* paquete=crear_paquete();
+	agregar_a_paquete(paquete,"signal",strlen("signal")+1);
+	agregar_a_paquete(paquete,&recurso,strlen(recurso)+1);
+	serializar_proceso(paquete,proceso);
+	enviar_paquete(paquete,clienteKernel);
+	bloquear=true;
 }
 
 void exit_i(){
@@ -128,7 +161,7 @@ void decode(){
 void execute(){
 	t_list * parametros=instruccion->parametros;
 	void *registroOrigen, *registroDestino;
-	uint32_t jnzPC;
+	char*recurso;
 	//obtengo parametros
 	/*executo funcion, talvez es mejor que la funcion reciba un int y esto este dentro de un switch en el que adentro
 	revisemos las variables que haya que utilizar*/
@@ -149,17 +182,20 @@ void execute(){
 	}
 	if(!strcasecmp(instruccion->comando,"JNZ")){
 		registroOrigen = obtener_registro((char*)list_get(parametros,0));
-		jnzPC=(uint32_t)strtol(list_get(parametros,1),NULL,10);
+		uint32_t jnzPC=(uint32_t)strtol(list_get(parametros,1),NULL,10);
 		jnz(registroOrigen,jnzPC);
 	}
 	if(!strcasecmp(instruccion->comando,"SLEEP")){
-		//sleep();
+		uint32_t tiempo=(uint32_t)strtol(list_get(parametros,1),NULL,10);
+		sleep(tiempo);
 	}
 	if(!strcasecmp(instruccion->comando,"WAIT")){
-		//WAIT();
+		recurso=list_get(parametros,1);
+		wait(recurso);
 	}
 	if(!strcasecmp(instruccion->comando,"SIGNAL")){
-		//SIGNAL();
+		recurso=list_get(parametros,1);
+		signal();
 	}
 	if(!strcasecmp(instruccion->comando,"MOV_IN")){
 		//MOV_IN();
@@ -190,8 +226,15 @@ void execute(){
 	}
 }
 void check_interrupt(){
-	//pendiente a definir que hace
-	//Encargarse de sacar proceso por quantum
+	if(!interrupcion && !bloquear){sem_post(&ciclo);}
+	else{
+		t_paquete* paquete=crear_paquete();
+		agregar_a_paquete(paquete,"PCB",sizeof(char*)*5);
+		serializar_proceso(paquete,proceso);
+		enviar_paquete(paquete,clienteKernel);
+		bloquear=false;
+		interrupcion=false;
+	}
 }
 
 //FUNCION QUE EJECUTA CICLO DE INSTRUCCION
@@ -202,11 +245,9 @@ void ejecutar_ciclo(){
 		fetch(proceso->pid,proceso->pc);
 		sem_wait(&instruccion_s);
 		decode();
-		execute(instruccion);
-		//check_interrupt();
+		execute();
+		check_interrupt();
 	}while(true);
-	//Esperando un PCB
-
 }
 
 void procesar_mensaje(t_list* mensaje){
@@ -235,7 +276,7 @@ void procesar_mensaje(t_list* mensaje){
 		sem_post(&instruccion_s);
 	}
 	if(!strcasecmp(msg,"interrupcion")){
-
+		interrupcion=true;
 	}
 }
 
