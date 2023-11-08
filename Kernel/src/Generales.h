@@ -26,4 +26,5 @@ extern pthread_mutex_t  mutexColaCorto,mutexColaLargo,mutexProcesos;
 extern sem_t planiLargo,planiCorto;
 
 char* estado_enum(uint32_t estado);
+void  cambiar_estado(PCB* proceso, int estado);
 #endif /* GENERALES_H_ */

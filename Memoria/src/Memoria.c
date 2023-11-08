@@ -72,6 +72,7 @@ void procesar_mensaje(t_list* mensaje){
 		agregar_a_paquete(paquete,&pid,sizeof(int));
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
+		//free(instrucciones); puede que esto sea mejor porque el dictionary put te dice que el elemento no se libera
 		free(path);
 	}
 	 if(!strcasecmp(msg,"instruccion")){
@@ -79,11 +80,17 @@ void procesar_mensaje(t_list* mensaje){
 		uint32_t pc =*(uint32_t*)list_get(mensaje,2);
 
 		t_list* listaInstrucciones =(t_list*)dictionary_get(archivosCargados,string_itoa(pid));
-		char* instruccion=(char*)list_get(listaInstrucciones,pc);
+		char* instruccion=string_new();
+		string_append(&instruccion,(char*)list_get(listaInstrucciones,pc));
 
+		char** parametros = string_array_new();
+				parametros = string_n_split(instruccion,3," ");
 		t_paquete* paquete=crear_paquete();
 		agregar_a_paquete(paquete,"instruccion",sizeof("instruccion"));
-		agregar_a_paquete(paquete,instruccion,sizeof(instruccion));
+		//agregar_a_paquete(asdkjasd, instruccion, sizeof(instruccion));
+		for(int i = 0; parametros[i]!=NULL; i++){
+			agregar_a_paquete(paquete,parametros[i],sizeof(parametros[i]));
+		}
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
 		free(instruccion);

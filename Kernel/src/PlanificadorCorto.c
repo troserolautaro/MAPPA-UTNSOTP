@@ -16,13 +16,7 @@ void* planificador_corto(){
 			//si no es ninguno de los anterior es fifo por que es una cola (estructura de tipo fifo)
 			PCB* proceso= queue_pop(colaCorto);
 			pthread_mutex_unlock(&mutexColaCorto);
-//Cambio de Estado: “PID: <PID> - Estado Anterior: <ESTADO_ANTERIOR> - Estado Actual: <ESTADO_ACTUAL>”
-			char* mensaje =string_from_format("PID: %d",proceso->pid);
-			string_append_with_format(&mensaje," - Estado Anterior: %s",estado_enum(proceso->estado)); //0
-			proceso->estado=EXEC;
-			string_append_with_format(&mensaje," - Estado Actual: %s",estado_enum(proceso->estado)); // 2
-			log_info(logger,"%s",mensaje);
-			free(mensaje);
+			cambiar_estado(proceso,EXEC);
 			//ENVIAR PROCESO
 			t_paquete* paquete = crear_paquete();
 			agregar_a_paquete(paquete, "proceso", sizeof("proceso"));

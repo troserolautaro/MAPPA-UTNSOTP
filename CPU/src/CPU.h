@@ -41,6 +41,7 @@ void fetch(uint32_t pid,uint32_t pc);
 void decode();
 void execute();
 void check_interrupt();
+void contexto_ejecucion(char* mensaje);
 uint32_t * obtener_registro(char* registro);
 
 #endif /* CPU_H_ */

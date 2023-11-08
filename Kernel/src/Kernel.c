@@ -100,22 +100,23 @@ void procesar_mensaje(t_list* mensaje){
 	string_trim(&msg);
 	string_to_lower(msg);
 	//Seria excelente cuanto menos aprovechar que dentro de la lista "mensaje" se encuentra al final el socket para dividir con un switch las funciones
-
-	if(!strcasecmp(msg,"CrearProceso")){
-		int pid=*(int*)list_get(mensaje,1);
-		int resultado=*(int*)list_get(mensaje,2);
-		if(resultado>0)printf("se cargo archivo en memoria, proceso %d",pid);
-	}
 	if(!strcasecmp(msg,"proceso_exit")){
-		planificador_largo_salida(list_get(mensaje,1));
+		uint32_t pid = (*(uint32_t*)list_get(mensaje,1));
+		PCB* temp = (PCB*)list_get(procesos,pid-1);
+		deserializar_proceso(temp,mensaje);
+		planificador_largo_salida(temp);
+
 	}
 	if(!strcasecmp(msg,"cargado")){
 		int pid = *(int*)list_get(mensaje,1);
 		PCB * proceso = list_get(procesos,(pid-1));
 		queue_push(colaLargo,proceso);
-		char * mensaje = string_from_format("Se crea el proceso %d",proceso->pid,"en NEW");
-		log_info(logger,mensaje);
+		char * mensaje = string_from_format("Se crea el proceso %d en NEW",proceso->pid);
+		log_info(logger,"%s",mensaje);
 		free(mensaje);
+	}
+	if(!strcasecmp(msg,"contexto")){
+
 	}
 	free(msg);
 }

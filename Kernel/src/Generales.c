@@ -23,3 +23,11 @@ char* estado_enum(uint32_t estado){
 		default:return("Estado no definido\n");break;
 		}
 }
+void cambiar_estado(PCB* proceso, int estado){
+	char* mensaje =string_from_format("PID: %d",proceso->pid);
+	string_append_with_format(&mensaje," - Estado Anterior: %s",estado_enum(proceso->estado)); //0
+	proceso->estado=estado;
+	string_append_with_format(&mensaje," - Estado Actual: %s",estado_enum(proceso->estado)); // 2
+	log_info(logger,"%s",mensaje);
+	free(mensaje);
+}

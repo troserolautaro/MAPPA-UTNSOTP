@@ -125,11 +125,13 @@ void signal_recurso(char* recurso){
 
 void exit_i(){
 	//busca la instruccion en memoria
-	t_paquete* paquete=crear_paquete();
+	contexto_ejecucion("proceso_exit");
+	bloquear=true;
+	/*t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"proceso_exit",sizeof(char*)*11);
 	serializar_proceso(paquete,proceso);
 	enviar_paquete(paquete,clienteKernel);
-	eliminar_paquete(paquete);
+	eliminar_paquete(paquete);*/
 }
 
 
@@ -247,10 +249,7 @@ void execute(){
 void check_interrupt(){
 	if(!interrupcion && !bloquear){sem_post(&ciclo);}
 	else{
-		t_paquete* paquete=crear_paquete();
-		agregar_a_paquete(paquete,"PCB",sizeof(char*)*5);
-		serializar_proceso(paquete,proceso);
-		enviar_paquete(paquete,clienteKernel);
+	//contexto_ejecucion("contexto_ejecucion");
 		bloquear=false;
 		interrupcion=false;
 	}
@@ -259,6 +258,7 @@ void check_interrupt(){
 //FUNCION QUE EJECUTA CICLO DE INSTRUCCION
 //agregar luego parametro pcb a ejecutar ciclo de instruccion;
 void ejecutar_ciclo(){
+
 	do{
 		sem_wait(&ciclo);
 		fetch(proceso->pid,proceso->pc);
@@ -282,27 +282,29 @@ void procesar_mensaje(t_list* mensaje){
 	if(!strcasecmp(msg,"instruccion")){
 		char* comando = string_new();
 		string_append(&comando,list_get(mensaje,1));
-		string_trim_right(&comando);
 
-		char** parametros = string_array_new();
-		parametros = string_n_split(comando,3," ");
-		instruccion->comando=string_duplicate(parametros[0]);
+		instruccion->comando=string_duplicate(comando);
 
-		char * mensaje = string_from_format("PID: %d",proceso->pid);
-		string_append_with_format(&mensaje,"Ejecutando: %s",instruccion->comando);
-
-		for(int i=1; parametros[i]!=NULL;i++){
-			list_add(instruccion->parametros,string_duplicate(parametros[i]));
-			string_append(&mensaje,string_duplicate(parametros[i]));
+		char * consola = string_from_format("PID: %d Ejecucion: %s",proceso->pid,comando);
+		for(int i=2; i<list_size(mensaje)-1;i++){
+			list_add(instruccion->parametros,list_get(mensaje,i));
+			string_append(&consola,string_duplicate((char*)list_get(mensaje,i)));
 		}
-
-		//log_info(logger,"%s",mensaje);
-		free(mensaje);
+		// Ejecutando: %s %s %s \n",proceso->pid,comando);
+		log_info(logger,"%s",consola);
+		free(comando);
+		free(consola);
 		//free(parametros);?
 		sem_post(&instruccion_s);
 	}
 	if(!strcasecmp(msg,"interrupcion")){
 		interrupcion=true;
 	}
+}
+void contexto_ejecucion(char * mensaje){
+	t_paquete* paquete=crear_paquete();
+	agregar_a_paquete(paquete,mensaje,sizeof(mensaje));
+	serializar_proceso(paquete,proceso);
+	enviar_paquete(paquete,clienteKernel);
 }
 
