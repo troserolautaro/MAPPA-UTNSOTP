@@ -102,8 +102,9 @@ void procesar_mensaje(t_list* mensaje){
 		string_append(&path,(char*)list_get(mensaje,2));
 
 		int size=*(int*)list_get(mensaje,3);
-		t_list* instrucciones=cargar_instrucciones(&path);
-		list_add(instrucciones,"1");
+		t_list* instrucciones=list_create();
+		instrucciones=cargar_instrucciones(&path);
+		//list_add(instrucciones,"1");
 		printf("La primera linea es : %s",(char *)list_get(instrucciones,0));
 		dictionary_put(archivosCargados,string_itoa(pid),instrucciones); //Acordarse liberar diccionario
 		t_paquete * paquete = crear_paquete();
@@ -111,7 +112,7 @@ void procesar_mensaje(t_list* mensaje){
 		agregar_a_paquete(paquete,&pid,sizeof(int));
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
-		list_destroy(instrucciones);
+		//list_destroy(instrucciones); NO SE DESTRUYE LA LISTA XQ PERDES EL PUNTERRO
 		free(path);
 	}
 	 if(!strcasecmp(msg,"instruccion")){
@@ -126,7 +127,7 @@ void procesar_mensaje(t_list* mensaje){
 		agregar_a_paquete(paquete,instruccion,sizeof(instruccion));
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
-		list_destroy(listaInstrucciones);
+		//list_destroy(listaInstrucciones); NO SE DESTRUYE LA LISTA XQ PERDES EL PUNTERRO
 		free(instruccion);
 	}
 	free(msg);
