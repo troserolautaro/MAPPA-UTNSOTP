@@ -2,9 +2,9 @@
 
 void* planificador_largo(){
 	do{
-	pthread_mutex_lock(&mutexPlaniLargo);
-	pthread_mutex_lock(&mutexColaLargo);
+	sem_wait(&planiLargo);
 	while(/*gradoMultiprogramacion>queue_size(colaCorto) CAMBIAR*/ !detenida && !queue_is_empty(colaLargo)){
+		pthread_mutex_lock(&mutexColaLargo);
 		PCB* proceso=(PCB*)queue_pop(colaLargo);
 		pthread_mutex_unlock(&mutexColaLargo);
 		proceso->estado=READY;
@@ -13,7 +13,7 @@ void* planificador_largo(){
 		queue_push(colaCorto,proceso);
 		pthread_mutex_unlock(&mutexColaCorto);
 	}
-	pthread_mutex_unlock(&mutexPlaniCorto);
+	sem_post(&planiCorto);
 	}while(true);
 	return NULL;
 	//semaforo a corto
@@ -24,9 +24,10 @@ void planificador_largo_salida(PCB** proceso){
 	/*TALVEZ HABRIA QUE LIBERAR EL PROCESO(?) PERO COMO YO LO ENTIENDO AL REFERENCIAR EL PUNTERO CAMBIA DONDE ESTA APUNTANDO. */
 	PCB* temp=*proceso;
 	temp->estado=TERMINATED;
-	//semaforo de gradoMultiprogramacion
+	// <SUCCESS / INVALID_RESOURCE / INVALID_WRITE>”
+	char *mensaje = string_from_format("Finaliza el proceso %d",temp->pid);
+	log_info(logger,"%s",mensaje);
 	free(temp);
-	free(proceso);
-	pthread_mutex_unlock(&mutexPlaniLargo);
+	sem_post(&planiLargo);
 	//planificador_largo();
 }

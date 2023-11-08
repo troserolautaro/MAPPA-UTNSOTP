@@ -41,7 +41,7 @@ int esperar_cliente(int socket_servidor)
 
 int recibir_operacion(int socket_cliente)
 {
-	int cod_op=malloc(sizeof(int));
+	int cod_op;
 	if(recv(socket_cliente, &cod_op, sizeof(int), MSG_WAITALL) > 0)
 		return cod_op;
 	else
@@ -127,21 +127,23 @@ void * manejar_cliente(void* socket){
 	do{
 		t_list* mensaje = procesar_tipo(socketint);
 		if(mensaje!=NULL && !list_is_empty(mensaje)){
+			//printf("%d",socketint);
 			list_add(mensaje, socket);
 			procesar_mensaje(mensaje);
 		}
 		if(mensaje==NULL){
+			//free(socket);
 			break;
 		}
 		//list_destroy(mensaje);
 	}while(true);
 	return NULL;
 }
-void * recibir_conexiones(int * server){
+void * recibir_conexiones(void * server){
 	int serverInt=*((int* )server);
 	do{
 		int cliente_fd = esperar_cliente(serverInt);
-		log_info(logger,"socket %d ",cliente_fd);
+	//	printf("%d",cliente_fd);
 		t_list* mensaje = procesar_tipo(cliente_fd);
 		if(mensaje!=NULL && !list_is_empty(mensaje)){
 			char* msg = malloc(sizeof(char*));
@@ -151,32 +153,39 @@ void * recibir_conexiones(int * server){
 			string_to_lower(msg);
 			if(!strcasecmp(msg,"conexion")){
 				log_info(logger,"Hola! %d",*(int*)list_get(mensaje,1));
-				 int resultado;
+				int resultado;
+				int* cliente_fd_copy = (int*)malloc(sizeof(int));
+				*cliente_fd_copy = cliente_fd;
 				switch(*(int*)list_get(mensaje,1)){
 					case KERNEL:
 						pthread_t hiloKernel;
-						 if ((resultado=pthread_create(&hiloKernel,NULL,manejar_cliente,( void *) &cliente_fd))!=0)
+						 if ((resultado=pthread_create(&hiloKernel,NULL,manejar_cliente,( void *)cliente_fd_copy))!=0)
 							printf("Error al crear hilo. resultado %d",resultado);
+
 					break;
 					case CPUDispatch:
-						pthread_t hiloCPUDistpatch;
-						if ((resultado=pthread_create(&hiloCPUDistpatch,NULL,manejar_cliente,( void *) &cliente_fd))!=0)
+						pthread_t hiloCPUDispatch;
+						if ((resultado=pthread_create(&hiloCPUDispatch,NULL,manejar_cliente,( void *) cliente_fd_copy))!=0)
 							printf("Error al crear hilo. resultado %d",resultado);
+
 					break;
 					case CPUInterrupt:
 						pthread_t hiloCPUInterrupt;
-						if ((resultado=pthread_create(&hiloCPUInterrupt,NULL,manejar_cliente,( void *) &cliente_fd))!=0)
+						if ((resultado=pthread_create(&hiloCPUInterrupt,NULL,manejar_cliente,( void *) cliente_fd_copy))!=0)
 												printf("Error al crear hilo. resultado %d",resultado);
+
 					break;
 					case MEMORIA:
 						pthread_t hiloMemoria;
-						if ((resultado=pthread_create(&hiloMemoria,NULL,manejar_cliente,( void *) &cliente_fd))!=0)
+						if ((resultado=pthread_create(&hiloMemoria,NULL,manejar_cliente,( void *) cliente_fd_copy))!=0)
 												printf("Error al crear hilo. resultado %d",resultado);
+
 					break;
 					case FILESYSTEM:
 						pthread_t hiloFileSystem;
-						if ((resultado=pthread_create(&hiloFileSystem,NULL,manejar_cliente,( void *) &cliente_fd))!=0)
+						if ((resultado=pthread_create(&hiloFileSystem,NULL,manejar_cliente,( void *) cliente_fd_copy))!=0)
 												printf("Error al crear hilo. resultado %d",resultado);
+
 					break;
 
 					default:

@@ -2,7 +2,7 @@
 
 char* lectura_consola(){
 	char* linea;
-	linea = readline(">>");
+	linea = readline("\n >>");
 	if (linea) add_history(linea);
 	return linea;
 }
@@ -21,11 +21,13 @@ int validacion_contenido_consola(char* comando){
 void iniciar_planificacion(){
 	if(detenida == true){
 		detenida=false;
-		pthread_mutex_unlock(&mutexPlaniLargo);
+		sem_post(&planiLargo);
+		log_info(logger,"Inicio de Planificacion");
 	}
 }
 void detener_planificacion(){
 	detenida=true;
+	log_info(logger,"Pausa de Planificacion");
 }
 
 void iniciar_proceso(char* path, int size, int prioridad){
@@ -46,13 +48,14 @@ void iniciar_proceso(char* path, int size, int prioridad){
 		//envia archivo a cargar en memoria para este proceso a el modulo de memoria
 		//SE PUEDE EXPORTAR SI ES NECESARIO EL ENVIO DE PAQUETE SI ES NECESARIO
 		t_paquete * paqueteArchivo=crear_paquete();
-		int pid=proceso->pid;
-		agregar_a_paquete(paqueteArchivo, "cargar", sizeof(char*)*6);
-		agregar_a_paquete(paqueteArchivo, &pid, sizeof(int*));
+		uint32_t pid=proceso->pid;
+		agregar_a_paquete(paqueteArchivo, "cargar", sizeof("cargar"));
+		agregar_a_paquete(paqueteArchivo, &pid, sizeof(uint32_t));
 		agregar_a_paquete(paqueteArchivo, path, (sizeof(path)));
 		agregar_a_paquete(paqueteArchivo, &size, sizeof(int*));
 		enviar_paquete(paqueteArchivo,conexionMemoria);
 		eliminar_paquete(paqueteArchivo);
+		//semaforos procesos mutex
 		list_add(procesos,proceso);
 }
 
@@ -62,10 +65,9 @@ void finalizar_proceso(int pid){
 	if(pid<=(list_size(procesos))){
 		//porque asigna pid= -1 ?
 		pid-=1;
-		/*POR AHORA PONGO COMENTARIOS DONDE TALVEZ HABRIA QUE HACER UN FREE! */
 		PCB* proceso= list_get(procesos,pid);
 		if(proceso->estado!=TERMINATED){
-			planificador_largo_salida(proceso);
+			planificador_largo_salida(&proceso);
 		}else{
 			printf("El proceso ya fue finalizado");
 		}
@@ -75,7 +77,8 @@ void finalizar_proceso(int pid){
 }
 
 void proceso_estado(){
-	//POSIBLE MUTEX PARA LA LISTA DE PROCESOS
+	//Modificar
+	pthread_mutex_lock(&mutexProcesos);
 	if(!list_is_empty(procesos)){
 		int i;
 		PCB* proceso;
@@ -83,16 +86,10 @@ void proceso_estado(){
 			proceso= list_get(procesos,i);
 			printf("[PID]: %d  ",proceso->pid);
 			printf("[ESTADO]: ");
-			switch(proceso->estado){
-				case NEW:printf("NEW\n");break;
-				case READY:printf("READY\n");break;
-				case EXEC:printf("EXEC\n");break;
-				case BLOCKED:printf("BLOCKED\n");break;
-				case TERMINATED:printf("TERMINATED\n");break;
-				default:printf("Estado no definido\n");break;
-				}
+			estado_enum(proceso->estado);
 		}
-		free(proceso);
+	pthread_mutex_unlock(&mutexProcesos);
+	free(proceso);
 	}else{printf("No hay procesos \n");}
 }
 

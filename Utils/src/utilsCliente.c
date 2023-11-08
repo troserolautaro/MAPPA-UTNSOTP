@@ -78,7 +78,6 @@ t_paquete* crear_paquete(void)
 {
 	t_paquete* paquete = malloc(sizeof(t_paquete));
 	paquete->codigo_operacion = PAQUETE;
-	printf("%d",paquete->codigo_operacion);
 	crear_buffer(paquete);
 	return paquete;
 }
@@ -116,17 +115,31 @@ void liberar_conexion(int socket_cliente)
 }
 void handshake(int cliente, int socket_cliente){
 	t_paquete * temp = crear_paquete();
-	agregar_a_paquete(temp,"conexion",(sizeof(char*)*8));
+	agregar_a_paquete(temp,"conexion",sizeof("conexion"));
 	agregar_a_paquete(temp,&cliente,sizeof(cliente));
 	agregar_a_paquete(temp,&socket_cliente,sizeof(socket_cliente));
 	enviar_paquete(temp,socket_cliente);
 	eliminar_paquete(temp);
 }
 void serializar_proceso(t_paquete* paquete,PCB* proceso){
+	//PCB* temp = *proceso;
 	agregar_a_paquete(paquete,&proceso->pid,sizeof(uint32_t));
 	agregar_a_paquete(paquete,&proceso->pc,sizeof(uint32_t));
-	agregar_a_paquete(paquete,&proceso->registros->AX,sizeof(uint32_t));
-	agregar_a_paquete(paquete,&proceso->registros->BX,sizeof(uint32_t));
-	agregar_a_paquete(paquete,&proceso->registros->CX,sizeof(uint32_t));
-	agregar_a_paquete(paquete,&proceso->registros->DX,sizeof(uint32_t));
+	agregar_a_paquete(paquete,&proceso->estado,sizeof(uint32_t));
+	agregar_a_paquete(paquete,&proceso->prioridad,sizeof(uint32_t));
+	agregar_a_paquete(paquete,&(proceso->registros->AX),sizeof(uint32_t));
+	agregar_a_paquete(paquete,&(proceso->registros->BX),sizeof(uint32_t));
+	agregar_a_paquete(paquete,&(proceso->registros->CX),sizeof(uint32_t));
+	agregar_a_paquete(paquete,&(proceso->registros->DX),sizeof(uint32_t));
+	//free(temp);
+}
+void deserializar_proceso(PCB* proceso, t_list * msg){
+	proceso->pid = *(uint32_t*)(list_get(msg,1));
+	proceso->pc = *(uint32_t*)list_get(msg,2);
+	proceso->estado = *(uint32_t*)list_get(msg,3);
+	proceso->prioridad = *(uint32_t*)list_get(msg,4);
+	proceso->registros->AX = *(uint32_t*)list_get(msg,5);
+	proceso->registros->BX = *(uint32_t*)list_get(msg,6);
+	proceso->registros->CX = *(uint32_t*)list_get(msg,7);
+	proceso->registros->DX = *(uint32_t*)list_get(msg,8);
 }

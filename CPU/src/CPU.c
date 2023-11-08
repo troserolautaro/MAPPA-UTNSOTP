@@ -3,7 +3,7 @@
 //VARIABLES GLOBALES
 int serverDispatch,serverInterrupt;
 int conexionMemoria;
-int clienteKernel,clienteKernelInterrupt;
+int clienteKernelDispatch,clienteKernelInterrupt;
 int reloj = 0; //Es el encargado de revisar el quantum
 bool bloquear, interrupcion;
 //
@@ -19,13 +19,15 @@ PCB* proceso;
  */
 //Semaforos
 sem_t ciclo,instruccion_s;
-int main(void) {
+int main() {
 	logger = malloc(sizeof(t_log));
 	t_config* config = malloc(sizeof(t_config));
 
 	logger = iniciar_logger("./log.log");
 	config = iniciar_config("./CPU.config");
 
+	proceso = proceso_create();
+	instruccion = instruccion_create();
 	char* ipMemoria = malloc(sizeof(char*)),
 			*puertoEscuchaDispatch = malloc(sizeof(char*)),
 			*puertoEscuchaInterrupt = malloc(sizeof(char*)),
@@ -44,25 +46,34 @@ int main(void) {
 	conexionMemoria = crear_conexion(ipMemoria, puertoMemoria,CPUDispatch);
 
 	//Inicia Servidor
-	 serverDispatch = iniciar_servidor(puertoEscuchaDispatch);
-	 serverInterrupt = iniciar_servidor(puertoEscuchaInterrupt);
+	serverDispatch = iniciar_servidor(puertoEscuchaDispatch);
+	serverInterrupt = iniciar_servidor(puertoEscuchaInterrupt);
 	 log_info(logger, "Servidor listo para recibir al cliente");
-	 clienteKernel = esperar_cliente(serverDispatch);
-	 clienteKernelInterrupt = esperar_cliente(serverInterrupt);
+	clienteKernelDispatch = esperar_cliente(serverDispatch);
+	clienteKernelInterrupt = esperar_cliente(serverInterrupt);
 
 	//HILOS
-	pthread_t hiloKernel, hiloCiclo,hiloMemoria;
+	pthread_t hiloKernelDispatch, hiloCiclo,hiloMemoria,hiloKernelInterrupt;
 	//Hilos conexion
-	pthread_create(&hiloKernel,NULL,(void *) manejar_cliente,&clienteKernel);
-	pthread_create(&hiloMemoria,NULL,(void *)manejar_cliente,&conexionMemoria);
+	int resultado;
+	if ((resultado = pthread_create(&hiloKernelDispatch,NULL,manejar_cliente,(void*)&clienteKernelDispatch))!=0){
+		printf("Error al crear hilo. resultado %d",resultado);
+	}
+	if ((resultado = pthread_create(&hiloKernelInterrupt,NULL,manejar_cliente,&clienteKernelInterrupt))!=0){
+		printf("Error al crear hilo. resultado %d",resultado);
+	}
+	if ((resultado = pthread_create(&hiloMemoria,NULL,manejar_cliente,(void*)&conexionMemoria))!=0){
+		printf("Error al crear hilo. resultado %d",resultado);
+	}
 	//Hilos proceso
 	bloquear= false;
 	interrupcion=false;
 	pthread_create(&hiloCiclo,NULL,(void*)ejecutar_ciclo,NULL);
-	/*PROBABLEMENTE SE PUEDA SEPARAR ESTO Y ABSTRAERLA COMO UNA FUNCION PARA UTILES*/
-	pthread_join(hiloKernel,NULL);
+
+	pthread_join(hiloKernelDispatch,NULL);
 	pthread_join(hiloCiclo,NULL);
-	//manejar_cliente(NULL);
+	pthread_join(hiloMemoria,NULL);
+	pthread_join(hiloKernelInterrupt,NULL);
 	return EXIT_SUCCESS;
 }
 
@@ -140,16 +151,20 @@ uint32_t * obtener_registro(char* registro){
 }
 
 //FUNCIONES PARA CICLO DE EJECUCION SIMPLE
-void fetch(int pid,int pc){
+void fetch(uint32_t pid,uint32_t pc){
 	//busca la instruccion en memoria
+	char* mensaje = string_from_format("PID: %d",pid);
+	string_append_with_format(&mensaje," - FETCH - Program Counter: %d",pc);
+	log_info(logger,"%s",mensaje);
+	free(mensaje);
 	t_paquete* paquete=crear_paquete();
-	agregar_a_paquete(paquete,"instruccion",sizeof(char*)*11);
+	agregar_a_paquete(paquete,"instruccion",sizeof("instruccion"));
 	agregar_a_paquete(paquete,&pid,sizeof(uint32_t));
 	agregar_a_paquete(paquete,&pc,sizeof(uint32_t));
 	enviar_paquete(paquete,conexionMemoria);
 	eliminar_paquete(paquete);
-	//esta parte se podria mover a procesar mensaje
-	//CONSUMIDOR esperando respuesta memoria
+
+// Fetch Instrucción: “PID: <PID> - FETCH - Program Counter: <PROGRAM_COUNTER>”.
 }
 
 //definir como llega de memoria para definir el tipo de parametro
@@ -224,6 +239,9 @@ void execute(){
 	if(!strcasecmp(instruccion->comando, "EXIT")){
 		exit_i();
 	}
+
+
+	//	Instrucción Ejecutada: “PID: <PID> - Ejecutando: <INSTRUCCION> - <PARAMETROS>”.
 }
 void check_interrupt(){
 	if(!interrupcion && !bloquear){sem_post(&ciclo);}
@@ -255,8 +273,9 @@ void procesar_mensaje(t_list* mensaje){
 	string_append(&msg,list_get(mensaje,0));
 	string_trim(&msg);
 	string_to_lower(msg);
-
+//Seria excelente cuanto menos aprovechar que dentro de la lista "mensaje" se encuentra al final el socket para dividir con un switch las funciones
 	if(!strcasecmp(msg,"proceso")){
+		deserializar_proceso(proceso,mensaje);
 		sem_post(&ciclo);
 	}
 	if(!strcasecmp(msg,"instruccion")){
@@ -266,13 +285,19 @@ void procesar_mensaje(t_list* mensaje){
 
 		char** parametros = string_array_new();
 		parametros = string_n_split(comando,3," ");
+		instruccion->comando=string_duplicate(parametros[0]);
 
-		instruccion->comando=parametros[0];
+		char * mensaje = string_from_format("PID: %d",proceso->pid);
+		string_append_with_format(&mensaje,"Ejecutando: %s",instruccion->comando);
 
 		for(int i=1; parametros[i]!=NULL;i++){
-			list_add(instruccion->parametros,parametros[i]);
+			list_add(instruccion->parametros,string_duplicate(parametros[i]));
+			string_append(&mensaje,string_duplicate(parametros[i]));
 		}
 
+		//log_info(logger,"%s",mensaje);
+		free(mensaje);
+		//free(parametros);?
 		sem_post(&instruccion_s);
 	}
 	if(!strcasecmp(msg,"interrupcion")){
