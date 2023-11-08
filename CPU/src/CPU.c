@@ -93,7 +93,7 @@ void jnz(uint32_t * registro,uint32_t pc){
 	if(*registro==0)proceso->pc=pc;
 }
 
-void sleep(uint32_t tiempo){
+void sleep_proceso(uint32_t tiempo){
 	//busca la instruccion en memoria
 	t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"sleep",sizeof(char*)*5);
@@ -103,7 +103,7 @@ void sleep(uint32_t tiempo){
 	bloquear=true;
 }
 
-void wait(char* recurso){
+void wait_recurso(char* recurso){
 	//busca la instruccion en memoria
 	t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"wait",strlen("wait")+1);
@@ -113,7 +113,7 @@ void wait(char* recurso){
 	bloquear=true;
 }
 
-void signal(char* recurso){
+void signal_recurso(char* recurso){
 	//busca la instruccion en memoria
 	t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"signal",strlen("signal")+1);
@@ -163,6 +163,7 @@ void fetch(uint32_t pid,uint32_t pc){
 	agregar_a_paquete(paquete,&pc,sizeof(uint32_t));
 	enviar_paquete(paquete,conexionMemoria);
 	eliminar_paquete(paquete);
+	proceso->pc++;
 
 // Fetch Instrucción: “PID: <PID> - FETCH - Program Counter: <PROGRAM_COUNTER>”.
 }
@@ -202,15 +203,15 @@ void execute(){
 	}
 	if(!strcasecmp(instruccion->comando,"SLEEP")){
 		uint32_t tiempo=(uint32_t)strtol(list_get(parametros,1),NULL,10);
-		sleep(tiempo);
+		sleep_proceso(tiempo);
 	}
 	if(!strcasecmp(instruccion->comando,"WAIT")){
 		recurso=list_get(parametros,1);
-		wait(recurso);
+		wait_recurso(recurso);
 	}
 	if(!strcasecmp(instruccion->comando,"SIGNAL")){
 		recurso=list_get(parametros,1);
-		signal();
+		signal_recurso(recurso);
 	}
 	if(!strcasecmp(instruccion->comando,"MOV_IN")){
 		//MOV_IN();
