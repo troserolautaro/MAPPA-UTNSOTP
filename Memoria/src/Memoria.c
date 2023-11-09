@@ -59,7 +59,7 @@ void procesar_mensaje(t_list* mensaje){
 
 		int pid=*(int*)list_get(mensaje,1);
 		char* path=string_new();
-		string_append(&path,(char*)list_get(mensaje,2));
+		string_append(&path,list_get(mensaje,2));
 
 		int size=*(int*)list_get(mensaje,3);
 		t_list* instrucciones=list_create();
@@ -82,14 +82,16 @@ void procesar_mensaje(t_list* mensaje){
 		t_list* listaInstrucciones =(t_list*)dictionary_get(archivosCargados,string_itoa(pid));
 		char* instruccion=string_new();
 		string_append(&instruccion,(char*)list_get(listaInstrucciones,pc));
-
-		char** parametros = string_array_new();
-				parametros = string_n_split(instruccion,3," ");
 		t_paquete* paquete=crear_paquete();
 		agregar_a_paquete(paquete,"instruccion",sizeof("instruccion"));
-		//agregar_a_paquete(asdkjasd, instruccion, sizeof(instruccion));
-		for(int i = 0; parametros[i]!=NULL; i++){
-			agregar_a_paquete(paquete,parametros[i],sizeof(parametros[i]));
+		if(!strcasecmp(instruccion,"EXIT")){
+			agregar_a_paquete(paquete,instruccion,strlen(instruccion)+1);
+		}else{
+			char** parametros = string_array_new();
+			parametros = string_n_split(instruccion,3," ");
+			for(int i = 0; parametros[i]!=NULL; i++){
+				agregar_a_paquete(paquete,parametros[i],strlen(parametros[i])+1);
+			}
 		}
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);

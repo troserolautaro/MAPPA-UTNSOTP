@@ -7,7 +7,7 @@ typedef enum{
 	ROUNDROBIN,
 
 }planificacion;
-void *planificador_corto();
+void planificador_corto();
 int planificador_enum();
 void fifo();
 void prioridad(); //Multicola sin salto entre ellas

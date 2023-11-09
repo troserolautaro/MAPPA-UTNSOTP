@@ -125,7 +125,7 @@ void signal_recurso(char* recurso){
 
 void exit_i(){
 	//busca la instruccion en memoria
-	contexto_ejecucion("proceso_exit");
+	contexto_ejecucion("procesoExit");
 	bloquear=true;
 	/*t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"proceso_exit",sizeof(char*)*11);
@@ -138,16 +138,16 @@ void exit_i(){
 //FUNCION AUXILIAR PARA OBTENER LOS REGISTROS INDICADOS EN LAS INSTRUCCIONES
 uint32_t * obtener_registro(char* registro){
 	if(!strcasecmp(registro, "AX")){
-		return &proceso->registros->AX;
+		return &(proceso->registros->AX);
 	}
 	if(!strcasecmp(registro, "BX")){
-		return &proceso->registros->BX;
+		return &(proceso->registros->BX);
 	}
 	if(!strcasecmp(registro, "CX")){
-		return &proceso->registros->CX;
+		return &(proceso->registros->CX);
 	}
 	if(!strcasecmp(registro, "DX")){
-		return &proceso->registros->DX;
+		return &(proceso->registros->DX);
 	}
 	return (uint32_t*)NULL;
 }
@@ -242,8 +242,7 @@ void execute(){
 	if(!strcasecmp(instruccion->comando, "EXIT")){
 		exit_i();
 	}
-
-
+	list_clean_and_destroy_elements(instruccion->parametros,(void*)liberar_memoria);
 	//	Instrucción Ejecutada: “PID: <PID> - Ejecutando: <INSTRUCCION> - <PARAMETROS>”.
 }
 void check_interrupt(){
@@ -288,9 +287,8 @@ void procesar_mensaje(t_list* mensaje){
 		char * consola = string_from_format("PID: %d Ejecucion: %s",proceso->pid,comando);
 		for(int i=2; i<list_size(mensaje)-1;i++){
 			list_add(instruccion->parametros,list_get(mensaje,i));
-			string_append(&consola,string_duplicate((char*)list_get(mensaje,i)));
+			string_append(&consola,list_get(mensaje,i));
 		}
-		// Ejecutando: %s %s %s \n",proceso->pid,comando);
 		log_info(logger,"%s",consola);
 		free(comando);
 		free(consola);
@@ -303,8 +301,9 @@ void procesar_mensaje(t_list* mensaje){
 }
 void contexto_ejecucion(char * mensaje){
 	t_paquete* paquete=crear_paquete();
-	agregar_a_paquete(paquete,mensaje,sizeof(mensaje));
+	agregar_a_paquete(paquete,mensaje,strlen(mensaje)+1);
 	serializar_proceso(paquete,proceso);
-	enviar_paquete(paquete,clienteKernel);
+	enviar_paquete(paquete,clienteKernelDispatch);
+	eliminar_paquete(paquete);
 }
 

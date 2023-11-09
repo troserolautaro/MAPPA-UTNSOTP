@@ -100,8 +100,8 @@ void procesar_mensaje(t_list* mensaje){
 	string_trim(&msg);
 	string_to_lower(msg);
 	//Seria excelente cuanto menos aprovechar que dentro de la lista "mensaje" se encuentra al final el socket para dividir con un switch las funciones
-	if(!strcasecmp(msg,"proceso_exit")){
-		uint32_t pid = (*(uint32_t*)list_get(mensaje,1));
+	if(!strcasecmp(msg,"procesoExit")){
+		uint32_t pid = *(uint32_t*)list_get(mensaje,1);
 		PCB* temp = (PCB*)list_get(procesos,pid-1);
 		deserializar_proceso(temp,mensaje);
 		planificador_largo_salida(temp);

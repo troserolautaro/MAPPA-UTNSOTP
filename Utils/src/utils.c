@@ -34,6 +34,9 @@ void instruccion_destroy(t_instruccion* instruccion){
 	free(instruccion->comando);
 	free(instruccion);
 }
+void liberar_memoria(void * elemento){
+	free(elemento);
+}
 t_log* iniciar_logger(char* log)
 {
 	t_log* nuevo_logger =log_create(log,"log",1,LOG_LEVEL_INFO);

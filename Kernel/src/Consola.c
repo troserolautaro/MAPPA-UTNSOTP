@@ -51,8 +51,8 @@ void iniciar_proceso(char* path, int size, int prioridad){
 		uint32_t pid=proceso->pid;
 		agregar_a_paquete(paqueteArchivo, "cargar", sizeof("cargar"));
 		agregar_a_paquete(paqueteArchivo, &pid, sizeof(uint32_t));
-		agregar_a_paquete(paqueteArchivo, path, (sizeof(path)));
-		agregar_a_paquete(paqueteArchivo, &size, sizeof(int*));
+		agregar_a_paquete(paqueteArchivo, path, (strlen(path))+1);
+		agregar_a_paquete(paqueteArchivo, &size, sizeof(int));
 		enviar_paquete(paqueteArchivo,conexionMemoria);
 		eliminar_paquete(paqueteArchivo);
 		//semaforos procesos mutex
