@@ -1,11 +1,12 @@
 #include"Consola.h"
 
 char* lectura_consola(){
+	//Semaforo de espera mensaje
 	char* linea;
-	pthread_mutex_lock(&mutexLog);
+//	pthread_mutex_lock(&mutexLog);
 	linea = readline("\n >>");
 	if (linea){ add_history(linea);}
-	pthread_mutex_unlock(&mutexLog);
+//	pthread_mutex_unlock(&mutexLog);
 	return linea;
 }
 
@@ -92,36 +93,38 @@ void proceso_estado(){
 	if(!list_is_empty(procesos)){
 		int i;
 		PCB* proceso;
-		char* new=string_from_format("Estado: NEW Procesos: "),
-		*ready=string_from_format("Estado: READY Procesos: "),
-		*exec=string_from_format("Estado: EXEC Procesos: "),
-		*blocked=string_from_format("Estado: BLOCKED Procesos: "),
-		*terminated=string_from_format("Estado: TERMINATED Procesos: ");
+		char* new=string_from_format("Estado: NEW - Procesos: "),
+		*ready=string_from_format("Estado: READY - Procesos: "),
+		*exec=string_from_format("Estado: EXEC - Procesos: "),
+		*blocked=string_from_format("Estado: BLOCKED - Procesos: "),
+		*terminated=string_from_format("Estado: TERMINATED - Procesos: ");
 		for(i = 0 ; i<list_size(procesos); i++){
 			proceso= list_get(procesos,i);
-
-//			printf("[PID]: %d  ",proceso->pid);
-//			printf("[ESTADO]: ");
 			switch(proceso->estado){
-			case NEW:
-				string_append_with_format(&new,"%s",(char*)proceso->pid);
-				break;
-			case READY:
-				string_append_with_format(&ready,"%s",(char*)proceso->pid);
-				break;
-			case BLOCKED:
-				string_append_with_format(&blocked,"%s",(char*)proceso->pid);
-				break;
-			case EXEC:
-				string_append_with_format(&exec,"%s",(char*)proceso->pid);
-				break;
-			case TERMINATED:
-				string_append_with_format(&terminated,"%s",(char*)proceso->pid);
-				break;
-//Me quede a la mitad de esto, si se puede! terminar
+			case NEW:string_append_with_format(&new,"PID_%s \n",(char*)proceso->pid); break;
+			case READY: string_append_with_format(&ready,"PID_%s \n",(char*)proceso->pid); break;
+			case BLOCKED: string_append_with_format(&blocked,"PID_%s \n",(char*)proceso->pid); break;
+			case EXEC: string_append_with_format(&exec,"PID_%s \n",(char*)proceso->pid); break;
+			case TERMINATED:string_append_with_format(&terminated,"PID_%s \n",(char*)proceso->pid); break;
 			}
 		}
 	pthread_mutex_unlock(&mutexProcesos);
+	char * estados = string_new();
+	string_append(&estados,new);
+	string_append(&estados,ready);
+	string_append(&estados,exec);
+	string_append(&estados,blocked);
+	string_append(&estados,terminated);
+	pthread_mutex_lock(&mutexLog);
+	log_info(logger,"%s",estados);
+	pthread_mutex_unlock(&mutexLog);
+
+	free(new);
+	free(ready);
+	free(exec);
+	free(blocked);
+	free(terminated);
+	free(estados);
 	free(proceso);
 
 	}
@@ -162,39 +165,32 @@ void * manejar_consola( void* args ){
 
 			break;
 			case FINALIZAR_PROCESO:
-					printf("FINALIZAR PROCESO \n");
 				//	finalizar_proceso(atoi(parametros[0]));
 //				enviar_mensaje("FINALIZAR PROCESO",conexionCPUDispatch);
 			break;
 			case INICIAR_PLANIFICACION:
-					printf("INICIAR PLANIFICACION \n");
 					iniciar_planificacion();
 					//enviar_mensaje("INICIAR PLANIFICACION",conexionCPUDispatch);
 			break;
 			case DETENER_PLANIFICACION:
-					printf("DETENER PLANIFICACION \n");
 					detener_planificacion();
 					//enviar_mensaje("DETENER PLANIFICACION",conexionCPUDispatch);
 			break;
 			case MULTIPROGRAMACION:
-					printf("MULTIPROGRAMACION \n");
 					//si hay que hacer algo mas, sacar en una funcion aparte
 				//	gradoMultiprogramacion=atoi(parametros[0]);
 					//enviar_mensaje("MULTIPROGRAMACION",conexionCPUDispatch);
 			break;
 
 			case PROCESO_ESTADO:
-					printf("PROCESO ESTADO \n");
 					proceso_estado();
 //				enviar_mensaje("PROCESO ESTADO",conexionCPUDispatch);
 			break;
 			case -1:
-				printf("Saliendo! \n");
 				enviar_mensaje("Me desconecte",conexionCPUDispatch);
 				return NULL ;
 			break;
 			default:
-				printf("No se reconocio el comando \n");
 			break;
 		}
 		for(size_t i = 0; parametros[i]!=NULL; i++ ){

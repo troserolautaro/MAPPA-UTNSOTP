@@ -27,5 +27,6 @@ extern sem_t planiLargo,planiCorto;
 
 char* estado_enum(uint32_t estado);
 void  cambiar_estado(PCB* proceso, int estado);
-void escribir_logger(char* mensaje);
+
+void escritura_log(void* mensaje);
 #endif /* GENERALES_H_ */

@@ -54,4 +54,16 @@ t_config* iniciar_config(char* config)
 	}
 	return nuevo_config;
 }
+void hilo_funcion(void* parametro,funcion funcion){
+	//Un hilo para cuando el procesar mensaje tenga que escribir en consola y no tenga que esperar el uso de la pantalla
+	pthread_t hiloLogger;
+	pthread_attr_t atributos;
+	pthread_attr_init(&atributos);
+	pthread_attr_setdetachstate(&atributos,PTHREAD_CREATE_DETACHED);
+	int resultado;
+	if((resultado=pthread_create(&hiloLogger,&atributos,(void*)funcion,parametro))!=0){
+		printf("ERROR");
+	}
+	pthread_attr_destroy(&atributos);
+}
 

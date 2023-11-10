@@ -13,6 +13,7 @@ char* AlgoritmoPlanificacion;
 pthread_mutex_t mutexColaCorto,mutexColaLargo,mutexProcesos,mutexLog;
 sem_t planiLargo,planiCorto;
 
+
 char* estado_enum(uint32_t estado){
 	switch(estado){
 		case NEW:return("NEW\n");break;
@@ -28,7 +29,11 @@ void cambiar_estado(PCB* proceso, int estado){
 	string_append_with_format(&mensaje," - Estado Anterior: %s",estado_enum(proceso->estado)); //0
 	proceso->estado=estado;
 	string_append_with_format(&mensaje," - Estado Actual: %s",estado_enum(proceso->estado)); // 2
+
+	pthread_mutex_lock(&mutexLog);
 	log_info(logger,"%s",mensaje);
+	pthread_mutex_unlock(&mutexLog);
+
 	free(mensaje);
 }
 void escritura_log(void* mensaje){
@@ -37,18 +42,4 @@ void escritura_log(void* mensaje){
 	pthread_mutex_unlock(&mutexLog);
 	free(mensaje);
 }
-void escribir_logger(char* mensaje){
-	//Un hilo para cuando el procesar mensaje tenga que escribir en consola y no tenga que esperar el uso de la pantalla
-	pthread_t hiloLogger;
-	pthread_attr_t atributos;
-	pthread_attr_init(&atributos);
-	pthread_attr_setdetachstate(&atributos,PTHREAD_CREATE_DETACHED);
-	int resultado;
-	if((resultado=pthread_create(&hiloLogger,&atributos,(void*)escritura_log,(void*)mensaje))!=0){
-		printf("ERROR");
-	}
 
-
-	pthread_attr_destroy(&atributos);
-
-}

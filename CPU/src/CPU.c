@@ -335,9 +335,11 @@ void procesar_mensaje(t_list* mensaje){
 		interrupcion=true;
 	}
 }
-void contexto_ejecucion(char * mensaje){
+void contexto_ejecucion(t_list * mensaje){
 	t_paquete* paquete=crear_paquete();
-	agregar_a_paquete(paquete,mensaje,strlen(mensaje)+1);
+	for(int i=0;i<list_size(mensaje);i++){
+		agregar_a_paquete(paquete,list_get(mensaje,i),strlen(list_get(mensaje,i))+1);
+	}
 	serializar_proceso(paquete,proceso);
 	enviar_paquete(paquete,clienteKernelDispatch);
 	eliminar_paquete(paquete);

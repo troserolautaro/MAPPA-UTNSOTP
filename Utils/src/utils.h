@@ -88,11 +88,15 @@ typedef struct {
 PCB* proceso_create();
 t_instruccion *instruccion_create();
 registros_CPU* registros_create();
+typedef void (*funcion)(void*);
+
+
 void proceso_destroy(PCB* proceso);
 void instruccion_destroy(t_instruccion*);
 void liberar_memoria(void * elemento);
 t_log* iniciar_logger(char* log);
 t_config* iniciar_config(char* config);
+void hilo_funcion(void* parametro,funcion funcion);
 
 #endif /* SRC_UTILS_H_ */
 

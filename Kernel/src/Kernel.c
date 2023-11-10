@@ -124,7 +124,7 @@ void procesar_mensaje(t_list* mensaje){
 		pthread_mutex_unlock(&mutexColaLargo);
 
 		char * mensaje = string_from_format("Se crea el proceso %d en NEW",proceso->pid);
-		escribir_logger(mensaje);
+		hilo_funcion(mensaje,escritura_log);
 
 	}
 	if(!strcasecmp(msg,"contexto")){

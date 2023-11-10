@@ -24,7 +24,9 @@ void planificador_largo_salida(PCB* proceso){
 	cambiar_estado(proceso,TERMINATED);
 	// <SUCCESS / INVALID_RESOURCE / INVALID_WRITE>”
 	char *mensaje = string_from_format("Finaliza el proceso %d",proceso->pid);
+	pthread_mutex_lock(&mutexLog);
 	log_info(logger,"%s",mensaje);
+	pthread_mutex_unlock(&mutexLog);
 	sem_post(&planiLargo);
 	//planificador_largo();
 }
