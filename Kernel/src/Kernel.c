@@ -22,6 +22,7 @@ int main(void)
 	pthread_mutex_init(&mutexColaCorto,NULL);
 	pthread_mutex_init(&mutexColaLargo,NULL);
 	pthread_mutex_init(&mutexProcesos,NULL);
+	pthread_mutex_init(&mutexLog,NULL);
 	/************************************RECUPERA DATOS DE ARCHIVO DE CONFIGURACION************************************/
 	//TALVEZ SE PUEDE GLOBALIZAR Y PASAR A UNA FUNCION PARA QUE QUEDE MEJOR PARA LA LECTURA
 	//CONFIGURACION DE CPU
@@ -52,8 +53,8 @@ int main(void)
 	pthread_t hiloCPUDispatch;
 	pthread_create(&hiloCPUDispatch,NULL,manejar_cliente,&conexionCPUDispatch);
 
-	//pthread_t  hiloCPUInterrupt;
-	//pthread_create(hiloCPUInterrupt,NULL,manejar_cliente,conexionCPUInterrupt);
+	pthread_t  hiloCPUInterrupt;
+	pthread_create(&hiloCPUInterrupt,NULL,manejar_cliente,&conexionCPUInterrupt);
 
 	pthread_t  hiloMemoria;
 	int resultado;
@@ -70,13 +71,13 @@ int main(void)
 	pthread_create(&hiloLargo,NULL,planificador_largo,NULL);
 	/************************************FINALIZA LOS PROGRAMAS O HILOS A FUTURO************************************/
 	pthread_join(hiloCPUDispatch,NULL);
-	//pthread_join(hiloCPUInterrupt,NULL);
+	pthread_join(hiloCPUInterrupt,NULL);
 	pthread_join(hiloMemoria,NULL);
 	pthread_join(hiloCorto,NULL);
 	pthread_join(hiloLargo,NULL);
 	pthread_join(hiloConsola,NULL);
 	//pthread_join(hiloFilesystem,NULL);
-	//pthread_join(hiloConsola,NULL);
+	pthread_join(hiloConsola,NULL);
 	return EXIT_SUCCESS;
 }
 void terminar_programa()
@@ -102,18 +103,29 @@ void procesar_mensaje(t_list* mensaje){
 	//Seria excelente cuanto menos aprovechar que dentro de la lista "mensaje" se encuentra al final el socket para dividir con un switch las funciones
 	if(!strcasecmp(msg,"procesoExit")){
 		uint32_t pid = *(uint32_t*)list_get(mensaje,1);
+
+		pthread_mutex_lock(&mutexProcesos);
 		PCB* temp = (PCB*)list_get(procesos,pid-1);
+		pthread_mutex_unlock(&mutexProcesos);
+
 		deserializar_proceso(temp,mensaje);
 		planificador_largo_salida(temp);
 
 	}
 	if(!strcasecmp(msg,"cargado")){
 		int pid = *(int*)list_get(mensaje,1);
+
+		pthread_mutex_lock(&mutexProcesos);
 		PCB * proceso = list_get(procesos,(pid-1));
+		pthread_mutex_unlock(&mutexProcesos);
+
+		pthread_mutex_lock(&mutexColaLargo);
 		queue_push(colaLargo,proceso);
+		pthread_mutex_unlock(&mutexColaLargo);
+
 		char * mensaje = string_from_format("Se crea el proceso %d en NEW",proceso->pid);
-		log_info(logger,"%s",mensaje);
-		free(mensaje);
+		escribir_logger(mensaje);
+
 	}
 	if(!strcasecmp(msg,"contexto")){
 

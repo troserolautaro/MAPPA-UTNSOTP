@@ -10,6 +10,7 @@ bool bloquear, interrupcion;
 t_log* logger ;
 t_instruccion * instruccion;
 PCB* proceso;
+pthread_mutex_t mutexProceso, mutexLog;
 
 /*struct{
 	t_instruccion * instruccion;
@@ -42,6 +43,7 @@ int main() {
 	//Iniciar semaforos
 	sem_init(&ciclo,0,0);
 	sem_init(&instruccion_s,0,0);
+	pthread_mutex_init(&mutexProceso,NULL);
 	//Iniciar Cliente que conecta a memoria
 	conexionMemoria = crear_conexion(ipMemoria, puertoMemoria,CPUDispatch);
 
@@ -90,7 +92,9 @@ void sub(uint32_t * registroDestino,uint32_t * registroOrigen){
 }
 
 void jnz(uint32_t * registro,uint32_t pc){
+	pthread_mutex_lock(&mutexProceso);
 	if(*registro==0)proceso->pc=pc;
+	pthread_mutex_unlock(&mutexProceso);
 }
 
 void sleep_proceso(uint32_t tiempo){
@@ -98,8 +102,12 @@ void sleep_proceso(uint32_t tiempo){
 	t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"sleep",sizeof(char*)*5);
 	agregar_a_paquete(paquete,&tiempo,sizeof(int*));
+
+	pthread_mutex_lock(&mutexProceso);
 	serializar_proceso(paquete,proceso);
-	enviar_paquete(paquete,clienteKernel);
+	pthread_mutex_unlock(&mutexProceso);
+
+	enviar_paquete(paquete,clienteKernelDispatch);
 	bloquear=true;
 }
 
@@ -108,8 +116,12 @@ void wait_recurso(char* recurso){
 	t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"wait",strlen("wait")+1);
 	agregar_a_paquete(paquete,&recurso,strlen(recurso)+1);
+
+	pthread_mutex_lock(&mutexProceso);
 	serializar_proceso(paquete,proceso);
-	enviar_paquete(paquete,clienteKernel);
+	pthread_mutex_unlock(&mutexProceso);
+
+	enviar_paquete(paquete,clienteKernelDispatch);
 	bloquear=true;
 }
 
@@ -118,8 +130,10 @@ void signal_recurso(char* recurso){
 	t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"signal",strlen("signal")+1);
 	agregar_a_paquete(paquete,&recurso,strlen(recurso)+1);
+	pthread_mutex_lock(&mutexProceso);
 	serializar_proceso(paquete,proceso);
-	enviar_paquete(paquete,clienteKernel);
+	pthread_mutex_unlock(&mutexProceso);
+	enviar_paquete(paquete,clienteKernelDispatch);
 	bloquear=true;
 }
 
@@ -130,34 +144,53 @@ void exit_i(){
 	/*t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"proceso_exit",sizeof(char*)*11);
 	serializar_proceso(paquete,proceso);
-	enviar_paquete(paquete,clienteKernel);
+	enviar_paquete(paquete,clienteKernelDispatch);
 	eliminar_paquete(paquete);*/
 }
 
 
 //FUNCION AUXILIAR PARA OBTENER LOS REGISTROS INDICADOS EN LAS INSTRUCCIONES
 uint32_t * obtener_registro(char* registro){
+	uint32_t* puntero = NULL;
 	if(!strcasecmp(registro, "AX")){
-		return &(proceso->registros->AX);
+		pthread_mutex_lock(&mutexProceso);
+		puntero = &(proceso->registros->AX);
+		pthread_mutex_unlock(&mutexProceso);
+		return puntero;
 	}
 	if(!strcasecmp(registro, "BX")){
-		return &(proceso->registros->BX);
+		pthread_mutex_lock(&mutexProceso);
+		puntero = &(proceso->registros->BX);
+		pthread_mutex_unlock(&mutexProceso);
+		return puntero;
 	}
 	if(!strcasecmp(registro, "CX")){
-		return &(proceso->registros->CX);
+		pthread_mutex_lock(&mutexProceso);
+		puntero = &(proceso->registros->CX);
+		pthread_mutex_unlock(&mutexProceso);
+		return puntero;
 	}
 	if(!strcasecmp(registro, "DX")){
-		return &(proceso->registros->DX);
+		pthread_mutex_lock(&mutexProceso);
+		puntero = &(proceso->registros->DX);
+		pthread_mutex_unlock(&mutexProceso);
+		return puntero;
 	}
-	return (uint32_t*)NULL;
+	return puntero;
 }
 
 //FUNCIONES PARA CICLO DE EJECUCION SIMPLE
-void fetch(uint32_t pid,uint32_t pc){
+void fetch(){
 	//busca la instruccion en memoria
+	pthread_mutex_lock(&mutexProceso);
+	uint32_t pid = proceso->pid;
+	uint32_t pc = proceso->pc;
+	pthread_mutex_unlock(&mutexProceso);
 	char* mensaje = string_from_format("PID: %d",pid);
 	string_append_with_format(&mensaje," - FETCH - Program Counter: %d",pc);
+	pthread_mutex_lock(&mutexLog);
 	log_info(logger,"%s",mensaje);
+	pthread_mutex_unlock(&mutexLog);
 	free(mensaje);
 	t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"instruccion",sizeof("instruccion"));
@@ -165,8 +198,9 @@ void fetch(uint32_t pid,uint32_t pc){
 	agregar_a_paquete(paquete,&pc,sizeof(uint32_t));
 	enviar_paquete(paquete,conexionMemoria);
 	eliminar_paquete(paquete);
+	pthread_mutex_lock(&mutexProceso);
 	proceso->pc++;
-
+	pthread_mutex_unlock(&mutexProceso);
 // Fetch Instrucción: “PID: <PID> - FETCH - Program Counter: <PROGRAM_COUNTER>”.
 }
 
@@ -289,7 +323,9 @@ void procesar_mensaje(t_list* mensaje){
 			list_add(instruccion->parametros,list_get(mensaje,i));
 			string_append(&consola,list_get(mensaje,i));
 		}
+		pthread_mutex_lock(&mutexLog);
 		log_info(logger,"%s",consola);
+		pthread_mutex_unlock(&mutexLog);
 		free(comando);
 		free(consola);
 		//free(parametros);?

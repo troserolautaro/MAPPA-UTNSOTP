@@ -22,9 +22,10 @@ extern t_config* config;
 extern int conexionCPUDispatch, conexionCPUInterrupt,conexionMemoria,conexionFileSystem,pidGlobal;
 extern int gradoMultiprogramacion, quantum;
 extern char* AlgoritmoPlanificacion;
-extern pthread_mutex_t  mutexColaCorto,mutexColaLargo,mutexProcesos;
+extern pthread_mutex_t  mutexColaCorto,mutexColaLargo,mutexProcesos,mutexLog;
 extern sem_t planiLargo,planiCorto;
 
 char* estado_enum(uint32_t estado);
 void  cambiar_estado(PCB* proceso, int estado);
+void escribir_logger(char* mensaje);
 #endif /* GENERALES_H_ */

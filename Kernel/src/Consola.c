@@ -2,8 +2,10 @@
 
 char* lectura_consola(){
 	char* linea;
+	pthread_mutex_lock(&mutexLog);
 	linea = readline("\n >>");
-	if (linea) add_history(linea);
+	if (linea){ add_history(linea);}
+	pthread_mutex_unlock(&mutexLog);
 	return linea;
 }
 
@@ -22,12 +24,16 @@ void iniciar_planificacion(){
 	if(detenida == true){
 		detenida=false;
 		sem_post(&planiLargo);
+		pthread_mutex_lock(&mutexLog);
 		log_info(logger,"Inicio de Planificacion");
+		pthread_mutex_unlock(&mutexLog);
 	}
 }
 void detener_planificacion(){
 	detenida=true;
+	pthread_mutex_lock(&mutexLog);
 	log_info(logger,"Pausa de Planificacion");
+	pthread_mutex_unlock(&mutexLog);
 }
 
 void iniciar_proceso(char* path, int size, int prioridad){
@@ -47,6 +53,11 @@ void iniciar_proceso(char* path, int size, int prioridad){
 
 		//envia archivo a cargar en memoria para este proceso a el modulo de memoria
 		//SE PUEDE EXPORTAR SI ES NECESARIO EL ENVIO DE PAQUETE SI ES NECESARIO
+
+		//Talvez estos mutex no son necesarios
+		pthread_mutex_lock(&mutexProcesos);
+		list_add(procesos,proceso);
+		pthread_mutex_unlock(&mutexProcesos);
 		t_paquete * paqueteArchivo=crear_paquete();
 		uint32_t pid=proceso->pid;
 		agregar_a_paquete(paqueteArchivo, "cargar", sizeof("cargar"));
@@ -55,8 +66,7 @@ void iniciar_proceso(char* path, int size, int prioridad){
 		agregar_a_paquete(paqueteArchivo, &size, sizeof(int));
 		enviar_paquete(paqueteArchivo,conexionMemoria);
 		eliminar_paquete(paqueteArchivo);
-		//semaforos procesos mutex
-		list_add(procesos,proceso);
+
 }
 
 
@@ -67,7 +77,7 @@ void finalizar_proceso(int pid){
 		pid-=1;
 		PCB* proceso= list_get(procesos,pid);
 		if(proceso->estado!=TERMINATED){
-			planificador_largo_salida(&proceso);
+			planificador_largo_salida(proceso);
 		}else{
 			printf("El proceso ya fue finalizado");
 		}
@@ -82,15 +92,39 @@ void proceso_estado(){
 	if(!list_is_empty(procesos)){
 		int i;
 		PCB* proceso;
+		char* new=string_from_format("Estado: NEW Procesos: "),
+		*ready=string_from_format("Estado: READY Procesos: "),
+		*exec=string_from_format("Estado: EXEC Procesos: "),
+		*blocked=string_from_format("Estado: BLOCKED Procesos: "),
+		*terminated=string_from_format("Estado: TERMINATED Procesos: ");
 		for(i = 0 ; i<list_size(procesos); i++){
 			proceso= list_get(procesos,i);
-			printf("[PID]: %d  ",proceso->pid);
-			printf("[ESTADO]: ");
-			estado_enum(proceso->estado);
+
+//			printf("[PID]: %d  ",proceso->pid);
+//			printf("[ESTADO]: ");
+			switch(proceso->estado){
+			case NEW:
+				string_append_with_format(&new,"%s",(char*)proceso->pid);
+				break;
+			case READY:
+				string_append_with_format(&ready,"%s",(char*)proceso->pid);
+				break;
+			case BLOCKED:
+				string_append_with_format(&blocked,"%s",(char*)proceso->pid);
+				break;
+			case EXEC:
+				string_append_with_format(&exec,"%s",(char*)proceso->pid);
+				break;
+			case TERMINATED:
+				string_append_with_format(&terminated,"%s",(char*)proceso->pid);
+				break;
+//Me quede a la mitad de esto, si se puede! terminar
+			}
 		}
 	pthread_mutex_unlock(&mutexProcesos);
 	free(proceso);
-	}else{printf("No hay procesos \n");}
+
+	}
 }
 
 //pasar conexiones en el paramotro como array o struct
@@ -113,8 +147,6 @@ void * manejar_consola( void* args ){
 					}
 					char* path = malloc(sizeof(parametros[1]));
 					path = string_duplicate(parametros[1]);
-					printf("%s", path);
-
 					if(parametros[2]==NULL){
 						free(path);
 						break;

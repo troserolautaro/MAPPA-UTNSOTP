@@ -1,7 +1,7 @@
 #include"PlanificadorCorto.h"
 
 /*DECIDI HACERLO UNA COLA PORQUE CREI QUE ERA LO MEJOR */
-void planificador_corto(){
+void* planificador_corto(){
 	do{
 		sem_wait(&planiCorto);
 		pthread_mutex_lock(&mutexColaCorto);
@@ -26,6 +26,7 @@ void planificador_corto(){
 		}
 
 	}while(true);
+	return NULL;
 		/*PRUEBA DE COMO HACER EL PLANIFICADOR */
 
 
