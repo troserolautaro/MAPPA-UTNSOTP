@@ -22,19 +22,18 @@ int validacion_contenido_consola(char* comando){
 }
 
 void iniciar_planificacion(){
-	if(detenida == true){
+	if(detenida){
 		detenida=false;
 		sem_post(&planiLargo);
-		pthread_mutex_lock(&mutexLog);
-		log_info(logger,"Inicio de Planificacion");
-		pthread_mutex_unlock(&mutexLog);
+		escritura_log("Inicio de planificacion");
 	}
 }
 void detener_planificacion(){
-	detenida=true;
-	pthread_mutex_lock(&mutexLog);
-	log_info(logger,"Pausa de Planificacion");
-	pthread_mutex_unlock(&mutexLog);
+	if(!detenida){
+		detenida=true;
+		escritura_log("Pausa de planificacion");
+
+	}
 }
 
 void iniciar_proceso(char* path, int size, int prioridad){
@@ -72,18 +71,16 @@ void iniciar_proceso(char* path, int size, int prioridad){
 
 
 void finalizar_proceso(int pid){
-	//POSIBLE MUTEX
+	//POSIBLE MUTEX;
+	pthread_mutex_lock(&mutexProcesos);
 	if(pid<=(list_size(procesos))){
 		//porque asigna pid= -1 ?
 		pid-=1;
 		PCB* proceso= list_get(procesos,pid);
+		pthread_mutex_unlock(&mutexProcesos);
 		if(proceso->estado!=TERMINATED){
 			planificador_largo_salida(proceso);
-		}else{
-			printf("El proceso ya fue finalizado");
 		}
-	}else{
-		printf("Intentando eliminar un proceso que no existe\n");
 	}
 }
 
@@ -101,23 +98,22 @@ void proceso_estado(){
 		for(i = 0 ; i<list_size(procesos); i++){
 			proceso= list_get(procesos,i);
 			switch(proceso->estado){
-			case NEW:string_append_with_format(&new,"PID_%s \n",(char*)proceso->pid); break;
-			case READY: string_append_with_format(&ready,"PID_%s \n",(char*)proceso->pid); break;
-			case BLOCKED: string_append_with_format(&blocked,"PID_%s \n",(char*)proceso->pid); break;
-			case EXEC: string_append_with_format(&exec,"PID_%s \n",(char*)proceso->pid); break;
-			case TERMINATED:string_append_with_format(&terminated,"PID_%s \n",(char*)proceso->pid); break;
+			case NEW:string_append_with_format(&new,"PID_%s ",string_itoa(proceso->pid)); break;
+			case READY: string_append_with_format(&ready,"PID_%s ",string_itoa(proceso->pid)); break;
+			case BLOCKED: string_append_with_format(&blocked,"PID_%s ",string_itoa(proceso->pid)); break;
+			case EXEC: string_append_with_format(&exec,"PID_%s ",string_itoa(proceso->pid)); break;
+			case TERMINATED:string_append_with_format(&terminated,"PID_%s ",string_itoa(proceso->pid)); break;
 			}
 		}
 	pthread_mutex_unlock(&mutexProcesos);
 	char * estados = string_new();
-	string_append(&estados,new);
-	string_append(&estados,ready);
-	string_append(&estados,exec);
-	string_append(&estados,blocked);
-	string_append(&estados,terminated);
-	pthread_mutex_lock(&mutexLog);
-	log_info(logger,"%s",estados);
-	pthread_mutex_unlock(&mutexLog);
+	string_append_with_format(&estados,"%s \n",new);
+	string_append_with_format(&estados,"%s \n",ready);
+	string_append_with_format(&estados,"%s \n",blocked);
+	string_append_with_format(&estados,"%s \n",exec);
+	string_append_with_format(&estados,"%s \n",terminated);
+
+	escritura_log(estados);
 
 	free(new);
 	free(ready);
@@ -141,8 +137,6 @@ void * manejar_consola( void* args ){
 		parametros = string_n_split(lectura,4," ");
 		idComando = validacion_contenido_consola(parametros[0]);
 		free(lectura);
-		/*PROBABLEMENTE HAY QUE MEJORAR ESTO, SI BIEN FUNCIONA NO TOMA LOS PARAMETROS QEU SE INGRESAN EN
-		 * CONSOLA */
 		switch(idComando){
 			case INICIAR_PROCESO:
 					if(parametros[1]==NULL){
@@ -165,7 +159,7 @@ void * manejar_consola( void* args ){
 
 			break;
 			case FINALIZAR_PROCESO:
-				//	finalizar_proceso(atoi(parametros[0]));
+				finalizar_proceso((int)strtol((parametros[1]), (char **)NULL, 10));
 //				enviar_mensaje("FINALIZAR PROCESO",conexionCPUDispatch);
 			break;
 			case INICIAR_PLANIFICACION:
@@ -177,9 +171,8 @@ void * manejar_consola( void* args ){
 					//enviar_mensaje("DETENER PLANIFICACION",conexionCPUDispatch);
 			break;
 			case MULTIPROGRAMACION:
-					//si hay que hacer algo mas, sacar en una funcion aparte
-				//	gradoMultiprogramacion=atoi(parametros[0]);
-					//enviar_mensaje("MULTIPROGRAMACION",conexionCPUDispatch);
+				gradoMultiprogramacion=(int)strtol((parametros[1]), (char **)NULL, 10);
+				if(!detenida){sem_post(&planiLargo);}
 			break;
 
 			case PROCESO_ESTADO:
@@ -193,9 +186,7 @@ void * manejar_consola( void* args ){
 			default:
 			break;
 		}
-		for(size_t i = 0; parametros[i]!=NULL; i++ ){
-			free(parametros[i]);
-		}
+		string_array_destroy(parametros);
 
 	}
 }

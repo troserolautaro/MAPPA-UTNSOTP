@@ -4,7 +4,8 @@
 //include del utils general
 #include"utils.h"
 
-extern t_log* logger;
+
+
 
 void* recibir_buffer(int*, int);
 

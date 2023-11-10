@@ -6,7 +6,11 @@ t_instruccion *instruccion_create() {
 	instruccion->parametros= list_create();
 	return instruccion;
 }
-
+void instruccion_destroy(t_instruccion* instruccion){
+	list_destroy(instruccion->parametros);
+	free(instruccion->comando);
+	free(instruccion);
+}
 PCB* proceso_create(){
 	PCB* proceso = malloc(sizeof(PCB));
 	proceso->estado=0;
@@ -29,11 +33,20 @@ void proceso_destroy(PCB* proceso){
 	free(proceso->registros);
 	free(proceso);
 }
-void instruccion_destroy(t_instruccion* instruccion){
-	list_destroy(instruccion->parametros);
-	free(instruccion->comando);
-	free(instruccion);
+
+PCB* proceso_copy(PCB* origen){
+	PCB* destino = proceso_create();
+	destino->estado = origen->estado;
+	destino->pc = origen->pc;
+	destino->pid = origen->pid;
+	destino->prioridad = origen->prioridad;
+	destino->registros->AX = origen->registros->AX;
+	destino->registros->BX = origen->registros->BX;
+	destino->registros->CX = origen->registros->CX;
+	destino->registros->DX = origen->registros->DX;
+	return destino;
 }
+
 void liberar_memoria(void * elemento){
 	free(elemento);
 }
@@ -62,8 +75,12 @@ void hilo_funcion(void* parametro,funcion funcion){
 	pthread_attr_setdetachstate(&atributos,PTHREAD_CREATE_DETACHED);
 	int resultado;
 	if((resultado=pthread_create(&hiloLogger,&atributos,(void*)funcion,parametro))!=0){
-		printf("ERROR");
+		error_show("Hilo_funcion no creado");
 	}
 	pthread_attr_destroy(&atributos);
 }
-
+void escritura_log(char* mensaje){
+	pthread_mutex_lock(&mutexLog);
+	log_info(logger,"%s",mensaje);
+	pthread_mutex_unlock(&mutexLog);
+}

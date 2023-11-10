@@ -17,16 +17,13 @@ extern bool detenida;
 extern t_queue* colaLargo;
 extern t_queue* colaCorto;
 extern t_list* procesos;
-extern t_log* logger;
-extern t_config* config;
 extern int conexionCPUDispatch, conexionCPUInterrupt,conexionMemoria,conexionFileSystem,pidGlobal;
 extern int gradoMultiprogramacion, quantum;
 extern char* AlgoritmoPlanificacion;
-extern pthread_mutex_t  mutexColaCorto,mutexColaLargo,mutexProcesos,mutexLog;
+extern pthread_mutex_t  mutexColaCorto,mutexColaLargo,mutexProcesos,mutexGrado;
 extern sem_t planiLargo,planiCorto;
 
 char* estado_enum(uint32_t estado);
 void  cambiar_estado(PCB* proceso, int estado);
 
-void escritura_log(void* mensaje);
 #endif /* GENERALES_H_ */

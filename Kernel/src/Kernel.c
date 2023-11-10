@@ -7,8 +7,8 @@ int main(void)
 	char* puertoCPUDispatch=malloc(sizeof(char*)),*puertoCPUInterrupt=malloc(sizeof(char*)),
 		* puertoMemoria=malloc(sizeof(char*)),*puertoFileSystem=malloc(sizeof(char*));
 
-	logger=malloc(sizeof(t_log));
-	config=malloc(sizeof(config));
+//	logger=malloc(sizeof(t_log));
+//	config=malloc(sizeof(config));
 	logger = iniciar_logger("./log.log");
 	config = iniciar_config("./Kernel.config");
 
@@ -23,6 +23,7 @@ int main(void)
 	pthread_mutex_init(&mutexColaLargo,NULL);
 	pthread_mutex_init(&mutexProcesos,NULL);
 	pthread_mutex_init(&mutexLog,NULL);
+	pthread_mutex_init(&mutexGrado,NULL);
 	/************************************RECUPERA DATOS DE ARCHIVO DE CONFIGURACION************************************/
 	//TALVEZ SE PUEDE GLOBALIZAR Y PASAR A UNA FUNCION PARA QUE QUEDE MEJOR PARA LA LECTURA
 	//CONFIGURACION DE CPU
@@ -31,8 +32,8 @@ int main(void)
 	puertoCPUInterrupt=config_get_string_value(config,"PUERTO_CPU_INTERRUPT");
 
 	AlgoritmoPlanificacion=config_get_string_value(config,"ALGORITMO_PLANIFICACION");
-	quantum=atoi(config_get_string_value(config,"QUANTUM"));
-	gradoMultiprogramacion=atoi(config_get_string_value(config,"GRADO_MULTIPROGRAMACION_INI"));
+	quantum=(int)strtol((config_get_string_value(config,"QUANTUM")), (char **)NULL, 10);
+	gradoMultiprogramacion=(int)strtol((config_get_string_value(config,"GRADO_MULTIPROGRAMACION_INI")), (char **)NULL, 10);
 	//MEJOR => atoi: (int)strtol(nptr, (char **)NULL, 10)
 	//CONFIGURACION DE MEMORIA
 	ipMemoria = config_get_string_value(config,"IP_MEMORIA");
@@ -109,7 +110,8 @@ void procesar_mensaje(t_list* mensaje){
 		pthread_mutex_unlock(&mutexProcesos);
 
 		deserializar_proceso(temp,mensaje);
-		planificador_largo_salida(temp);
+		hilo_funcion(temp,(void*)planificador_largo_salida);
+
 
 	}
 	if(!strcasecmp(msg,"cargado")){
@@ -124,7 +126,7 @@ void procesar_mensaje(t_list* mensaje){
 		pthread_mutex_unlock(&mutexColaLargo);
 
 		char * mensaje = string_from_format("Se crea el proceso %d en NEW",proceso->pid);
-		hilo_funcion(mensaje,escritura_log);
+		hilo_funcion(mensaje,(void*)escritura_log);
 
 	}
 	if(!strcasecmp(msg,"contexto")){

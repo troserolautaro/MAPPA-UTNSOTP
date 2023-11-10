@@ -151,12 +151,15 @@ void * recibir_conexiones(void * server){
 			string_append(&msg,list_get(mensaje,0));
 			string_trim(&msg);
 			string_to_lower(msg);
+			int modulo = *(int*)list_get(mensaje,1);
 			if(!strcasecmp(msg,"conexion")){
-				log_info(logger,"Hola! %d",*(int*)list_get(mensaje,1));
+				char* mensaje = string_from_format("Hola! %d",modulo);
+				escritura_log(mensaje);
+				free(mensaje);
 				int resultado;
 				int* cliente_fd_copy = (int*)malloc(sizeof(int));
 				*cliente_fd_copy = cliente_fd;
-				switch(*(int*)list_get(mensaje,1)){
+				switch(modulo){
 					case KERNEL:
 						pthread_t hiloKernel;
 						 if ((resultado=pthread_create(&hiloKernel,NULL,manejar_cliente,( void *)cliente_fd_copy))!=0)
