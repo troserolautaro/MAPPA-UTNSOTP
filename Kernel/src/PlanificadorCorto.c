@@ -23,6 +23,8 @@ void* planificador_corto(){
 			serializar_proceso(paquete,proceso);
 			enviar_paquete(paquete,conexionCPUDispatch);
 			eliminar_paquete(paquete);
+		}else {
+			pthread_mutex_unlock(&mutexColaCorto);
 		}
 
 	}while(true);
