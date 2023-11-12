@@ -133,13 +133,13 @@ void serializar_proceso(t_paquete* paquete,PCB* proceso){
 	agregar_a_paquete(paquete,&(proceso->registros->DX),sizeof(uint32_t));
 	//free(temp);
 }
-void deserializar_proceso(PCB* proceso, t_list * msg){
-	proceso->pid = *(uint32_t*)(list_get(msg,1));
-	proceso->pc = *(uint32_t*)list_get(msg,2);
-	proceso->estado = *(uint32_t*)list_get(msg,3);
-	proceso->prioridad = *(uint32_t*)list_get(msg,4);
-	proceso->registros->AX = *(uint32_t*)list_get(msg,5);
-	proceso->registros->BX = *(uint32_t*)list_get(msg,6);
-	proceso->registros->CX = *(uint32_t*)list_get(msg,7);
-	proceso->registros->DX = *(uint32_t*)list_get(msg,8);
+void deserializar_proceso(PCB* proceso, t_list * msg,uint32_t  posInicio){
+	proceso->pid = *(uint32_t*)(list_get(msg,posInicio));
+	proceso->pc = *(uint32_t*)list_get(msg,posInicio+1);
+	proceso->estado = *(uint32_t*)list_get(msg,posInicio+2);
+	proceso->prioridad = *(uint32_t*)list_get(msg,posInicio+3);
+	proceso->registros->AX = *(uint32_t*)list_get(msg,posInicio+4);
+	proceso->registros->BX = *(uint32_t*)list_get(msg,posInicio+5);
+	proceso->registros->CX = *(uint32_t*)list_get(msg,posInicio+6);
+	proceso->registros->DX = *(uint32_t*)list_get(msg,posInicio+7);
 }

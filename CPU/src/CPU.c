@@ -101,7 +101,7 @@ void sleep_proceso(uint32_t tiempo){
 	//busca la instruccion en memoria
 	t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"sleep",sizeof(char*)*5);
-	agregar_a_paquete(paquete,&tiempo,sizeof(int*));
+	agregar_a_paquete(paquete,&tiempo,sizeof(uint32_t*));
 
 	pthread_mutex_lock(&mutexProceso);
 	serializar_proceso(paquete,proceso);
@@ -309,7 +309,7 @@ void procesar_mensaje(t_list* mensaje){
 	string_to_lower(msg);
 //Seria excelente cuanto menos aprovechar que dentro de la lista "mensaje" se encuentra al final el socket para dividir con un switch las funciones
 	if(!strcasecmp(msg,"proceso")){
-		deserializar_proceso(proceso,mensaje);
+		deserializar_proceso(proceso,mensaje,1);
 		sem_post(&ciclo);
 	}
 	if(!strcasecmp(msg,"instruccion")){
