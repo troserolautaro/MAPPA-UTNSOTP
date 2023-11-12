@@ -2,17 +2,16 @@
 
 #define valor_EOF UINT32_MAX  //Este valor representa al EOF (End of File)
 
-	t_dictionary* tablaFat;
+t_dictionary* tablaFat;
 
-	char* ipMemoria;
-	char* puertoEscucha,* puertoMemoria;
-	char* path_fat, * path_bloques, * path_fcb;
-	char* cant_bloques_total,* cant_bloques_swap;
-	char* tam_bloque;
-	char* retardo_acceso_bloque,* retardo_acceso_fat;
-
-	int tamanio_fat;  //Tamaño de los bloques FAT (lo defino en el main)
-
+char* ipMemoria;
+char* puertoEscucha,* puertoMemoria;
+char* path_fat, * path_bloques, * path_fcb;
+char* cant_bloques_total,* cant_bloques_swap;
+char* tam_bloque;
+char* retardo_acceso_bloque,* retardo_acceso_fat;
+int tamanio_fat;  //Tamaño de los bloques FAT (lo defino en el main)
+pthread_mutex_t mutexLog;
 
 int main(void) {
 	tablaFat = dictionary_create();
@@ -34,7 +33,8 @@ int main(void) {
 	tamanio_fat = (cant_bloques_total - cant_bloques_swap) * sizeof(uint32_t);
 
 	int server_fd = iniciar_servidor(puertoEscucha);
-	log_info(logger, "Servidor listo para recibir al cliente");
+	escritura_log("Servidor listo para recibir al cliente");
+
 	int cliente_fd = esperar_cliente(server_fd);
 	FILE *archivobloques = fopen("archivobloques.bin", "w");
 	if (archivobloques == NULL) {
@@ -53,7 +53,9 @@ void procesar_mensaje(t_list* mensaje){
 	string_to_lower(msg);
 
 	if(!strcasecmp(msg,"conexion")){
-		log_info(logger,"Hola! %d",*(int*)list_get(mensaje,1));
+		char* mensaje = string_from_format("Hola! %d",*(int*)list_get(mensaje,1));
+		escritura_log(mensaje);
+		free(mensaje);
 	}
 
 }

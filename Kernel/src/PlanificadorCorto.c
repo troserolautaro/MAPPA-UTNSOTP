@@ -23,6 +23,8 @@ void* planificador_corto(){
 			serializar_proceso(paquete,proceso);
 			enviar_paquete(paquete,conexionCPUDispatch);
 			eliminar_paquete(paquete);
+		}else {
+			pthread_mutex_unlock(&mutexColaCorto);
 		}
 
 	}while(true);
@@ -33,7 +35,7 @@ void* planificador_corto(){
 }
 
 void prioridad(){
-	ordenar_prioridades(&colaCorto->elements);
+	ordenar_prioridades(colaCorto->elements);
 	//Horrible lo que hay que hacer aca
 }
 
@@ -43,9 +45,9 @@ void round_robin(){
 //si se bloqueo por io lo manda al final de la cola
 }
 
-bool ordenar_prioridades(t_list** lista ){
-	t_list_iterator* i = list_iterator_create(*lista);
-	while (i->index	< list_size(*lista)){
+bool ordenar_prioridades(t_list* lista ){
+	t_list_iterator* i = list_iterator_create(lista);
+	while (i->index	< list_size(lista)){
 		PCB* actual =  (PCB*) i->actual;
 		PCB* siguiente = (!(i->next != NULL)) ?   (PCB*)i->next : NULL;
 		if(siguiente == NULL)break;

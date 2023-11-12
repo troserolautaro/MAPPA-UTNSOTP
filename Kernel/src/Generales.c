@@ -1,7 +1,7 @@
 #include"Generales.h"
 
 uint32_t PIDGLOBAL;
-bool detenida;
+bool detenida=false;
 t_queue* colaLargo;
 t_queue* colaCorto;
 t_list* procesos;
@@ -10,7 +10,7 @@ t_config* config;
 int conexionCPUDispatch, conexionCPUInterrupt,conexionMemoria,conexionFileSystem,pidGlobal;
 int gradoMultiprogramacion, quantum;
 char* AlgoritmoPlanificacion;
-pthread_mutex_t mutexColaCorto,mutexColaLargo,mutexProcesos,mutexLog;
+pthread_mutex_t mutexColaCorto,mutexColaLargo,mutexProcesos,mutexLog,mutexGrado;
 sem_t planiLargo,planiCorto;
 t_dictionary *diccionarioRecursos;
 
@@ -30,16 +30,10 @@ void cambiar_estado(PCB* proceso, int estado){
 	proceso->estado=estado;
 	string_append_with_format(&mensaje," - Estado Actual: %s",estado_enum(proceso->estado)); // 2
 
-	pthread_mutex_lock(&mutexLog);
-	log_info(logger,"%s",mensaje);
-	pthread_mutex_unlock(&mutexLog);
+	escritura_log(mensaje);
+
 
 	free(mensaje);
 }
-void escritura_log(void* mensaje){
-	pthread_mutex_lock(&mutexLog);
-	log_info(logger,"%s",(char*)mensaje);
-	pthread_mutex_unlock(&mutexLog);
-	free(mensaje);
-}
+
 

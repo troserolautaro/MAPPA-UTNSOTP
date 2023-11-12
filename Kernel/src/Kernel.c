@@ -8,8 +8,8 @@ int main(void)
 		* puertoMemoria=malloc(sizeof(char*)),*puertoFileSystem=malloc(sizeof(char*));
 	char** recursos=string_array_new();
 	char**instancias=string_array_new();
-	logger=malloc(sizeof(t_log));
-	config=malloc(sizeof(config));
+	//logger=malloc(sizeof(t_log));
+	//config=malloc(sizeof(config));
 	logger = iniciar_logger("./log.log");
 	config = iniciar_config("./Kernel.config");
 
@@ -24,6 +24,7 @@ int main(void)
 	pthread_mutex_init(&mutexColaLargo,NULL);
 	pthread_mutex_init(&mutexProcesos,NULL);
 	pthread_mutex_init(&mutexLog,NULL);
+	pthread_mutex_init(&mutexGrado,NULL);
 	/************************************RECUPERA DATOS DE ARCHIVO DE CONFIGURACION************************************/
 	//TALVEZ SE PUEDE GLOBALIZAR Y PASAR A UNA FUNCION PARA QUE QUEDE MEJOR PARA LA LECTURA
 	//CONFIGURACION DE CPU
@@ -144,7 +145,8 @@ void procesar_mensaje(t_list* mensaje){
 		pthread_mutex_unlock(&mutexProcesos);
 
 		deserializar_proceso(temp,mensaje,1);
-		planificador_largo_salida(temp);
+		hilo_funcion(temp,(void*)planificador_largo_salida);
+
 
 	}
 	if(!strcasecmp(msg,"cargado")){
@@ -159,7 +161,7 @@ void procesar_mensaje(t_list* mensaje){
 		pthread_mutex_unlock(&mutexColaLargo);
 
 		char * mensaje = string_from_format("Se crea el proceso %d en NEW",proceso->pid);
-		hilo_funcion(mensaje,escritura_log);
+		hilo_funcion(mensaje,(void*)escritura_log);
 
 	}
 	if(!strcasecmp(msg,"sleep")){
