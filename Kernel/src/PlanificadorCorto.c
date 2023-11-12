@@ -35,30 +35,20 @@ void* planificador_corto(){
 }
 
 void prioridad(){
-	ordenar_prioridades(colaCorto->elements);
-	//Horrible lo que hay que hacer aca
+	list_sort((colaCorto->elements),comparar_prioridad_mayor);
+}
+
+bool comparar_prioridad_mayor(void* proceso1,void* proceso2 ){
+		PCB* PCB1 =  (PCB*) proceso1;
+		PCB* PCB2 =  (PCB*) proceso2;
+		if(PCB1->prioridad < PCB2->prioridad)return true;
+		return false;
 }
 
 void round_robin(){
 //si el proceso (proceso con estado en EXEC) en ejecucion completo el quantum, cambia el estado, envia interrupccion a cpu y lo manda al final de la cola
 //si termino no hace nada.
 //si se bloqueo por io lo manda al final de la cola
-}
-
-bool ordenar_prioridades(t_list* lista ){
-	t_list_iterator* i = list_iterator_create(lista);
-	while (i->index	< list_size(lista)){
-		PCB* actual =  (PCB*) i->actual;
-		PCB* siguiente = (!(i->next != NULL)) ?   (PCB*)i->next : NULL;
-		if(siguiente == NULL)break;
-		if(actual->prioridad > siguiente->prioridad){
-			PCB* temp = actual;
-			actual = siguiente;
-			siguiente = temp;
-		}
-		list_iterator_next(i);
-	}
-	return false;
 }
 
 int planificador_enum(){

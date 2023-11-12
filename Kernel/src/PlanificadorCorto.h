@@ -11,7 +11,7 @@ void* planificador_corto();
 int planificador_enum();
 void fifo();
 void prioridad(); //Multicola sin salto entre ellas
-bool ordenar_prioridades();
+bool comparar_prioridad_mayor(void* proceso1,void* proceso2);
 void round_robin();
 
 #endif /* PLANIFICADORCORTO_H_ */
