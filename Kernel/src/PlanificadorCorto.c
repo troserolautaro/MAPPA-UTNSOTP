@@ -1,5 +1,8 @@
 #include"PlanificadorCorto.h"
 
+sem_t mutexClock;
+sem_t clock,validarQuantum;
+int tiempoEjecucion;
 /*DECIDI HACERLO UNA COLA PORQUE CREI QUE ERA LO MEJOR */
 void* planificador_corto(){
 	do{
@@ -23,17 +26,16 @@ void* planificador_corto(){
 			serializar_proceso(paquete,proceso);
 			enviar_paquete(paquete,conexionCPUDispatch);
 			eliminar_paquete(paquete);
+			if(idPlanificador==ROUNDROBIN)sem_post();
 		}else {
 			pthread_mutex_unlock(&mutexColaCorto);
 		}
 
 	}while(true);
 	return NULL;
-		/*PRUEBA DE COMO HACER EL PLANIFICADOR */
-
-
+	/*PRUEBA DE COMO HACER EL PLANIFICADOR */
 }
-
+//ALGORITMO DE PRIORIDADES
 void prioridad(){
 	list_sort((colaCorto->elements),comparar_prioridad_mayor);
 }
@@ -45,12 +47,39 @@ bool comparar_prioridad_mayor(void* proceso1,void* proceso2 ){
 		return false;
 }
 
+//ALGORITMO DE ROUND ROBIN
 void round_robin(){
-//si el proceso (proceso con estado en EXEC) en ejecucion completo el quantum, cambia el estado, envia interrupccion a cpu y lo manda al final de la cola
-//si termino no hace nada.
-//si se bloqueo por io lo manda al final de la cola
+	while(1){
+		sem_post(&validarQuantum);
+	}
 }
-
+void* validar_quantum(){
+	while(1){
+		sem_wait(&validarQuantum);
+		pthread_mutex_lock(&mutexClock);
+		if(tiempoEjecucion<quantum)sem_post(&clock);
+		//else interrupcion a cpu
+		pthread_mutex_unlock(&mutexClock);
+	}
+}
+void enviar_interrupcion_cpu(){
+	t_paquete* paquete = crear_paquete();
+	agregar_a_paquete(paquete, "quantum", sizeof("quantum"));
+	enviar_paquete(paquete,conexionCPUInterrupt);
+	eliminar_paquete(paquete);
+}
+//iniciar hilo de clock en kernel si algoritmo de planificacion es rr
+void* clock_rr(void* arg) {
+	tiempoEjecucion=0;
+    while (1) {
+    	sem_wait(&clock);
+        sleep(1000);  // Dormir 1 segundo (puedes ajustar esto según tus necesidades)
+        pthread_mutex_lock(&mutexClock);
+        tiempoEjecucion++;
+        pthread_mutex_unlock(&mutexClock);
+        sem_post(&validarQuantum);
+    }
+}
 int planificador_enum(){
 	if(!strcasecmp(AlgoritmoPlanificacion, "prioridades\0"))return PRIORIDADES;
 	if(!strcasecmp(AlgoritmoPlanificacion, "round robin\0"))return ROUNDROBIN;
