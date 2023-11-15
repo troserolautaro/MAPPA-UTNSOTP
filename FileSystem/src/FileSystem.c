@@ -3,13 +3,14 @@
 #define valor_EOF UINT32_MAX  //Este valor representa al EOF (End of File)
 
 t_dictionary* tablaFat;
-
+pthread_t hiloRecibirCliente;
+int serverFilesystem;
 char* ipMemoria;
 char* puertoEscucha,* puertoMemoria;
 char* path_fat, * path_bloques, * path_fcb;
-char* cant_bloques_total,* cant_bloques_swap;
-char* tam_bloque;
-char* retardo_acceso_bloque,* retardo_acceso_fat;
+int cant_bloques_total,cant_bloques_swap;
+int tam_bloque;
+int retardo_acceso_bloque,retardo_acceso_fat;
 int tamanio_fat;  //Tamaño de los bloques FAT (lo defino en el main)
 pthread_mutex_t mutexLog;
 
@@ -25,17 +26,19 @@ int main(void) {
 	path_fat = config_get_string_value(config,"PATH_FATH");
 	path_bloques = config_get_string_value(config,"PATH_BLOQUES");
 	path_fcb = config_get_string_value(config,"PATH_FCB");
-	cant_bloques_total = config_get_string_value(config,"CANT_BLOQUES_TOTAL");
-	cant_bloques_swap = config_get_string_value(config,"CANT_BLOQUES_SWAP");
-	tam_bloque = config_get_string_value(config,"TAM_BLOQUE");
-	retardo_acceso_bloque = config_get_string_value(config,"RETARDO_ACCESO_BLOQUE");
-	retardo_acceso_fat = config_get_string_value(config,"RETARDO_ACCESO_FAT");
+	cant_bloques_total = config_get_int_value(config,"CANT_BLOQUES_TOTAL");
+	cant_bloques_swap = config_get_int_value(config,"CANT_BLOQUES_SWAP");
+	tam_bloque = config_get_int_value(config,"TAM_BLOQUE");
+	retardo_acceso_bloque = config_get_int_value(config,"RETARDO_ACCESO_BLOQUE");
+	retardo_acceso_fat = config_get_int_value(config,"RETARDO_ACCESO_FAT");
 	tamanio_fat = (cant_bloques_total - cant_bloques_swap) * sizeof(uint32_t);
 
-	int server_fd = iniciar_servidor(puertoEscucha);
+	serverFilesystem = iniciar_servidor(puertoEscucha);
 	escritura_log("Servidor listo para recibir al cliente");
-
-	int cliente_fd = esperar_cliente(server_fd);
+	int resultado;
+	if ((resultado=pthread_create(&hiloRecibirCliente,NULL,(void *)recibir_conexiones,( void *) &serverFilesystem))!=0)
+		printf("Error al crear hilo. resultado %d",resultado);
+		pthread_join(hiloRecibirCliente,NULL);
 	FILE *archivobloques = fopen("archivobloques.bin", "w");
 	if (archivobloques == NULL) {
 		perror("Error al abrir archivo");
@@ -45,37 +48,15 @@ int main(void) {
 	return EXIT_SUCCESS;
 }
 
-
-void procesar_mensaje(t_list* mensaje){
-	char* msg = string_new();
-	string_append(&msg,list_get(mensaje,0));
-	string_trim(&msg);
-	string_to_lower(msg);
-
-	if(!strcasecmp(msg,"conexion")){
-		char* mensaje = string_from_format("Hola! %d",*(int*)list_get(mensaje,1));
-		escritura_log(mensaje);
-		free(mensaje);
-	}
-
-}
-
-//Comunicacion con kernel
-
-
 int chequear_existencia_archivo(FCB *archivo){
 	  return dictionary_has_key(tablaFat,string_itoa( archivo->bloqueInicial));
 }
 
 
-t_config* abrir_archivo(char* archivo){
-	t_config* archivoReturn = config_create(archivoReturn) ;
-	if(archivoReturn != NULL)
-		return archivoReturn;
-
-	printf ("No existe el archivo");
-
-	return NULL;
+int abrir_archivo(char* archivo){
+	t_config* configArchivofcb = iniciar_config(archivo);
+	int tamaño = config_get_int_value(configArchivofcb,"TAMAÑO_ARCHIVO");
+	return tamaño;
 }
 
 
@@ -85,7 +66,6 @@ bool crear_archivo(char* nombreArchivo){
 	string_append(&path, "/");
 	string_append(&path,nombreArchivo);
 	FILE * nuevofcb = fopen(path,"w");
-
 	fclose(nuevofcb);
 	return true;
 }
@@ -111,7 +91,7 @@ void truncar_archivo(int tamanioNuevo, FCB archivo, int tamanio){ //situacionDes
 }
 */
 
-void leer_archivo(FCB archivo){
+void leer_archivo( ){
 	//comunicacion con memoria
 }
 
@@ -131,4 +111,40 @@ void finalizar_proceso(){
 
 }
 
-/*------------------------*/
+void procesar_mensaje(t_list* mensaje){
+	char* msg = string_new();
+	string_append(&msg,list_get(mensaje,0));
+	string_trim(&msg);
+	string_to_lower(msg);
+	int conexion = *(int*) (list_get(mensaje,list_size(mensaje)-1));
+	//peticiones del kernel
+	if(!strcasecmp(msg,"abrir archivo")){
+		int tamaño =abrir_archivo(((char*)list_get(mensaje,1)));
+		t_paquete * paquete = crear_paquete();
+		agregar_a_paquete(paquete,"tamaño",sizeof("tamaño"));
+		enviar_paquete(paquete,conexion);
+		eliminar_paquete(paquete);
+	}
+
+	if(!strcasecmp(msg,"crear archivo")){
+		if(crear_archivo(((char*)list_get(mensaje,1)))){
+			t_paquete * paquete = crear_paquete();
+			agregar_a_paquete(paquete,"archivo creado",sizeof("archivo creado"));
+			enviar_paquete(paquete,conexion);
+			eliminar_paquete(paquete);
+		}
+	}
+	if(!strcasecmp(msg,"leer archivo")){
+		leer_archivo();
+	}
+	if(!strcasecmp(msg,"escribir archivo")){
+		escribir_archivo();
+	}
+	//peticiones de memoria
+	if(!strcasecmp(msg,"iniciar proceso")){
+		iniciar_proceso();
+	}
+	if(!strcasecmp(msg,"finalizar proceso")){
+		finalizar_proceso();
+	}
+}

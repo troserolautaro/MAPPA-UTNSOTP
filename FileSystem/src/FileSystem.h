@@ -23,7 +23,7 @@ typedef struct {
 }FCB;
 
 void iterator(char* value);
-t_config* abrir_archivo(char* archivo);
+int abrir_archivo(char* archivo);
 int chequear_existencia_archivo(FCB* archivo);
 
 
