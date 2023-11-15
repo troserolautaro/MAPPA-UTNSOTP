@@ -61,12 +61,19 @@ int abrir_archivo(char* archivo){
 
 
 bool crear_archivo(char* nombreArchivo){
+	//hace la conversion de la direccion
 	char * path=malloc(sizeof(char*)*100);
 	strcpy(path, path_fcb);
 	string_append(&path, "/");
 	string_append(&path,nombreArchivo);
+	//abre el archivo en forma w para crearlo y lo cierra
 	FILE * nuevofcb = fopen(path,"w");
 	fclose(nuevofcb);
+	//lo abre como config para cargarle los datos principales
+	t_config * nuevoArchivo= iniciar_config(path);
+	config_set_value(nuevoArchivo, "NOMBRE_ARCHIVO", nombreArchivo);
+	config_set_value(nuevoArchivo, "TAMANIO_ARCHIVO", 0);
+	//config_set_value(nuevoArchivo, "BLOQUE_INICIAL", nombreArchivo);
 	return true;
 }
 
@@ -104,11 +111,11 @@ void escribir_archivo(){
 //Comunicacion con Memoria
 
 void iniciar_proceso(){
-
+	//RESERVAR BLOQUES DE SWAP
 }
 
 void finalizar_proceso(){
-
+	//LIBERAR BLOQUES DE SWAP
 }
 
 void procesar_mensaje(t_list* mensaje){
@@ -122,14 +129,21 @@ void procesar_mensaje(t_list* mensaje){
 		int tamaño =abrir_archivo(((char*)list_get(mensaje,1)));
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"tamaño",sizeof("tamaño"));
+		agregar_a_paquete(paquete,tamaño,sizeof(int));
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
 	}
 
 	if(!strcasecmp(msg,"crear archivo")){
+		t_paquete * paquete = crear_paquete();
+
 		if(crear_archivo(((char*)list_get(mensaje,1)))){
-			t_paquete * paquete = crear_paquete();
 			agregar_a_paquete(paquete,"archivo creado",sizeof("archivo creado"));
+			enviar_paquete(paquete,conexion);
+			eliminar_paquete(paquete);
+		}
+		else{
+			agregar_a_paquete(paquete,"archivo no creado",sizeof("archivo no creado"));
 			enviar_paquete(paquete,conexion);
 			eliminar_paquete(paquete);
 		}
