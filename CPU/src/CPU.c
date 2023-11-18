@@ -207,8 +207,7 @@ void fetch(){
 	uint32_t pc = proceso->pc;
 	pthread_mutex_unlock(&mutexProceso);
 
-	char* mensaje = string_from_format("PID: %d",pid);
-	string_append_with_format(&mensaje," - FETCH - Program Counter: %d",pc);
+	char* mensaje = string_from_format("PID: %d - FETCH - Program Counter: %d",pid,pc);
 	escritura_log(mensaje);
 	free(mensaje);
 	t_paquete* paquete=crear_paquete();
@@ -216,7 +215,6 @@ void fetch(){
 	agregar_a_paquete(paquete,&pid,sizeof(uint32_t));
 	agregar_a_paquete(paquete,&pc,sizeof(uint32_t));
 	enviar_paquete(paquete,conexionMemoria);
-	enviar_paquete(paquete,clienteKernelDispatch);
 	eliminar_paquete(paquete);
 
 	pthread_mutex_lock(&mutexProceso);
@@ -319,7 +317,7 @@ void check_interrupt(){
 
 			bloquear=false;
 
-		}
+	}
 	pthread_mutex_unlock(&mutexBloquear);
 
 	pthread_mutex_lock(&mutexInterrupcion);
@@ -383,7 +381,7 @@ void procesar_mensaje(t_list* mensaje){
 			list_add(instruccion->parametros,list_get(mensaje,i));
 			pthread_mutex_unlock(&mutexInstruccion);
 
-			string_append(&consola,list_get(mensaje,i));
+			string_append_with_format(&consola,"%s ",(char*)list_get(mensaje,i));
 		}
 		escritura_log(consola);
 		free(consola);
@@ -391,15 +389,24 @@ void procesar_mensaje(t_list* mensaje){
 	}
 	if(!strcasecmp(msg,"interrupcion")){
 		int razon = razon_interrupcion((char*)list_get(mensaje,1));
+		bool banderaInterrumpir = false;
 		switch(razon){
 			case DESALOJO:
+					uint32_t pid = 0;
 					motivo = ((char*) list_get(mensaje,2));
+					pid= *(uint32_t*)list_get(mensaje,3);
+					pthread_mutex_lock(&mutexProceso);
+					if (pid == (proceso->pid)) banderaInterrumpir = true;
+
+					pthread_mutex_unlock(&mutexProceso);
 				break;
 		}
+		if(banderaInterrumpir){
+			pthread_mutex_lock(&mutexInterrupcion);
+			interrupcion=true;
+			pthread_mutex_unlock(&mutexInterrupcion);
 
-		pthread_mutex_lock(&mutexInterrupcion);
-		interrupcion=true;
-		pthread_mutex_unlock(&mutexInterrupcion);
+		}
 	}
 	free(msg);
 }
@@ -412,11 +419,13 @@ void contexto_ejecucion(t_list * mensaje){
 
 	pthread_mutex_lock(&mutexProceso);
 	PCB* temp = proceso_copy(proceso);
+//	proceso_clear(proceso);
 	pthread_mutex_unlock(&mutexProceso);
 
 	serializar_proceso(paquete,temp);
 	enviar_paquete(paquete,clienteKernelDispatch);
 	proceso_destroy(temp);
 	eliminar_paquete(paquete);
+
 }
 

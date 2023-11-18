@@ -92,6 +92,7 @@ typedef struct {
 PCB* proceso_create();
 void proceso_destroy(PCB* proceso);
 PCB* proceso_copy(PCB* origen);
+void proceso_clear(PCB* proceso);
 registros_CPU* registros_create();
 void registros_destroy();
 

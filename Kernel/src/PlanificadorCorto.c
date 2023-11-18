@@ -1,32 +1,29 @@
 #include"PlanificadorCorto.h"
 
 sem_t clockT,validarQuantum,contexto;
+pthread_mutex_t  mutexEjecutando;
 bool ejecutandoB = false;
-
 /*DECIDI HACERLO UNA COLA PORQUE CREI QUE ERA LO MEJOR */
-void* clock_rr(void* arg) {
-	int tiempoEjecucion=0;
-	debug("Clock listo y esperando");
-    while (1) {
-    	sem_wait(&clockT); //
-        tiempoEjecucion++;
+void* clock_rr(void* pid) {
+	bool bandera=true;
+    while (bandera) { // clockT = 2;
+    	sleep(quantum/1000);
         pthread_mutex_lock(&mutexColaCorto);
         bool empty = queue_is_empty(colaCorto);
         pthread_mutex_unlock(&mutexColaCorto);
-        if(tiempoEjecucion>=quantum && !empty){
-			enviar_interrupcion_cpu("quantum");
-			sem_wait(&contexto);
-			tiempoEjecucion = 0;
-		}
+        if(!empty){
+        	enviar_interrupcion_cpu("quantum",pid);
+        	bandera=false;
+        }
 
     }
+    return NULL;
+ //   free(args);
 }
 void* planificador_corto(){
-	sem_init(&clockT,0,0);
 	sem_init(&contexto,0,0);
+	pthread_mutex_init(&mutexEjecutando,NULL);
 	int idPlanificador = planificador_enum();
-	debug(string_itoa(idPlanificador));
-	if(idPlanificador == ROUNDROBIN){  hilo_funcion(NULL,clock_rr);}
 	do{
 		sem_wait(&planiCorto);
 		pthread_mutex_lock(&mutexColaCorto);
@@ -41,18 +38,27 @@ void* planificador_corto(){
 			}
 
 			//si no es ninguno de los anterior es fifo por que es una cola (estructura de tipo fifo)
-			pthread_mutex_lock(&mutexColaCorto);
-			PCB* proceso= queue_pop(colaCorto);
-			pthread_mutex_unlock(&mutexColaCorto);
+			if(!ejecutandoB){
+				pthread_mutex_lock(&mutexColaCorto);
+				PCB* proceso= queue_pop(colaCorto);
+				pthread_mutex_unlock(&mutexColaCorto);
 
-			cambiar_estado(proceso,EXEC);
-			ejecutandoB = true;
-			//ENVIAR PROCESO
-			t_paquete* paquete = crear_paquete();
-			agregar_a_paquete(paquete, "proceso", sizeof("proceso"));
-			serializar_proceso(paquete,proceso);
-			enviar_paquete(paquete,conexionCPUDispatch);
-			eliminar_paquete(paquete);
+				cambiar_estado(proceso,EXEC);
+
+				pthread_mutex_lock(&mutexEjecutando);
+				ejecutandoB = true;
+				pthread_mutex_unlock(&mutexEjecutando);
+				//ENVIAR PROCESO
+				t_paquete* paquete = crear_paquete();
+				agregar_a_paquete(paquete, "proceso", sizeof("proceso"));
+				serializar_proceso(paquete,proceso);
+				enviar_paquete(paquete,conexionCPUDispatch);
+				eliminar_paquete(paquete);
+
+				if(idPlanificador == ROUNDROBIN){
+					hilo_funcion(&(proceso->pid),clock_rr);
+				}
+			}
 
 		}else {
 			pthread_mutex_unlock(&mutexColaCorto);
@@ -76,6 +82,7 @@ void prioridad(){
 	list_sort((colaCorto->elements),comparar_prioridad_mayor);
 	pthread_mutex_unlock(&mutexColaCorto);
 
+	pthread_mutex_lock(&mutexEjecutando);
 	if(ejecutandoB){
 
 		pthread_mutex_lock(&mutexProcesos);
@@ -87,13 +94,12 @@ void prioridad(){
 		pthread_mutex_unlock(&mutexColaCorto);
 
 		if(ejecutando != NULL && ejecutando->pid != prioritario->pid && ejecutando->prioridad > prioritario->prioridad){
-
-			enviar_interrupcion_cpu("prioridades");
+			enviar_interrupcion_cpu("prioridades",&(ejecutando->pid));
 			sem_wait(&contexto);
 			ejecutandoB = false;
 
 		}
-
+	pthread_mutex_unlock(&mutexEjecutando);
 
 	}
 }
@@ -105,11 +111,12 @@ void round_robin(){
 
 }
 
-void enviar_interrupcion_cpu(char* motivo){
+void enviar_interrupcion_cpu(char* motivo, void* pid){
 	t_paquete* paquete = crear_paquete();
 	agregar_a_paquete(paquete,"interrupcion",sizeof("interrupcion"));
 	agregar_a_paquete(paquete,"desalojo",sizeof("desalojo"));
-	agregar_a_paquete(paquete, motivo, strlen(motivo)+1);
+	agregar_a_paquete(paquete,motivo,strlen(motivo)+1);
+	agregar_a_paquete(paquete,pid,sizeof(pid));
 	enviar_paquete(paquete,conexionCPUInterrupt);
 	eliminar_paquete(paquete);
 }

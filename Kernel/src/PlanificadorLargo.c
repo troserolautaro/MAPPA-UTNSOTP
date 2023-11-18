@@ -45,6 +45,9 @@ void planificador_largo_salida(PCB* proceso){
 	multiprogramacion--;
 	pthread_mutex_unlock(&mutexMulti);
 
+	pthread_mutex_lock(&mutexEjecutando);
+	ejecutandoB = false;
+	pthread_mutex_unlock(&mutexEjecutando);
 	sem_post(&planiLargo);
 
 }

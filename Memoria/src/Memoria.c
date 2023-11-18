@@ -72,9 +72,11 @@ void procesar_mensaje(t_list* mensaje){
 		instrucciones=cargar_instrucciones(&path);
 		//list_add(instrucciones,"1");
 		printf("La primera linea es : %s",(char *)list_get(instrucciones,0));
+
 		pthread_mutex_lock(&mutexArchivos);
 		dictionary_put(archivosCargados,string_itoa(pid),instrucciones);
 		pthread_mutex_unlock(&mutexArchivos);
+
 		//Acordarse liberar diccionario
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"cargado",sizeof("cargado"));
@@ -87,9 +89,11 @@ void procesar_mensaje(t_list* mensaje){
 	 if(!strcasecmp(msg,"instruccion")){
 		uint32_t pid =*(uint32_t*)list_get(mensaje,1);
 		uint32_t pc =*(uint32_t*)list_get(mensaje,2);
+
 		pthread_mutex_lock(&mutexArchivos);
 		t_list* listaInstrucciones =(t_list*)dictionary_get(archivosCargados,string_itoa(pid));
 		pthread_mutex_unlock(&mutexArchivos);
+
 		char* instruccion=string_new();
 		string_append(&instruccion,(char*)list_get(listaInstrucciones,pc));
 		t_paquete* paquete=crear_paquete();
@@ -103,7 +107,7 @@ void procesar_mensaje(t_list* mensaje){
 				agregar_a_paquete(paquete,parametros[i],strlen(parametros[i])+1);
 			}
 		}
-		sleep(retardoRespuesta);
+		usleep(retardoRespuesta*1000);
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
 		free(instruccion);

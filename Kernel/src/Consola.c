@@ -65,9 +65,7 @@ void iniciar_proceso(char* path, int size, int prioridad){
 		agregar_a_paquete(paqueteArchivo, &size, sizeof(int));
 		enviar_paquete(paqueteArchivo,conexionMemoria);
 		eliminar_paquete(paqueteArchivo);
-		if(!detenida){
-			sem_post(&planiLargo);
-		}
+
 }
 
 

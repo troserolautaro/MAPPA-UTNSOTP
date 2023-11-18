@@ -156,7 +156,9 @@ void procesar_mensaje(t_list* mensaje){
 
 		char * mensaje = string_from_format("Se crea el proceso %d en NEW",proceso->pid);
 		hilo_funcion(mensaje,(void*)escritura_log);
-
+		if(!detenida){
+				sem_post(&planiLargo);
+		}
 	}
 	if(!strcasecmp(msg,"sleep")){
 		uint32_t tiempo = *(uint32_t*)list_get(mensaje,1);
@@ -198,6 +200,7 @@ void procesar_mensaje(t_list* mensaje){
 		switch(motivo){
 		case PROCESOEXIT:
 			hilo_funcion(temp,(void*)planificador_largo_salida);
+
 			break;
 		case PRIORIDADES:
 			cambiar_estado(temp,READY);
@@ -208,16 +211,19 @@ void procesar_mensaje(t_list* mensaje){
 			pthread_mutex_lock(&mutexColaCorto);
 			queue_push(colaCorto,temp);
 			pthread_mutex_unlock(&mutexColaCorto);
-			sem_post(&contexto);
+
+			pthread_mutex_lock(&mutexEjecutando);
+			ejecutandoB = false;
+			pthread_mutex_unlock(&mutexEjecutando);
 			sem_post(&planiCorto);
 			break;
 		case EXIT:
 			error_show("Motivo desconocido");
 		}
 	}
-	if(!strcasecmp(msg,"instruccion") && !strcasecmp(AlgoritmoPlanificacion, "round_robin\0")){
-		sem_post(&clockT);
-	}
+//	if(!strcasecmp(msg,"instruccion") && !strcasecmp(AlgoritmoPlanificacion, "round_robin\0")){
+//		sem_post(&clockT);
+//	}
 	free(msg);
 }
 

@@ -46,6 +46,10 @@ PCB* proceso_copy(PCB* origen){
 	destino->registros->DX = origen->registros->DX;
 	return destino;
 }
+void proceso_clear(PCB* proceso){ //talvez no necesario lo dejo, por si las ddas
+	proceso->estado= NULL;
+	proceso->pc= NULL;
+}
 
 void liberar_memoria(void * elemento){
 	free(elemento);
