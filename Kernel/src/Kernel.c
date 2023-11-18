@@ -49,7 +49,6 @@ int main(void)
 	instancias = config_get_array_value(config,"INSTANCIAS_RECURSOS");
 	diccionarioRecursos=dictionary_create();
     sem_t *semaforosDeRecursos = (sem_t *)malloc(string_array_size(recursos) * sizeof(sem_t));
-
     //inicializar los semaforos de los recursos y meterlos en un diccionario
 	 for (int i = 0; i < string_array_size(recursos); i++) {
 	        printf("recurso %d: %s, instancias: %s \n", i, recursos[i],instancias[i]);
@@ -110,6 +109,7 @@ void terminar_programa()
 	//int conexionCPUDispatch, conexionCPUInterrupt,conexionMemoria,conexionFileSystem;
 }
 
+//MANEJO DE PROCESO
 void sleep_proceso(PCB* proceso, int tiempo){
 	cambiar_estado(proceso,BLOCKED);
 	sleep(tiempo);
@@ -117,6 +117,7 @@ void sleep_proceso(PCB* proceso, int tiempo){
 
 }
 
+//MANEJO DE RECRUSOS
 void wait_recurso(PCB* proceso,char* recurso){
 	cambiar_estado(proceso,BLOCKED);
 	sem_t *semRecurso=(sem_t*)dictionary_get(diccionarioRecursos,recurso);
@@ -130,6 +131,70 @@ void signal_recurso(PCB* proceso,char* recurso){
 	sem_post(semRecurso);
 	cambiar_estado(proceso,READY);
 }
+
+//MANEJO DE FILE SYSTEM
+void f_open(PCB* proceso,char * archivo){
+	archivo_t nuevoArchivo;
+	nuevoArchivo->nombreArchivo=archivo;
+	nuevoArchivo->puntero=0;
+	pthread_mutex_init(&(nuevoArchivo->semaforoLectura),NULL);
+	pthread_mutex_init(&(nuevoArchivo->semaforoEscritura),NULL);
+	//CREAR DICCIONARIO DE ARCHIVOS POR POR PROCESO Y CARGAR ARCHIVO EN TABLA GLOBAL Y EN TABLA DE PROCESO
+	dictionary_put(diccionarioArchivos,archivo,&nuevoArchivo);
+
+}
+void f_close(PCB* proceso,char * archivo){
+	//HACER LUEGO METODO PARA DESTRUIR ARCHIVO
+	//dictionary_remove_and_destroy(t_dictionary *, char *, void(*element_destroyer)(void*));
+	//dictionary_remove(diccionarioArchivos,archivo);//VER SI ENREALIDAD SE SACA DE LA GLOBAL
+}
+
+void f_seek(PCB* proceso, char * archivo){
+/*
+ * Actualiza el puntero del archivo en la tabla de archivos abiertos del proceso hacia la ubicación pasada por parámetro.
+ * Se deberá devolver el contexto de ejecución a la CPU para que continúe el mismo proceso.
+ */
+
+}
+void f_truncate(PCB* proceso, char * archivo){
+/*
+ * Esta función solicitará al módulo File System que actualice el tamaño del archivo al nuevo tamaño pasado por parámetro
+ *  y bloqueará al proceso hasta que el File System informe de la finalización de la operación.
+ */
+
+}
+
+void f_read(PCB* proceso, char * archivo){
+/*
+ * Para esta función se solicita al módulo File System que lea desde el puntero del archivo pasado por parámetro y
+ *  lo grabe en la dirección física de memoria recibida por parámetro. El proceso que llamó a F_READ, deberá permanecer
+ *  en estado bloqueado hasta que el módulo File System informe de la finalización de la operación.
+ * */
+
+}
+
+void f_write(PCB* proceso, char * archivo){
+/*
+ * Esta función, en caso de que el proceso haya solicitado un lock de escritura, solicitará al módulo File System
+ * que escriba en el archivo desde la dirección física de memoria recibida por parámetro. El proceso que llamó a
+ * F_WRITE, deberá permanecer en estado bloqueado hasta que el módulo File System informe de la finalización de
+ *  la operación. En caso de que el proceso haya solicitado un lock de lectura, se deberá cancelar la operación y
+ *   enviar el proceso a EXIT con motivo de INVALID_WRITE.
+ * */
+
+}
+//PAGE FAULT
+void cargar_pagina(char * pagina){
+	//pendiente a definir bien la paginacion bajo demanda en memoria de usuario
+}
+//ver si no hace falta crear un hilo para el page fault
+void page_fault(PCB* proceso,char * pagina){
+	cambiar_estado(proceso,BLOCKED);
+	cargar_pagina(pagina);
+	//sem_wait(&paginaCargada);//agregar en procesar mensaje el sem_post para este semaforo y el semaforo
+	cambiar_estado(proceso,READY);
+}
+
 
 void procesar_mensaje(t_list* mensaje){
 	char* msg = string_new();
