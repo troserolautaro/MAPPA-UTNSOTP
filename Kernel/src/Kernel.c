@@ -56,6 +56,7 @@ int main(void)
 			dictionary_put(diccionarioRecursos,recursos[i],&(semaforosDeRecursos[i]));
 	    }
 
+	 diccionarioArchivosGlobal=dictionary_create();
 	/************************************INICIALIZAR CONEXIONES************************************/
 	conexionCPUDispatch = crear_conexion(ipCPU, puertoCPUDispatch,KERNEL);
 	conexionCPUInterrupt = crear_conexion(ipCPU, puertoCPUInterrupt,KERNEL);
@@ -133,16 +134,50 @@ void signal_recurso(PCB* proceso,char* recurso){
 }
 
 //MANEJO DE FILE SYSTEM
-void f_open(PCB* proceso,char * archivo){
-	archivo_t nuevoArchivo;
-	nuevoArchivo->nombreArchivo=archivo;
-	nuevoArchivo->puntero=0;
-	pthread_mutex_init(&(nuevoArchivo->semaforoLectura),NULL);
-	pthread_mutex_init(&(nuevoArchivo->semaforoEscritura),NULL);
-	//CREAR DICCIONARIO DE ARCHIVOS POR POR PROCESO Y CARGAR ARCHIVO EN TABLA GLOBAL Y EN TABLA DE PROCESO
-	dictionary_put(diccionarioArchivos,archivo,&nuevoArchivo);
-
+void abrir_archivo(char* archivo){
+	//ver como lo mando fs
 }
+void f_open(PCB* proceso,char * archivo){
+	//VALIDO SI ESTA EN LA TABLA DE ARCHIVOS GLOBAL
+	//si esta el archivo en global lo recupera
+	archivo_t *nuevoArchivo=malloc(sizeof(archivo_t*));
+	if(dictionary_has_key(diccionarioArchivosGlobal,archivo)){
+		nuevoArchivo=dictionary_get(diccionarioArchivosGlobal,archivo);
+		//ver si va aca esta validacion del semaforo o no
+		//encapsular la validacion de semaforos porque se va usar en varios lugares
+		int valorSemaforoLectura;
+		sem_get_value(&(nuevoArchivo->semaforoLectura),&valorSemaforoLectura);
+		if(valorSemaforoLectura<1){
+			cambiar_estado(proceso,BLOCKED);
+			sem_wait(&(nuevoArchivo->semaforoLectura));
+		}
+	}else{
+		//sino esta en global lo crea y lo añade
+		nuevoArchivo->nombreArchivo=archivo;
+		nuevoArchivo->puntero=0;
+		pthread_mutex_init(&(nuevoArchivo->semaforoLectura),NULL);
+		pthread_mutex_init(&(nuevoArchivo->semaforoEscritura),NULL);
+		dictionary_put(diccionarioArchivosGlobal,archivo,&nuevoArchivo);
+		abrir_archivo(archivo);
+	}
+	//CARGAR ARCHIVO EN TABLA GLOBAL Y EN TABLA DE PROCESO
+	//SI EXISTE EL DICCIONARIO DEL PROCESO
+	t_dictionary * diccionarioProceso;
+	if(dictionary_has_key(diccionarioDeDiccionariosLocales,string_itoa(proceso->pid))){
+		diccionarioProceso=(t_dictionary *)dictionary_get(diccionarioDeDiccionariosLocales,string_itoa(proceso->pid))
+		//si no esta abierto lo añade
+		if(!dictionary_has_key(diccionarioProceso,archivo)){
+				dictionary_put(diccionarioProceso,archivo,&nuevoArchivo);
+		}
+	}
+	else{
+		//si no existe lo crea  y añade el archivo
+		diccionarioProceso=dictionary_create();
+		dictionary_put(diccionarioProceso,archivo,&nuevoArchivo);
+		dictionary_put(diccionarioDeDiccionariosLocales,archivo,&diccionarioProceso);
+	}
+}
+
 void f_close(PCB* proceso,char * archivo){
 	//HACER LUEGO METODO PARA DESTRUIR ARCHIVO
 	//dictionary_remove_and_destroy(t_dictionary *, char *, void(*element_destroyer)(void*));

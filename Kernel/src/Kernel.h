@@ -21,7 +21,9 @@ void f_truncate(PCB* proceso, char * archivo);
 void f_read(PCB* proceso, char * archivo);
 void f_write(PCB* proceso, char * archivo);
 
-t_dictionary *diccionarioArchivos;
+t_dictionary *diccionarioArchivosGlobal;//clave archivo, valor archivo_t
+t_dictionary *diccionarioDeDiccionariosLocales;//clave proceso, valor diccionario de archivos abiertos por el proceso
+
 typedef struct {
 	char* nombreArchivo;
 	int puntero;
