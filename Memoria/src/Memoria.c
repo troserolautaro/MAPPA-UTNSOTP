@@ -20,7 +20,6 @@ int main() {
 		*puertoFyleSystem = malloc(sizeof(char*));
 	tamMemoria = malloc(sizeof(char*));
 	tamPagina = malloc(sizeof(char*));
-	retardoRespuesta = malloc(sizeof(char*));
 	algoritmoReemplazo = malloc(sizeof(char*));
 	pathInstrucciones = malloc(sizeof(char*));
 
@@ -35,7 +34,7 @@ int main() {
 	tamMemoria = config_get_string_value(config,"TAM_MEMORIA");
 	tamPagina = config_get_string_value(config,"TAM_PAGINA");
 	pathInstrucciones = config_get_string_value(config,"PATH_INSTRUCCIONES");
-	retardoRespuesta = config_get_string_value(config,"RETARDO_RESPUESTA");
+	retardoRespuesta = config_get_int_value(config,"RETARDO_RESPUESTA");
 	algoritmoReemplazo = config_get_string_value(config,"ALGORITMO_REEMPLAZO");
 	iniciar_memoria_usuario();
 	//INICIAR SERVIDOR
@@ -44,7 +43,7 @@ int main() {
 	//printf("%ld \n %ld", (long)getpid(), (long)getppid());
 
 	logger = log_create("log.log", "Servidor", 1, LOG_LEVEL_DEBUG);
-	escritura_log("Servidor listo para recibir al cliente");
+	debug("Servidor listo para recibir al cliente");
 	//pthread_t hiloFileSystem
 	//LA ESPERA DE CLIENTE SE PUEDE ENCAPSULAR PERO NO ES PRIORIDAD DE MOMENTO
 	int resultado;
@@ -104,6 +103,7 @@ void procesar_mensaje(t_list* mensaje){
 				agregar_a_paquete(paquete,parametros[i],strlen(parametros[i])+1);
 			}
 		}
+		sleep(retardoRespuesta);
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
 		free(instruccion);

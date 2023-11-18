@@ -1,6 +1,8 @@
 #include"PlanificadorLargo.h"
-void* planificador_largo(){
+	pthread_mutex_t mutexMulti;
 	int multiprogramacion = 0;
+void* planificador_largo(){
+	pthread_mutex_init(&mutexMulti,NULL);
 	do{
 	sem_wait(&planiLargo);
 	pthread_mutex_lock(&mutexColaLargo);
@@ -20,7 +22,10 @@ void* planificador_largo(){
 		pthread_mutex_lock(&mutexColaCorto);
 		queue_push(colaCorto,proceso);
 		pthread_mutex_unlock(&mutexColaCorto);
+
+		pthread_mutex_lock(&mutexMulti);
 		multiprogramacion++;
+		pthread_mutex_unlock(&mutexMulti);
 		i++;
 	}
 	pthread_mutex_unlock(&mutexGrado);
@@ -35,6 +40,11 @@ void planificador_largo_salida(PCB* proceso){
 	char *mensaje = string_from_format("Finaliza el proceso %d",proceso->pid);
 	escritura_log(mensaje);
 	free(mensaje);
+
+	pthread_mutex_lock(&mutexMulti);
+	multiprogramacion--;
+	pthread_mutex_unlock(&mutexMulti);
+
 	sem_post(&planiLargo);
 
 }

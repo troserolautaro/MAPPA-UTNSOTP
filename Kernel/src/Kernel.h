@@ -4,6 +4,9 @@
 #include<pthread.h>
 #include"Consola.h"
 
+typedef enum{
+	PROCESOEXIT
+}desalojo;
 void paquete(int);
 void terminar_programa();
 void bloquear_proceso(PCB* proceso);

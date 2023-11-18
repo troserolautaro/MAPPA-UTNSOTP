@@ -84,3 +84,8 @@ void escritura_log(char* mensaje){
 	log_info(logger,"%s",mensaje);
 	pthread_mutex_unlock(&mutexLog);
 }
+void debug(char* mensaje){
+	pthread_mutex_lock(&mutexLog);
+	log_debug(logger,"%s",mensaje);
+	pthread_mutex_unlock(&mutexLog);
+}

@@ -104,6 +104,6 @@ t_log* iniciar_logger(char* log);
 t_config* iniciar_config(char* config);
 void hilo_funcion(void* parametro,funcion funcion);
 void escritura_log(char* mensaje);
-
+void debug(char* mensaje);
 #endif /* SRC_UTILS_H_ */
 

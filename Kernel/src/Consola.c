@@ -23,16 +23,16 @@ int validacion_contenido_consola(char* comando){
 
 void iniciar_planificacion(){
 	if(detenida){
+		escritura_log("Inicio de planificacion");
 		detenida=false;
 		sem_post(&planiLargo);
-		escritura_log("Inicio de planificacion");
+
 	}
 }
 void detener_planificacion(){
 	if(!detenida){
 		detenida=true;
 		escritura_log("Pausa de planificacion");
-
 	}
 }
 
@@ -54,7 +54,6 @@ void iniciar_proceso(char* path, int size, int prioridad){
 		//envia archivo a cargar en memoria para este proceso a el modulo de memoria
 		//SE PUEDE EXPORTAR SI ES NECESARIO EL ENVIO DE PAQUETE SI ES NECESARIO
 
-		//Talvez estos mutex no son necesarios
 		pthread_mutex_lock(&mutexProcesos);
 		list_add(procesos,proceso);
 		pthread_mutex_unlock(&mutexProcesos);
@@ -66,18 +65,24 @@ void iniciar_proceso(char* path, int size, int prioridad){
 		agregar_a_paquete(paqueteArchivo, &size, sizeof(int));
 		enviar_paquete(paqueteArchivo,conexionMemoria);
 		eliminar_paquete(paqueteArchivo);
-
+		if(!detenida){
+			sem_post(&planiLargo);
+		}
 }
 
 
 void finalizar_proceso(int pid){
 	//POSIBLE MUTEX;
 	pthread_mutex_lock(&mutexProcesos);
-	if(pid<=(list_size(procesos))){
+	int size = (list_size(procesos));
+	pthread_mutex_unlock(&mutexProcesos);
+	if(pid<=size){
 		//porque asigna pid= -1 ?
 		pid-=1;
+		pthread_mutex_lock(&mutexProcesos);
 		PCB* proceso= list_get(procesos,pid);
 		pthread_mutex_unlock(&mutexProcesos);
+
 		if(proceso->estado!=TERMINATED){
 			planificador_largo_salida(proceso);
 		}

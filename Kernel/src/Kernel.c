@@ -52,7 +52,6 @@ int main(void)
 
     //inicializar los semaforos de los recursos y meterlos en un diccionario
 	 for (int i = 0; i < string_array_size(recursos); i++) {
-	        printf("recurso %d: %s, instancias: %s \n", i, recursos[i],instancias[i]);
 	    	sem_init(&(semaforosDeRecursos[i]),0,atoi((instancias[i])));//revisar si esta bien como se le pasa el puntero del semaforo
 			dictionary_put(diccionarioRecursos,recursos[i],&(semaforosDeRecursos[i]));
 	    }
@@ -130,25 +129,20 @@ void signal_recurso(PCB* proceso,char* recurso){
 	sem_post(semRecurso);
 	cambiar_estado(proceso,READY);
 }
-
+int motivo_desalojo(char * desalojo){
+	int motivo = EXIT;
+	if(!strcasecmp(desalojo,"procesoExit")) return PROCESOEXIT;
+	if(!strcasecmp(desalojo,"prioridades")) return PRIORIDADES;
+	if(!strcasecmp(desalojo,"quantum")) return ROUNDROBIN;
+	return motivo;
+}
 void procesar_mensaje(t_list* mensaje){
 	char* msg = string_new();
 	string_append(&msg,list_get(mensaje,0));
 	string_trim(&msg);
 	string_to_lower(msg);
 	//Seria excelente cuanto menos aprovechar que dentro de la lista "mensaje" se encuentra al final el socket para dividir con un switch las funciones
-	if(!strcasecmp(msg,"procesoExit")){
-		uint32_t pid = *(uint32_t*)list_get(mensaje,1);
 
-		pthread_mutex_lock(&mutexProcesos);
-		PCB* temp = (PCB*)list_get(procesos,pid-1);
-		pthread_mutex_unlock(&mutexProcesos);
-
-		deserializar_proceso(temp,mensaje,1);
-		hilo_funcion(temp,(void*)planificador_largo_salida);
-
-
-	}
 	if(!strcasecmp(msg,"cargado")){
 		int pid = *(int*)list_get(mensaje,1);
 
@@ -193,7 +187,38 @@ void procesar_mensaje(t_list* mensaje){
 	}
 
 	if(!strcasecmp(msg,"contexto")){
+		int motivo = motivo_desalojo((char*)list_get(mensaje,1));
+		uint32_t pid = *(uint32_t*)list_get(mensaje,2);
 
+		pthread_mutex_lock(&mutexProcesos);
+		PCB* temp = (PCB*)list_get(procesos,pid-1);
+		pthread_mutex_unlock(&mutexProcesos);
+
+		deserializar_proceso(temp,mensaje,2);
+		switch(motivo){
+		case PROCESOEXIT:
+			hilo_funcion(temp,(void*)planificador_largo_salida);
+			break;
+		case PRIORIDADES:
+			cambiar_estado(temp,READY);
+			sem_post(&contexto);
+			break;
+		case ROUNDROBIN:
+			cambiar_estado(temp,READY);
+			pthread_mutex_lock(&mutexColaCorto);
+			queue_push(colaCorto,temp);
+			pthread_mutex_unlock(&mutexColaCorto);
+			sem_post(&contexto);
+			sem_post(&planiCorto);
+			break;
+		case EXIT:
+			error_show("Motivo desconocido");
+		}
+	}
+	if(!strcasecmp(msg,"instruccion") && !strcasecmp(AlgoritmoPlanificacion, "round_robin\0")){
+		sem_post(&clockT);
 	}
 	free(msg);
 }
+
+
