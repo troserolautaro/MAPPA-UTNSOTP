@@ -92,6 +92,7 @@ typedef struct {
 PCB* proceso_create();
 void proceso_destroy(PCB* proceso);
 PCB* proceso_copy(PCB* origen);
+void proceso_clear(PCB* proceso);
 registros_CPU* registros_create();
 void registros_destroy();
 
@@ -104,6 +105,6 @@ t_log* iniciar_logger(char* log);
 t_config* iniciar_config(char* config);
 void hilo_funcion(void* parametro,funcion funcion);
 void escritura_log(char* mensaje);
-
+void debug(char* mensaje);
 #endif /* SRC_UTILS_H_ */
 

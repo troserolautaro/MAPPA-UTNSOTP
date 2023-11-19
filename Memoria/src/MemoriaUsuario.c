@@ -4,9 +4,8 @@ RegistroTablaPagina * TablaPaginacion;
 void* espacioContiguoMemoria;
 char *tamMemoria,
 	 *tamPagina,
-	 *retardoRespuesta,
 	 *algoritmoReemplazo;
-int cantPaginas;
+int cantPaginas,retardoRespuesta;
 
 //INICIAR  MEMORIA DE USUARIO
 void iniciar_memoria_usuario(){

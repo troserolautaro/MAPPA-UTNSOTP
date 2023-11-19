@@ -4,6 +4,10 @@
 #include<pthread.h>
 #include"Consola.h"
 
+typedef enum{
+	PROCESOEXIT
+}desalojo;
+void paquete(int);
 void terminar_programa();
 void sleep_proceso(PCB* proceso, int tiempo);
 //MANEJO DE RECURSOS

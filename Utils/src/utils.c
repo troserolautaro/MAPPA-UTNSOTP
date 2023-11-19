@@ -46,6 +46,10 @@ PCB* proceso_copy(PCB* origen){
 	destino->registros->DX = origen->registros->DX;
 	return destino;
 }
+void proceso_clear(PCB* proceso){ //talvez no necesario lo dejo, por si las ddas
+	proceso->estado= NULL;
+	proceso->pc= NULL;
+}
 
 void liberar_memoria(void * elemento){
 	free(elemento);
@@ -82,5 +86,10 @@ void hilo_funcion(void* parametro,funcion funcion){
 void escritura_log(char* mensaje){
 	pthread_mutex_lock(&mutexLog);
 	log_info(logger,"%s",mensaje);
+	pthread_mutex_unlock(&mutexLog);
+}
+void debug(char* mensaje){
+	pthread_mutex_lock(&mutexLog);
+	log_debug(logger,"%s",mensaje);
 	pthread_mutex_unlock(&mutexLog);
 }

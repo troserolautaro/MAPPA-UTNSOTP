@@ -6,12 +6,13 @@ int conexionMemoria;
 int clienteKernelDispatch,clienteKernelInterrupt;
 int reloj = 0; //Es el encargado de revisar el quantum
 bool bloquear, interrupcion;
+char* motivo;
 //
 t_log* logger;
 t_config* config;
 t_instruccion * instruccion;
 PCB* proceso;
-pthread_mutex_t mutexProceso, mutexLog,mutexInstruccion;
+pthread_mutex_t mutexProceso, mutexLog,mutexInstruccion, mutexBloquear, mutexInterrupcion;
 
 /*struct{
 	t_instruccion * instruccion;
@@ -34,7 +35,7 @@ int main() {
 			*puertoEscuchaDispatch = malloc(sizeof(char*)),
 			*puertoEscuchaInterrupt = malloc(sizeof(char*)),
 			*puertoMemoria = malloc(sizeof(char*));
-
+	motivo = string_new();
 	//CONFIGURACION DE CPU
 	ipMemoria = config_get_string_value(config,"IP_MEMORIA");
 	puertoMemoria = config_get_string_value(config,"PUERTO_MEMORIA");
@@ -47,6 +48,8 @@ int main() {
 	pthread_mutex_init(&mutexProceso,NULL);
 	pthread_mutex_init(&mutexLog,NULL);
 	pthread_mutex_init(&mutexInstruccion,NULL);
+	pthread_mutex_init(&mutexBloquear,NULL);
+	pthread_mutex_init(&mutexInterrupcion,NULL);
 	//Iniciar Cliente que conecta a memoria
 	conexionMemoria = crear_conexion(ipMemoria, puertoMemoria,CPUDispatch);
 
@@ -112,7 +115,10 @@ void sleep_proceso(uint32_t tiempo){
 	pthread_mutex_unlock(&mutexProceso);
 
 	enviar_paquete(paquete,clienteKernelDispatch);
+	eliminar_paquete(paquete);
+	pthread_mutex_lock(&mutexBloquear);
 	bloquear=true;
+	pthread_mutex_unlock(&mutexBloquear);
 }
 
 void wait_recurso(char* recurso){
@@ -126,7 +132,10 @@ void wait_recurso(char* recurso){
 	pthread_mutex_unlock(&mutexProceso);
 
 	enviar_paquete(paquete,clienteKernelDispatch);
+	eliminar_paquete(paquete);
+	pthread_mutex_lock(&mutexBloquear);
 	bloquear=true;
+	pthread_mutex_unlock(&mutexBloquear);
 }
 
 void signal_recurso(char* recurso){
@@ -138,7 +147,9 @@ void signal_recurso(char* recurso){
 	serializar_proceso(paquete,proceso);
 	pthread_mutex_unlock(&mutexProceso);
 	enviar_paquete(paquete,clienteKernelDispatch);
+	pthread_mutex_lock(&mutexBloquear);
 	bloquear=true;
+	pthread_mutex_unlock(&mutexBloquear);
 }
 
 void exit_i(){
@@ -146,7 +157,9 @@ void exit_i(){
 	t_list * mensaje = list_create();
 	list_add(mensaje,"procesoExit");
 	contexto_ejecucion(mensaje);
+	pthread_mutex_lock(&mutexBloquear);
 	bloquear=true;
+	pthread_mutex_unlock(&mutexBloquear);
 	list_destroy(mensaje);
 	/*t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"proceso_exit",sizeof(char*)*11);
@@ -194,8 +207,7 @@ void fetch(){
 	uint32_t pc = proceso->pc;
 	pthread_mutex_unlock(&mutexProceso);
 
-	char* mensaje = string_from_format("PID: %d",pid);
-	string_append_with_format(&mensaje," - FETCH - Program Counter: %d",pc);
+	char* mensaje = string_from_format("PID: %d - FETCH - Program Counter: %d",pid,pc);
 	escritura_log(mensaje);
 	free(mensaje);
 	t_paquete* paquete=crear_paquete();
@@ -224,6 +236,7 @@ void execute(){
 	pthread_mutex_unlock(&mutexInstruccion);
 	void *registroOrigen, *registroDestino;
 	char*recurso;
+
 	//obtengo parametros
 	/*executo funcion, talvez es mejor que la funcion reciba un int y esto este dentro de un switch en el que adentro
 	revisemos las variables que haya que utilizar*/
@@ -292,12 +305,30 @@ void execute(){
 	//	Instrucción Ejecutada: “PID: <PID> - Ejecutando: <INSTRUCCION> - <PARAMETROS>”.
 }
 void check_interrupt(){
+
+	pthread_mutex_lock(&mutexBloquear);
+	pthread_mutex_lock(&mutexInterrupcion);
 	if(!interrupcion && !bloquear){sem_post(&ciclo);}
-	else{
-	//contexto_ejecucion("contexto_ejecucion");
-		bloquear=false;
-		interrupcion=false;
+	pthread_mutex_unlock(&mutexBloquear);
+	pthread_mutex_unlock(&mutexInterrupcion);
+
+	pthread_mutex_lock(&mutexBloquear);
+	if(bloquear){
+
+			bloquear=false;
+
 	}
+	pthread_mutex_unlock(&mutexBloquear);
+
+	pthread_mutex_lock(&mutexInterrupcion);
+	if(interrupcion){
+			t_list * mensaje = list_create();
+			list_add(mensaje,motivo);
+			contexto_ejecucion(mensaje);
+			list_destroy(mensaje);
+			interrupcion=false;
+	}
+	pthread_mutex_unlock(&mutexInterrupcion);
 }
 
 //FUNCION QUE EJECUTA CICLO DE INSTRUCCION
@@ -313,7 +344,10 @@ void ejecutar_ciclo(){
 		check_interrupt();
 	}while(true);
 }
-
+int razon_interrupcion(char * razon){
+	if(!strcasecmp(razon,"desalojo")) return DESALOJO;
+	return -1;
+}
 void procesar_mensaje(t_list* mensaje){
 	char* msg = string_new();
 	string_append(&msg,list_get(mensaje,0));
@@ -347,30 +381,51 @@ void procesar_mensaje(t_list* mensaje){
 			list_add(instruccion->parametros,list_get(mensaje,i));
 			pthread_mutex_unlock(&mutexInstruccion);
 
-			string_append(&consola,list_get(mensaje,i));
+			string_append_with_format(&consola,"%s ",(char*)list_get(mensaje,i));
 		}
 		escritura_log(consola);
-		free(comando);
 		free(consola);
 		sem_post(&instruccion_s);
 	}
 	if(!strcasecmp(msg,"interrupcion")){
-		interrupcion=true;
+		int razon = razon_interrupcion((char*)list_get(mensaje,1));
+		bool banderaInterrumpir = false;
+		switch(razon){
+			case DESALOJO:
+					uint32_t pid = 0;
+					motivo = ((char*) list_get(mensaje,2));
+					pid= *(uint32_t*)list_get(mensaje,3);
+					pthread_mutex_lock(&mutexProceso);
+					if (pid == (proceso->pid)) banderaInterrumpir = true;
+
+					pthread_mutex_unlock(&mutexProceso);
+				break;
+		}
+		if(banderaInterrumpir){
+			pthread_mutex_lock(&mutexInterrupcion);
+			interrupcion=true;
+			pthread_mutex_unlock(&mutexInterrupcion);
+
+		}
 	}
+	free(msg);
 }
 void contexto_ejecucion(t_list * mensaje){
 	t_paquete* paquete=crear_paquete();
+	agregar_a_paquete(paquete,"contexto",sizeof("contexto"));
 	for(int i=0;i<list_size(mensaje);i++){
 		agregar_a_paquete(paquete,list_get(mensaje,i),(strlen((char*)list_get(mensaje,i)))+1);
 	}
 
 	pthread_mutex_lock(&mutexProceso);
 	PCB* temp = proceso_copy(proceso);
+//	proceso_clear(proceso);
 	pthread_mutex_unlock(&mutexProceso);
 
 	serializar_proceso(paquete,temp);
 	enviar_paquete(paquete,clienteKernelDispatch);
 	proceso_destroy(temp);
 	eliminar_paquete(paquete);
+
 }
 

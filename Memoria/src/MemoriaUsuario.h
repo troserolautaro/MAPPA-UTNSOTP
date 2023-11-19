@@ -17,9 +17,8 @@ extern RegistroTablaPagina * TablaPaginacion;
 extern void* espacioContiguoMemoria;
 extern char *tamMemoria,
 			*tamPagina,
-			*retardoRespuesta,
 			*algoritmoReemplazo;
-extern int cantPaginas;
+extern int cantPaginas,retardoRespuesta;
 
 void iniciar_memoria_usuario();
 #endif /* MEMORIAUSUARIO_H_ */

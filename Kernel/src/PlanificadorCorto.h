@@ -1,6 +1,10 @@
 #ifndef PLANIFICADORCORTO_H_
 #define PLANIFICADORCORTO_H_
 #include"Generales.h"
+
+extern sem_t contexto;
+extern pthread_mutex_t mutexTiempo;
+
 typedef enum{
 	FIFO,
 	PRIORIDADES,
@@ -11,7 +15,7 @@ void* planificador_corto();
 int planificador_enum();
 void fifo();
 void prioridad(); //Multicola sin salto entre ellas
-bool comparar_prioridad_mayor(void* proceso1,void* proceso2);
 void round_robin();
-
+void enviar_interrupcion_cpu(char* motivo, void*pid);
+bool buscar_proceso_ejecutando(void* proceso);
 #endif /* PLANIFICADORCORTO_H_ */
