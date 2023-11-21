@@ -31,6 +31,7 @@ t_dictionary *diccionarioDeDiccionariosLocales;//clave proceso, valor diccionari
 typedef struct {
 	char* nombreArchivo;
 	int puntero;
+	char* modoApertura;
 	sem_t * semaforoLectura;
 	sem_t * semaforoEscritura;
 }archivo_t;

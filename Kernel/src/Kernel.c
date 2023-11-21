@@ -142,17 +142,24 @@ int motivo_desalojo(char * desalojo){
 void abrir_archivo(char* archivo){
 	//ver como lo mando fs
 }
-void f_open(PCB* proceso,char * archivo){
+
+bool semaforo_bloqueado(sem_t *semaforo){
+	int valorSemaforo;
+	sem_getvalue(semaforo,&valorSemaforo);
+	if(valorSemaforo<1){
+		return true;
+	}
+	return false;
+}
+
+void actualizar_tablas(PCB* proceso,char* archivo){
 	//VALIDO SI ESTA EN LA TABLA DE ARCHIVOS GLOBAL
 	//si esta el archivo en global lo recupera
 	archivo_t *nuevoArchivo=malloc(sizeof(archivo_t*));
 	if(dictionary_has_key(diccionarioArchivosGlobal,archivo)){
 		nuevoArchivo=dictionary_get(diccionarioArchivosGlobal,archivo);
 		//ver si va aca esta validacion del semaforo o no
-		//encapsular la validacion de semaforos porque se va usar en varios lugares
-		int valorSemaforoLectura;
-		sem_get_value(&(nuevoArchivo->semaforoLectura),&valorSemaforoLectura);
-		if(valorSemaforoLectura<1){
+		if(!semaforo_bloquedo((nuevoArchivo->semaforoLectura))){
 			cambiar_estado(proceso,BLOCKED);
 			sem_wait(&(nuevoArchivo->semaforoLectura));
 		}
@@ -169,7 +176,7 @@ void f_open(PCB* proceso,char * archivo){
 	//SI EXISTE EL DICCIONARIO DEL PROCESO
 	t_dictionary * diccionarioProceso;
 	if(dictionary_has_key(diccionarioDeDiccionariosLocales,string_itoa(proceso->pid))){
-		diccionarioProceso=(t_dictionary *)dictionary_get(diccionarioDeDiccionariosLocales,string_itoa(proceso->pid))
+		diccionarioProceso=(t_dictionary *)dictionary_get(diccionarioDeDiccionariosLocales,string_itoa(proceso->pid));
 		//si no esta abierto lo añade
 		if(!dictionary_has_key(diccionarioProceso,archivo)){
 				dictionary_put(diccionarioProceso,archivo,&nuevoArchivo);
@@ -183,7 +190,45 @@ void f_open(PCB* proceso,char * archivo){
 	}
 }
 
+void f_open(PCB* proceso,char * archivo,char* modoApertura){
+	//NUEVA LOGICA LUEGO DE RELEER EL ENUNCIADO DE VARIAS VECES
+	if(modoApertura=="L"){
+		if(validar_lock_escritura(archivo)){
+			cambiar_estado(proceso,BLOCKED);
+			sem_wait(&(get_lock_escritura(archivo)));
+		}
+		else{
+			if(validar_lock_lectura(archivo)){
+				agregar_proceso_como_participante(proceso);
+				//sem_wait(&(get_lock_lectura()));//revisar si seria un wait el agregar participante
+			}
+			else{
+				crear_lock_lectura(archivo);
+			}
+		}
+	}
+	if(modoApertura=="R"){
+		crear_lock_escritura(proceso);
+		if(existe_otro_lock()){
+			cambiar_estado(proceso,BLOCKED);
+		}
+	}
+}
+
 void f_close(PCB* proceso,char * archivo){
+	if(validar_lock_lectura(archivo)){
+		sem_post(&(get_lock_escritura(archivo)));//reducir participantes
+		//if participantes 0  cierra lock de lectura
+	}
+	else{
+		if(validar_lock_escritura(archivo)){
+			agregar_proceso_como_participante(proceso);
+			//sem_wait(&(get_lock_lectura()));//revisar si seria un wait el agregar participante
+		}
+		else{
+			crear_lock_lectura(archivo);
+		}
+	}
 	//HACER LUEGO METODO PARA DESTRUIR ARCHIVO
 	//dictionary_remove_and_destroy(t_dictionary *, char *, void(*element_destroyer)(void*));
 	//dictionary_remove(diccionarioArchivos,archivo);//VER SI ENREALIDAD SE SACA DE LA GLOBAL
