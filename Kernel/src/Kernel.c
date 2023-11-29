@@ -1,5 +1,5 @@
 #include "Kernel.h"
-
+int dfGlobal=0;
 int main(void)
 {
 	//MEMORY ALLOCATION
@@ -55,7 +55,7 @@ int main(void)
 			dictionary_put(diccionarioRecursos,recursos[i],&(semaforosDeRecursos[i]));
 	    }
 
-	 diccionarioArchivosGlobal=dictionary_create();
+	 tag=dictionary_create();
 	/************************************INICIALIZAR CONEXIONES************************************/
 	conexionCPUDispatch = crear_conexion(ipCPU, puertoCPUDispatch,KERNEL);
 	conexionCPUInterrupt = crear_conexion(ipCPU, puertoCPUInterrupt,KERNEL);
@@ -139,7 +139,7 @@ int motivo_desalojo(char * desalojo){
 	return motivo;
 }
 //MANEJO DE FILE SYSTEM
-void abrir_archivo(char* archivo){
+/*void abrir_archivo(char* archivo){
 	//ver como lo mando fs
 }
 
@@ -151,51 +151,69 @@ bool semaforo_bloqueado(sem_t *semaforo){
 	}
 	return false;
 }
+*/
 
-void actualizar_tablas(PCB* proceso,char* archivo){
+//funciones auxiliares de tag y tap
+registro_tag* crear_reg_tag(char* archivo){
+	registro_tag *registroTag=malloc(sizeof(registro_tag*));
+	registroTag->nombreArchivo=archivo;
+	registroTag->df=dfGlobal;
+	dfGlobal++;//semaforo si es necesario
+	registroTag->colaLectura=queue_create();
+	registroTag->colaEscritura=queue_create();
+	return registroTag;
+}
+
+registro_tag* get_reg_tag(char* archivo){
 	//VALIDO SI ESTA EN LA TABLA DE ARCHIVOS GLOBAL
 	//si esta el archivo en global lo recupera
-	archivo_t *nuevoArchivo=malloc(sizeof(archivo_t*));
-	if(dictionary_has_key(diccionarioArchivosGlobal,archivo)){
-		nuevoArchivo=dictionary_get(diccionarioArchivosGlobal,archivo);
-		//ver si va aca esta validacion del semaforo o no
-		if(!semaforo_bloquedo((nuevoArchivo->semaforoLectura))){
-			cambiar_estado(proceso,BLOCKED);
-			sem_wait(&(nuevoArchivo->semaforoLectura));
-		}
+	//sino lo crea y añade
+	registro_tag *registroTag=malloc(sizeof(registro_tag*));
+	if(dictionary_has_key(tag,archivo)){
+		registroTag= (registro_tag)dictionary_get(tag,archivo);
 	}else{
 		//sino esta en global lo crea y lo añade
-		nuevoArchivo->nombreArchivo=archivo;
-		nuevoArchivo->puntero=0;
-		pthread_mutex_init(&(nuevoArchivo->semaforoLectura),NULL);
-		pthread_mutex_init(&(nuevoArchivo->semaforoEscritura),NULL);
-		dictionary_put(diccionarioArchivosGlobal,archivo,&nuevoArchivo);
-		abrir_archivo(archivo);
+		registroTag=crear_registroTag(archivo);
+		dictionary_put(tag,archivo,&registroTag);
 	}
-	//CARGAR ARCHIVO EN TABLA GLOBAL Y EN TABLA DE PROCESO
-	//SI EXISTE EL DICCIONARIO DEL PROCESO
-	t_dictionary * diccionarioProceso;
-	if(dictionary_has_key(diccionarioDeDiccionariosLocales,string_itoa(proceso->pid))){
-		diccionarioProceso=(t_dictionary *)dictionary_get(diccionarioDeDiccionariosLocales,string_itoa(proceso->pid));
-		//si no esta abierto lo añade
-		if(!dictionary_has_key(diccionarioProceso,archivo)){
-				dictionary_put(diccionarioProceso,archivo,&nuevoArchivo);
-		}
+	return registroTag;
+}
+
+t_dictionary * get_tap(int pid){
+	t_dictionary * tap;
+	if(dictionary_has_key(diccionarioDeDiccionariosLocales,string_itoa(pid))){
+		tap=(t_dictionary *) dictionary_get(diccionarioDeDiccionariosLocales,string_itoa(pid));
 	}
 	else{
 		//si no existe lo crea  y añade el archivo
-		diccionarioProceso=dictionary_create();
-		dictionary_put(diccionarioProceso,archivo,&nuevoArchivo);
-		dictionary_put(diccionarioDeDiccionariosLocales,archivo,&diccionarioProceso);
+		tap=dictionary_create();
+		dictionary_put(diccionarioDeDiccionariosLocales,string_itoa(pid),&tap);
 	}
+	return tap;
+}
+
+registro_tap* get_reg_tap(int pid,int df){
+	//VALIDO SI ESTA EN LA TABLA DE ARCHIVOS POR PROCESO
+	//si esta el archivo en la tabla por proceso lo recupera
+	//sino lo crea y añade
+	registro_tap *registroTap=malloc(sizeof(registro_tag*));
+	//SI EXISTE EL DICCIONARIO DEL PROCESO
+	t_dictionary * tap=get_tap(pid);
+	//si no esta abierto lo añade
+	if(dictionary_has_key(tap,df)){
+		return (registro_tap*)dictionary_get(tap,df);
+	}
+	return NULL;
 }
 
 void f_open(PCB* proceso,char * archivo,char* modoApertura){
 	//NUEVA LOGICA LUEGO DE RELEER EL ENUNCIADO DE VARIAS VECES
+	registro_tag* regTag=get_reg_tag(archivo);
+	registro_tap* regTap=get_reg_tap((proceso->pid),(regTag->df));
 	if(modoApertura=="L"){
-		if(validar_lock_escritura(archivo)){
-			cambiar_estado(proceso,BLOCKED);
-			sem_wait(&(get_lock_escritura(archivo)));
+		if(queue_is_empty((regTag->colaEscritura))){
+					cambiar_estado(proceso,BLOCKED);
+					//sem_wait(&queue_pop((registroTag->colaEscritura)));
 		}
 		else{
 			if(validar_lock_lectura(archivo)){

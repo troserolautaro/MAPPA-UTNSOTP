@@ -25,14 +25,23 @@ void f_truncate(PCB* proceso, char * archivo);
 void f_read(PCB* proceso, char * archivo);
 void f_write(PCB* proceso, char * archivo);
 
-t_dictionary *diccionarioArchivosGlobal;//clave archivo, valor archivo_t
+t_dictionary *tag;//clave archivo, valor archivo_t
 t_dictionary *diccionarioDeDiccionariosLocales;//clave proceso, valor diccionario de archivos abiertos por el proceso
+
+typedef struct {
+	int df;//descriptor de archivo
+	char* nombreArchivo;
+	t_queue * colaLectura;
+	t_queue * colaEscritura;
+}registro_tag;//Tabla Archivos Global
 
 typedef struct {
 	char* nombreArchivo;
 	int puntero;
-	char* modoApertura;
+	char* modoApertura;//posible enum
 	sem_t * semaforoLectura;
 	sem_t * semaforoEscritura;
-}archivo_t;
+}registro_tap;//Tabla de Archivos por Proceso
+
+
 #endif /* Kernel_H_ */
