@@ -5,7 +5,10 @@
 #include"Consola.h"
 
 typedef enum{
-	PROCESOEXIT
+	PROCESOEXIT,
+	WAIT,
+	SIGNAL,
+	SLEEP
 }desalojo;
 void paquete(int);
 void terminar_programa();

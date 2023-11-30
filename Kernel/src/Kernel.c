@@ -138,6 +138,9 @@ int motivo_desalojo(char * desalojo){
 	if(!strcasecmp(desalojo,"procesoExit")) return PROCESOEXIT;
 	if(!strcasecmp(desalojo,"prioridades")) return PRIORIDADES;
 	if(!strcasecmp(desalojo,"quantum")) return ROUNDROBIN;
+	if(!strcasecmp(desalojo,"wait")) return WAIT;
+	if(!strcasecmp(desalojo,"signal")) return SIGNAL;
+	if(!strcasecmp(desalojo,"sleep")) return SLEEP;
 	return motivo;
 }
 //MANEJO DE FILE SYSTEM
@@ -211,13 +214,13 @@ void f_open(PCB* proceso,char * archivo,char* modoApertura){
 	registro_tag* regTag=get_reg_tag(archivo);
 	registro_tap* regTap=get_reg_tap((proceso->pid),(regTag->df));
 	if(modoApertura=="L"){
-		if(!queue_is_empty((regTag->colaEscritura))){
+		if(!queue_is_empty((regTag->colaLocksEscritura))){
 					cambiar_estado(proceso,BLOCKED);
 					//esperar que finalice
 					//posible semaforo hilo para esperar que termine la escritura
 		}
 		else{
-			if(!queue_is_empty((regTag->colaLectura))){
+			if(!queue_is_empty((regTag->colaLocksLectura))){
 				agregar_proceso_como_participante(proceso);
 			}
 			else{
@@ -323,37 +326,11 @@ void procesar_mensaje(t_list* mensaje){
 				sem_post(&planiLargo);
 		}
 	}
-	if(!strcasecmp(msg,"sleep")){
-		uint32_t tiempo = *(uint32_t*)list_get(mensaje,1);
-		uint32_t pid = *(uint32_t*)list_get(mensaje,2);
-		pthread_mutex_lock(&mutexProcesos);
-		PCB* temp = (PCB*)list_get(procesos,pid-1);
-		pthread_mutex_unlock(&mutexProcesos);
-		deserializar_proceso(temp,mensaje,2);
-		sleep_proceso(temp,tiempo);
-	}
-	if(!strcasecmp(msg,"wait")){
-		char* recurso = *(char*)list_get(mensaje,1);
-		uint32_t pid = *(uint32_t*)list_get(mensaje,2);
-		pthread_mutex_lock(&mutexProcesos);
-		PCB* temp = (PCB*)list_get(procesos,pid-1);
-		pthread_mutex_unlock(&mutexProcesos);
-		deserializar_proceso(temp,mensaje,2);
-		wait_recurso(temp,recurso);
-	}
-	if(!strcasecmp(msg,"signal")){
-		char* recurso = *(char*)list_get(mensaje,1);
-		uint32_t pid = *(uint32_t*)list_get(mensaje,2);
-		pthread_mutex_lock(&mutexProcesos);
-		PCB* temp = (PCB*)list_get(procesos,pid-1);
-		pthread_mutex_unlock(&mutexProcesos);
-		deserializar_proceso(temp,mensaje,2);
-		signal_recurso(temp,recurso);
-	}
+
 
 	if(!strcasecmp(msg,"contexto")){
 		int motivo = motivo_desalojo((char*)list_get(mensaje,1));
-		uint32_t pid = *(uint32_t*)list_get(mensaje,2);
+		uint32_t pid = *(uint32_t*)list_get(mensaje,(list_size(mensaje)-1));
 
 		pthread_mutex_lock(&mutexProcesos);
 		PCB* temp = (PCB*)list_get(procesos,pid-1);
@@ -362,24 +339,41 @@ void procesar_mensaje(t_list* mensaje){
 		deserializar_proceso(temp,mensaje,2);
 		switch(motivo){
 		case PROCESOEXIT:
-			hilo_funcion(temp,(void*)planificador_largo_salida);
-
+				hilo_funcion(temp,(void*)planificador_largo_salida);
 			break;
+
 		case PRIORIDADES:
-			cambiar_estado(temp,READY);
-			sem_post(&contexto);
+				cambiar_estado(temp,READY);
+				sem_post(&contexto);
 			break;
-		case ROUNDROBIN:
-			cambiar_estado(temp,READY);
-			pthread_mutex_lock(&mutexColaCorto);
-			queue_push(colaCorto,temp);
-			pthread_mutex_unlock(&mutexColaCorto);
 
-			pthread_mutex_lock(&mutexEjecutando);
-			ejecutandoB = false;
-			pthread_mutex_unlock(&mutexEjecutando);
-			sem_post(&planiCorto);
+		case ROUNDROBIN:
+				cambiar_estado(temp,READY);
+				pthread_mutex_lock(&mutexColaCorto);
+				queue_push(colaCorto,temp);
+				pthread_mutex_unlock(&mutexColaCorto);
+
+				pthread_mutex_lock(&mutexEjecutando);
+				ejecutandoB = false;
+				pthread_mutex_unlock(&mutexEjecutando);
+				sem_post(&planiCorto);
 			break;
+
+		case WAIT:
+				char* recurso = *(char*)list_get(mensaje,2);
+				wait_recurso(temp,recurso);
+			break;
+
+		case SLEEP:
+				uint32_t tiempo = *(uint32_t*)list_get(mensaje,2);
+				sleep_proceso(temp,tiempo);
+			break;
+
+		case SIGNAL:
+				char* recurso = *(char*)list_get(mensaje,2);
+				signal_recurso(temp,recurso);
+			break;
+
 		case EXIT:
 			error_show("Motivo desconocido");
 		}
@@ -389,5 +383,6 @@ void procesar_mensaje(t_list* mensaje){
 //	}
 	free(msg);
 }
+
 
 

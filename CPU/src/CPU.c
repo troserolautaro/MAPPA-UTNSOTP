@@ -106,50 +106,44 @@ void jnz(uint32_t * registro,uint32_t pc){
 
 void sleep_proceso(uint32_t tiempo){
 	//busca la instruccion en memoria
-	t_paquete* paquete=crear_paquete();
-	agregar_a_paquete(paquete,"sleep",sizeof(char*)*5);
-	agregar_a_paquete(paquete,&tiempo,sizeof(uint32_t*));
+	t_list * mensaje = list_create();
+	list_add(mensaje,"sleep");
+	list_add(mensaje,tiempo);
+	contexto_ejecucion(mensaje);
 
-	pthread_mutex_lock(&mutexProceso);
-	serializar_proceso(paquete,proceso);
-	pthread_mutex_unlock(&mutexProceso);
-
-	enviar_paquete(paquete,clienteKernelDispatch);
-	eliminar_paquete(paquete);
 	pthread_mutex_lock(&mutexBloquear);
 	bloquear=true;
 	pthread_mutex_unlock(&mutexBloquear);
+
+	list_destroy(mensaje);
 }
 
 void wait_recurso(char* recurso){
 	//busca la instruccion en memoria
-	t_paquete* paquete=crear_paquete();
-	agregar_a_paquete(paquete,"wait",strlen("wait")+1);
-	agregar_a_paquete(paquete,&recurso,strlen(recurso)+1);
+	t_list * mensaje = list_create();
+	list_add(mensaje,"wait");
+	list_add(mensaje,recurso);
+	contexto_ejecucion(mensaje);
 
-	pthread_mutex_lock(&mutexProceso);
-	serializar_proceso(paquete,proceso);
-	pthread_mutex_unlock(&mutexProceso);
-
-	enviar_paquete(paquete,clienteKernelDispatch);
-	eliminar_paquete(paquete);
 	pthread_mutex_lock(&mutexBloquear);
 	bloquear=true;
 	pthread_mutex_unlock(&mutexBloquear);
+
+	list_destroy(mensaje);
 }
 
 void signal_recurso(char* recurso){
 	//busca la instruccion en memoria
-	t_paquete* paquete=crear_paquete();
-	agregar_a_paquete(paquete,"signal",strlen("signal")+1);
-	agregar_a_paquete(paquete,&recurso,strlen(recurso)+1);
-	pthread_mutex_lock(&mutexProceso);
-	serializar_proceso(paquete,proceso);
-	pthread_mutex_unlock(&mutexProceso);
-	enviar_paquete(paquete,clienteKernelDispatch);
+	t_list * mensaje = list_create();
+	list_add(mensaje,"signal");
+	list_add(mensaje,recurso);
+	contexto_ejecucion(mensaje);
+
 	pthread_mutex_lock(&mutexBloquear);
 	bloquear=true;
 	pthread_mutex_unlock(&mutexBloquear);
+
+	list_destroy(mensaje);
 }
 
 void exit_i(){
@@ -265,11 +259,11 @@ void execute(){
 		sleep_proceso(tiempo);
 	}
 	if(!strcasecmp(comando,"WAIT")){
-		recurso=list_get(parametros,1);
+		recurso=list_get(parametros,0);
 		wait_recurso(recurso);
 	}
 	if(!strcasecmp(comando,"SIGNAL")){
-		recurso=list_get(parametros,1);
+		recurso=list_get(parametros,0);
 		signal_recurso(recurso);
 	}
 	if(!strcasecmp(comando,"MOV_IN")){
@@ -422,7 +416,9 @@ void contexto_ejecucion(t_list * mensaje){
 //	proceso_clear(proceso);
 	pthread_mutex_unlock(&mutexProceso);
 
+	int size = (list_size(mensaje)+1);
 	serializar_proceso(paquete,temp);
+	agregar_a_paquete(paquete,size,sizeof(size));
 	enviar_paquete(paquete,clienteKernelDispatch);
 	proceso_destroy(temp);
 	eliminar_paquete(paquete);
