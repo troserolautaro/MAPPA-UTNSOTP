@@ -20,6 +20,8 @@ int main(void)
 	//Inicializar_semaforos
 	sem_init(&planiLargo,0,0);
 	sem_init(&planiCorto,0,0);
+	pthread_mutex_init(&semEscritura,NULL);
+	pthread_mutex_init(&semLectura,NULL);
 	pthread_mutex_init(&mutexColaCorto,NULL);
 	pthread_mutex_init(&mutexColaLargo,NULL);
 	pthread_mutex_init(&mutexProcesos,NULL);
@@ -159,8 +161,6 @@ registro_tag* crear_reg_tag(char* archivo){
 	registroTag->nombreArchivo=archivo;
 	registroTag->df=dfGlobal;
 	dfGlobal++;//semaforo si es necesario
-	registroTag->colaLectura=queue_create();
-	registroTag->colaEscritura=queue_create();
 	return registroTag;
 }
 
@@ -211,14 +211,14 @@ void f_open(PCB* proceso,char * archivo,char* modoApertura){
 	registro_tag* regTag=get_reg_tag(archivo);
 	registro_tap* regTap=get_reg_tap((proceso->pid),(regTag->df));
 	if(modoApertura=="L"){
-		if(queue_is_empty((regTag->colaEscritura))){
+		if(!queue_is_empty((regTag->colaEscritura))){
 					cambiar_estado(proceso,BLOCKED);
-					//sem_wait(&queue_pop((registroTag->colaEscritura)));
+					//esperar que finalice
+					//posible semaforo hilo para esperar que termine la escritura
 		}
 		else{
-			if(validar_lock_lectura(archivo)){
+			if(!queue_is_empty((regTag->colaLectura))){
 				agregar_proceso_como_participante(proceso);
-				//sem_wait(&(get_lock_lectura()));//revisar si seria un wait el agregar participante
 			}
 			else{
 				crear_lock_lectura(archivo);

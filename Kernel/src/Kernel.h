@@ -28,19 +28,28 @@ void f_write(PCB* proceso, char * archivo);
 t_dictionary *tag;//clave archivo, valor archivo_t
 t_dictionary *diccionarioDeDiccionariosLocales;//clave proceso, valor diccionario de archivos abiertos por el proceso
 
+sem_t * semLectura;
+sem_t * semEscritura;
+t_queue * colaLocks;
+
+typedef struct {
+	char* archivo;
+	int tipoDeLock;
+	t_list * participantes;//son los procesos involucrados
+}lock;
+
 typedef struct {
 	int df;//descriptor de archivo
 	char* nombreArchivo;
-	t_queue * colaLectura;
-	t_queue * colaEscritura;
+	int aperturas;
+	lock * colaLocksEscritura;
+	lock   * colaLocksLectura;
 }registro_tag;//Tabla Archivos Global
 
 typedef struct {
 	char* nombreArchivo;
 	int puntero;
 	char* modoApertura;//posible enum
-	sem_t * semaforoLectura;
-	sem_t * semaforoEscritura;
 }registro_tap;//Tabla de Archivos por Proceso
 
 
