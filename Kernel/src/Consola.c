@@ -82,7 +82,7 @@ void finalizar_proceso(int pid){
 		pthread_mutex_unlock(&mutexProcesos);
 
 		if(proceso->estado!=TERMINATED){
-			planificador_largo_salida(proceso);
+			planificador_largo_salida(proceso,"SUCCESS");
 		}
 	}
 }

@@ -12,7 +12,6 @@ int gradoMultiprogramacion, quantum;
 char* AlgoritmoPlanificacion;
 pthread_mutex_t mutexColaCorto,mutexColaLargo,mutexProcesos,mutexLog,mutexGrado;
 sem_t planiLargo,planiCorto;
-t_dictionary *diccionarioRecursos;
 
 char* estado_enum(uint32_t estado){
 	switch(estado){

@@ -34,10 +34,10 @@ void* planificador_largo(){
 	return NULL;
 }
 
-void planificador_largo_salida(PCB* proceso){
+void planificador_largo_salida(PCB* proceso,char* razon){
 	cambiar_estado(proceso,TERMINATED);
 	// <SUCCESS / INVALID_RESOURCE / INVALID_WRITE>”
-	char *mensaje = string_from_format("Finaliza el proceso %d",proceso->pid);
+	char *mensaje = string_from_format("Finaliza el proceso %d - Motivo %s",proceso->pid,razon);
 	escritura_log(mensaje);
 	free(mensaje);
 

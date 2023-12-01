@@ -7,7 +7,8 @@ int main(void)
 	char* puertoCPUDispatch=malloc(sizeof(char*)),*puertoCPUInterrupt=malloc(sizeof(char*)),
 		* puertoMemoria=malloc(sizeof(char*)),*puertoFileSystem=malloc(sizeof(char*));
 	char** recursos=string_array_new();
-	char**instancias=string_array_new();
+	char**temp=string_array_new();
+	int
 	//logger=malloc(sizeof(t_log));
 	//config=malloc(sizeof(config));
 	logger = iniciar_logger("./log.log");
@@ -48,16 +49,18 @@ int main(void)
 
 	//CONFIGURACION DE RECURSOS
 	recursos = config_get_array_value(config,"RECURSOS");
-	instancias = config_get_array_value(config,"INSTANCIAS_RECURSOS");
-	diccionarioRecursos=dictionary_create();
-    sem_t *semaforosDeRecursos = (sem_t *)malloc(string_array_size(recursos) * sizeof(sem_t));
+	temp = config_get_array_value(config,"INSTANCIAS_RECURSOS");
+	diccionarioRecursos = dictionary_create();
     //inicializar los semaforos de los recursos y meterlos en un diccionario
 	 for (int i = 0; i < string_array_size(recursos); i++) {
-	    	sem_init(&(semaforosDeRecursos[i]),0,atoi((instancias[i])));//revisar si esta bien como se le pasa el puntero del semaforo
-			dictionary_put(diccionarioRecursos,recursos[i],&(semaforosDeRecursos[i]));
-	    }
-
-	 tag=dictionary_create();
+		 t_list* elements = list_create();
+		 t_queue * colaEspera= queue_create();
+		 uint32_t instancia = (int)strtol(temp[i], (char **)NULL, 10);
+		 list_add(elements,instancia);
+		 list_add(elements,colaEspera);
+		 dictionary_put(diccionarioRecursos,recursos[i],elements);
+	}
+	tag=dictionary_create();
 	/************************************INICIALIZAR CONEXIONES************************************/
 	conexionCPUDispatch = crear_conexion(ipCPU, puertoCPUDispatch,KERNEL);
 	conexionCPUInterrupt = crear_conexion(ipCPU, puertoCPUInterrupt,KERNEL);
@@ -121,10 +124,21 @@ void sleep_proceso(PCB* proceso, int tiempo){
 
 //MANEJO DE RECRUSOS
 void wait_recurso(PCB* proceso,char* recurso){
-	cambiar_estado(proceso,BLOCKED);
-	sem_t *semRecurso=(sem_t*)dictionary_get(diccionarioRecursos,recurso);
-	sem_wait(semRecurso);
-	cambiar_estado(proceso,READY);
+	if(dictionary_has_key(diccionarioRecursos,recurso)){
+		t_list* temp = (t_list*)dictionary_get(diccionarioRecursos,recurso);
+		int* instancia = (int*)list_get(temp,0);
+		if(*instancia <= 0 ){
+			*instancia -= 1;
+		}else{
+			cambiar_estado(proceso,BLOCKED);
+			t_queue* colaEspera = (t_queue*)list_get(temp,1);
+			queue_push(colaEspera,proceso);
+		}
+	}else{
+		planificador_largo_salida(proceso,"INVALID_RESOURCE");
+	}
+
+
 }
 
 void signal_recurso(PCB* proceso,char* recurso){
@@ -173,7 +187,7 @@ registro_tag* get_reg_tag(char* archivo){
 	//sino lo crea y añade
 	registro_tag *registroTag=malloc(sizeof(registro_tag*));
 	if(dictionary_has_key(tag,archivo)){
-		registroTag= (registro_tag)dictionary_get(tag,archivo);
+		registroTag = (registro_tag)dictionary_get(tag,archivo);
 	}else{
 		//sino esta en global lo crea y lo añade
 		registroTag=crear_registroTag(archivo);
@@ -330,16 +344,17 @@ void procesar_mensaje(t_list* mensaje){
 
 	if(!strcasecmp(msg,"contexto")){
 		int motivo = motivo_desalojo((char*)list_get(mensaje,1));
-		uint32_t pid = *(uint32_t*)list_get(mensaje,(list_size(mensaje)-1));
+		int posInicio = (list_size(mensaje)-1);
+		uint32_t pid = *(uint32_t*)list_get(mensaje,posInicio);
 
 		pthread_mutex_lock(&mutexProcesos);
 		PCB* temp = (PCB*)list_get(procesos,pid-1);
 		pthread_mutex_unlock(&mutexProcesos);
 
-		deserializar_proceso(temp,mensaje,2);
+		deserializar_proceso(temp,mensaje,posInicio);
 		switch(motivo){
 		case PROCESOEXIT:
-				hilo_funcion(temp,(void*)planificador_largo_salida);
+				planificador_largo_salida(temp,"SUCCESS");
 			break;
 
 		case PRIORIDADES:
@@ -361,6 +376,7 @@ void procesar_mensaje(t_list* mensaje){
 
 		case WAIT:
 				char* recurso = *(char*)list_get(mensaje,2);
+
 				wait_recurso(temp,recurso);
 			break;
 

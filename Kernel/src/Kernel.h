@@ -6,9 +6,9 @@
 
 typedef enum{
 	PROCESOEXIT,
-	WAIT,
-	SIGNAL,
-	SLEEP
+	WAIT=4,
+	SIGNAL=5,
+	SLEEP=6
 }desalojo;
 void paquete(int);
 void terminar_programa();
