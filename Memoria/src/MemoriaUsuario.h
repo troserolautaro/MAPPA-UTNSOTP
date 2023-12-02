@@ -4,21 +4,43 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <commons/log.h>
 #include <commons/config.h>
 #include <commons/string.h>
 #include <commons/collections/list.h>
+#include <utilsServidor.h>
+#include <utilsCliente.h>
 
 typedef struct{
-	int Marco,P,M,PosSWAP;
-}RegistroTablaPagina;
+	uint32_t marco,p,m,posSWAP;
+}pagina_t;
 
-extern RegistroTablaPagina * TablaPaginacion;
+//para fifo y
+typedef struct{
+	uint32_t pagina,pid,accesos;
+}pagina_global_t;
+
+typedef struct{
+	bool libre;
+	int base;
+	int limite;
+	//ver que otros datos podriamos poner aca
+}marco_t;
+
+t_list* tablapaginasGlobales;//indice=marco
+t_list* tablaMarcos;//indice=marco
+t_dictionary* tablaProcesos;//clave pid
+
 extern void* espacioContiguoMemoria;
-extern char *tamMemoria,
-			*tamPagina,
-			*algoritmoReemplazo;
-extern int cantPaginas,retardoRespuesta;
-
+extern char* algoritmoReemplazo;
+extern int conexionFS,tamMemoria,tamPagina,cantMarcos,retardoRespuesta;
+extern int marcoFIFO;
+extern pagina_t* (*algoritmoRemplazo)();
 void iniciar_memoria_usuario();
+
+pagina_t* fifo();
+pagina_t* lru();
+
+
 #endif /* MEMORIAUSUARIO_H_ */

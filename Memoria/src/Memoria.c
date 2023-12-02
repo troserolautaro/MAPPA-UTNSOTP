@@ -16,10 +16,8 @@ int main() {
 	config = iniciar_config("./Memoria.config");
 
 	char* ipFyleSystem = malloc(sizeof(char*)),
-		*puertoEscucha = malloc(sizeof(char*)),
-		*puertoFyleSystem = malloc(sizeof(char*));
-	tamMemoria = malloc(sizeof(char*));
-	tamPagina = malloc(sizeof(char*));
+		* puertoEscucha = malloc(sizeof(char*)),
+		* puertoFyleSystem = malloc(sizeof(char*));
 	algoritmoReemplazo = malloc(sizeof(char*));
 	pathInstrucciones = malloc(sizeof(char*));
 
@@ -31,8 +29,8 @@ int main() {
 	ipFyleSystem = config_get_string_value(config,"IP_FILESYSTEM");
 	puertoFyleSystem = config_get_string_value(config,"PUERTO_FYLESYSTEM");
 	puertoEscucha = config_get_string_value(config,"PUERTO_ESCUCHA");
-	tamMemoria = config_get_string_value(config,"TAM_MEMORIA");
-	tamPagina = config_get_string_value(config,"TAM_PAGINA");
+	tamMemoria = config_get_int_value(config,"TAM_MEMORIA");
+	tamPagina = config_get_int_value(config,"TAM_PAGINA");
 	pathInstrucciones = config_get_string_value(config,"PATH_INSTRUCCIONES");
 	retardoRespuesta = config_get_int_value(config,"RETARDO_RESPUESTA");
 	algoritmoReemplazo = config_get_string_value(config,"ALGORITMO_REEMPLAZO");
@@ -43,7 +41,10 @@ int main() {
 	//printf("%ld \n %ld", (long)getpid(), (long)getppid());
 
 	debug("Servidor listo para recibir al cliente");
-	//pthread_t hiloFileSystem
+	conexionFileSystem=crear_conexion(ipFyleSystem, puertoFyleSystem,MEMORIA);
+	pthread_t hiloFileSystem;
+	pthread_create(&hiloFileSystem,NULL,manejar_cliente,&conexionFileSystem);
+
 	//LA ESPERA DE CLIENTE SE PUEDE ENCAPSULAR PERO NO ES PRIORIDAD DE MOMENTO
 	int resultado;
 	if ((resultado=pthread_create(&hiloRecibirCliente,NULL,(void *)recibir_conexiones,( void *) &serverMemoria))!=0)
