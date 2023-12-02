@@ -42,7 +42,6 @@ int main() {
 	archivosCargados=dictionary_create();
 	//printf("%ld \n %ld", (long)getpid(), (long)getppid());
 
-	logger = log_create("log.log", "Servidor", 1, LOG_LEVEL_DEBUG);
 	debug("Servidor listo para recibir al cliente");
 	//pthread_t hiloFileSystem
 	//LA ESPERA DE CLIENTE SE PUEDE ENCAPSULAR PERO NO ES PRIORIDAD DE MOMENTO

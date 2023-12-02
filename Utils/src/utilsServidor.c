@@ -1,6 +1,5 @@
 #include "utilsServidor.h"
 
-t_log* logger;
 
 int iniciar_servidor(char* puerto)
 {

@@ -47,6 +47,7 @@ typedef struct{
 	uint32_t estado;
 	registros_CPU* registros;
 	//char* tablaArchivos[];
+	t_list * recursos;
 }PCB;
 
 //REGUISTROS DE CPU

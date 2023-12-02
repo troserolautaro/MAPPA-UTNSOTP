@@ -1,5 +1,5 @@
 #include "utils.h"
-
+t_log* logger;
 t_instruccion *instruccion_create() {
 	t_instruccion *instruccion = malloc(sizeof(t_instruccion));
 	instruccion->comando = "0";
@@ -18,6 +18,7 @@ PCB* proceso_create(){
 	proceso->pid=0;
 	proceso->prioridad=0;
 	proceso->registros=registros_create();
+	proceso->recursos = list_create();
 	return proceso;
 }
 
@@ -30,6 +31,7 @@ registros_CPU* registros_create(){
 	return registros;
 }
 void proceso_destroy(PCB* proceso){
+	list_destroy_and_destroy_elements(proceso->recursos,free);
 	free(proceso->registros);
 	free(proceso);
 }
@@ -47,8 +49,7 @@ PCB* proceso_copy(PCB* origen){
 	return destino;
 }
 void proceso_clear(PCB* proceso){ //talvez no necesario lo dejo, por si las ddas
-	proceso->estado= NULL;
-	proceso->pc= NULL;
+
 }
 
 void liberar_memoria(void * elemento){
@@ -56,7 +57,7 @@ void liberar_memoria(void * elemento){
 }
 t_log* iniciar_logger(char* log)
 {
-	t_log* nuevo_logger =log_create(log,"log",1,LOG_LEVEL_INFO);
+	t_log* nuevo_logger =log_create(log,"log",1,LOG_LEVEL_DEBUG);
 	if(nuevo_logger == NULL){
 			perror("No se ha encontrado el logger\n");
 		}

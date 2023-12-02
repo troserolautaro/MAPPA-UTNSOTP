@@ -20,7 +20,7 @@ extern t_list* procesos;
 extern int conexionCPUDispatch, conexionCPUInterrupt,conexionMemoria,conexionFileSystem,pidGlobal;
 extern int gradoMultiprogramacion, quantum;
 extern char* AlgoritmoPlanificacion;
-extern pthread_mutex_t  mutexColaCorto,mutexColaLargo,mutexProcesos,mutexGrado, mutexEjecutando;
+extern pthread_mutex_t  mutexColaCorto,mutexColaLargo,mutexProcesos,mutexGrado, mutexEjecutando, mutexRecursos;
 extern sem_t planiLargo,planiCorto;
 extern t_dictionary *diccionarioRecursos;
 char* estado_enum(uint32_t estado);

@@ -1,5 +1,5 @@
 #include "Kernel.h"
-int dfGlobal=0;
+
 int main(void)
 {
 	//MEMORY ALLOCATION
@@ -8,7 +8,6 @@ int main(void)
 		* puertoMemoria=malloc(sizeof(char*)),*puertoFileSystem=malloc(sizeof(char*));
 	char** recursos=string_array_new();
 	char**temp=string_array_new();
-	int
 	//logger=malloc(sizeof(t_log));
 	//config=malloc(sizeof(config));
 	logger = iniciar_logger("./log.log");
@@ -21,13 +20,14 @@ int main(void)
 	//Inicializar_semaforos
 	sem_init(&planiLargo,0,0);
 	sem_init(&planiCorto,0,0);
-	pthread_mutex_init(&semEscritura,NULL);
-	pthread_mutex_init(&semLectura,NULL);
+	sem_init(&desalojo_signal,0,0);
 	pthread_mutex_init(&mutexColaCorto,NULL);
 	pthread_mutex_init(&mutexColaLargo,NULL);
 	pthread_mutex_init(&mutexProcesos,NULL);
 	pthread_mutex_init(&mutexLog,NULL);
 	pthread_mutex_init(&mutexGrado,NULL);
+	pthread_mutex_init(&mutexRecursos,NULL);
+
 	/************************************RECUPERA DATOS DE ARCHIVO DE CONFIGURACION************************************/
 	//TALVEZ SE PUEDE GLOBALIZAR Y PASAR A UNA FUNCION PARA QUE QUEDE MEJOR PARA LA LECTURA
 	//CONFIGURACION DE CPU
@@ -55,7 +55,8 @@ int main(void)
 	 for (int i = 0; i < string_array_size(recursos); i++) {
 		 t_list* elements = list_create();
 		 t_queue * colaEspera= queue_create();
-		 uint32_t instancia = (int)strtol(temp[i], (char **)NULL, 10);
+		 int* instancia = malloc(sizeof(int));
+		 *instancia =  (int)strtol(temp[i], (char **)NULL, 10);
 		 list_add(elements,instancia);
 		 list_add(elements,colaEspera);
 		 dictionary_put(diccionarioRecursos,recursos[i],elements);
@@ -113,25 +114,49 @@ void terminar_programa()
 	//terminar_hilos();
 	//int conexionCPUDispatch, conexionCPUInterrupt,conexionMemoria,conexionFileSystem;
 }
-
-//MANEJO DE PROCESO
-void sleep_proceso(PCB* proceso, int tiempo){
+void bloquear_proceso(PCB* proceso,char* motivo){
 	cambiar_estado(proceso,BLOCKED);
+	char* mensaje = string_from_format("PID: %d - Bloqueado por: %s",proceso->pid,motivo);
+	escritura_log(mensaje);
+	free(mensaje);
+	//“PID: <PID> - Bloqueado por: <SLEEP / NOMBRE_RECURSO / NOMBRE_ARCHIVO>”
+}
+//MANEJO DE PROCESO
+void sleep_proceso(void* parametros){
+	PCB* proceso = (PCB*)list_get((t_list*)parametros,1);
+	int tiempo = atoi((char*)list_get((t_list*) parametros,0));
+	bloquear_proceso(proceso,"SLEEP");
 	sleep(tiempo);
 	cambiar_estado(proceso,READY);
+	pthread_mutex_lock(&mutexColaCorto);
+	queue_push(colaCorto,proceso);
+	pthread_mutex_unlock(&mutexColaCorto);
 
+	pthread_mutex_lock(&mutexEjecutando);
+	ejecutandoB = false;
+	pthread_mutex_unlock(&mutexEjecutando);
+	sem_post(&planiCorto);
 }
 
 //MANEJO DE RECRUSOS
 void wait_recurso(PCB* proceso,char* recurso){
 	if(dictionary_has_key(diccionarioRecursos,recurso)){
-		t_list* temp = (t_list*)dictionary_get(diccionarioRecursos,recurso);
-		int* instancia = (int*)list_get(temp,0);
-		if(*instancia <= 0 ){
-			*instancia -= 1;
+		t_list* elements = (t_list*)dictionary_get(diccionarioRecursos,recurso);
+		int* instancias = (int*)list_get(elements,0);
+		if(*instancias > 0 ){
+			*instancias-= 1;
+
+			list_add(proceso->recursos,recurso);
+			// “PID: <PID> - Wait: <NOMBRE RECURSO> - Instancias: <INSTANCIAS RECURSO>”
+			char* mensaje = string_from_format("PID: %d - Wait: %s - Instancias: %d",proceso->pid,recurso,*instancias);
+			escritura_log(mensaje);
+			free(mensaje);
+			pthread_mutex_lock(&mutexColaCorto);
+			queue_push(colaCorto,proceso);
+			pthread_mutex_unlock(&mutexColaCorto);
 		}else{
-			cambiar_estado(proceso,BLOCKED);
-			t_queue* colaEspera = (t_queue*)list_get(temp,1);
+			bloquear_proceso(proceso,recurso);
+			t_queue* colaEspera = (t_queue*)list_get(elements,1);
 			queue_push(colaEspera,proceso);
 		}
 	}else{
@@ -142,10 +167,49 @@ void wait_recurso(PCB* proceso,char* recurso){
 }
 
 void signal_recurso(PCB* proceso,char* recurso){
-	cambiar_estado(proceso,BLOCKED);
-	sem_t *semRecurso=(sem_t*)dictionary_get(diccionarioRecursos,recurso);
-	sem_post(semRecurso);
-	cambiar_estado(proceso,READY);
+	if(dictionary_has_key(diccionarioRecursos,recurso)){
+
+		if(!list_is_empty(proceso->recursos)){
+			bool buscar_recurso(void* element){
+				if(!strcasecmp(element,recurso)) return true;
+				return false;
+			}
+			char* recurso = (char*)list_find((t_list*)proceso->recursos,buscar_recurso);
+
+			if(recurso!=NULL){
+
+				t_list* elements = (t_list*)dictionary_get(diccionarioRecursos,recurso);
+				int* instancias = (int*)list_get(elements,0);
+				*instancias += 1;
+				char* mensaje = string_from_format("PID: %d - Signal: %s - Instancias: %d",proceso->pid,recurso,*instancias);
+				escritura_log(mensaje);
+				free(mensaje);
+				t_queue* colaEspera = (t_queue*)list_get(elements,1);
+
+				if(!queue_is_empty(colaEspera)){
+
+					PCB* temp = (PCB*) queue_pop(colaEspera);
+					cambiar_estado(temp,READY);
+
+					pthread_mutex_lock(&mutexColaCorto);
+					queue_push(colaCorto,temp);
+					pthread_mutex_unlock(&mutexColaCorto);
+				}
+				PCB* temp = (PCB*)list_replace(colaCorto->elements,0,proceso);
+				for(int i = 1;list_get(colaCorto->elements,i)!=NULL;i++){
+					temp = (PCB*)list_replace(colaCorto->elements,i,temp);
+				}
+				enviar_interrupcion_cpu_sin_pid("desalojo_signal");
+			}else{
+				planificador_largo_salida(proceso,"INVALID_RESOURCE");
+			}
+		}else{
+			planificador_largo_salida(proceso,"INVALID_RESOURCE");
+		}
+	}else{
+		planificador_largo_salida(proceso,"INVALID_RESOURCE");
+	}
+
 }
 int motivo_desalojo(char * desalojo){
 	int motivo = EXIT;
@@ -155,165 +219,10 @@ int motivo_desalojo(char * desalojo){
 	if(!strcasecmp(desalojo,"wait")) return WAIT;
 	if(!strcasecmp(desalojo,"signal")) return SIGNAL;
 	if(!strcasecmp(desalojo,"sleep")) return SLEEP;
+	if(!strcasecmp(desalojo,"desalojo_signal"))return DESALOJO_SIGNAL;
 	return motivo;
 }
-//MANEJO DE FILE SYSTEM
-/*void abrir_archivo(char* archivo){
-	//ver como lo mando fs
-}
 
-bool semaforo_bloqueado(sem_t *semaforo){
-	int valorSemaforo;
-	sem_getvalue(semaforo,&valorSemaforo);
-	if(valorSemaforo<1){
-		return true;
-	}
-	return false;
-}
-*/
-
-//funciones auxiliares de tag y tap
-registro_tag* crear_reg_tag(char* archivo){
-	registro_tag *registroTag=malloc(sizeof(registro_tag*));
-	registroTag->nombreArchivo=archivo;
-	registroTag->df=dfGlobal;
-	dfGlobal++;//semaforo si es necesario
-	return registroTag;
-}
-
-registro_tag* get_reg_tag(char* archivo){
-	//VALIDO SI ESTA EN LA TABLA DE ARCHIVOS GLOBAL
-	//si esta el archivo en global lo recupera
-	//sino lo crea y añade
-	registro_tag *registroTag=malloc(sizeof(registro_tag*));
-	if(dictionary_has_key(tag,archivo)){
-		registroTag = (registro_tag)dictionary_get(tag,archivo);
-	}else{
-		//sino esta en global lo crea y lo añade
-		registroTag=crear_registroTag(archivo);
-		dictionary_put(tag,archivo,&registroTag);
-	}
-	return registroTag;
-}
-
-t_dictionary * get_tap(int pid){
-	t_dictionary * tap;
-	if(dictionary_has_key(diccionarioDeDiccionariosLocales,string_itoa(pid))){
-		tap=(t_dictionary *) dictionary_get(diccionarioDeDiccionariosLocales,string_itoa(pid));
-	}
-	else{
-		//si no existe lo crea  y añade el archivo
-		tap=dictionary_create();
-		dictionary_put(diccionarioDeDiccionariosLocales,string_itoa(pid),&tap);
-	}
-	return tap;
-}
-
-registro_tap* get_reg_tap(int pid,int df){
-	//VALIDO SI ESTA EN LA TABLA DE ARCHIVOS POR PROCESO
-	//si esta el archivo en la tabla por proceso lo recupera
-	//sino lo crea y añade
-	registro_tap *registroTap=malloc(sizeof(registro_tag*));
-	//SI EXISTE EL DICCIONARIO DEL PROCESO
-	t_dictionary * tap=get_tap(pid);
-	//si no esta abierto lo añade
-	if(dictionary_has_key(tap,df)){
-		return (registro_tap*)dictionary_get(tap,df);
-	}
-	return NULL;
-}
-
-void f_open(PCB* proceso,char * archivo,char* modoApertura){
-	//NUEVA LOGICA LUEGO DE RELEER EL ENUNCIADO DE VARIAS VECES
-	registro_tag* regTag=get_reg_tag(archivo);
-	registro_tap* regTap=get_reg_tap((proceso->pid),(regTag->df));
-	if(modoApertura=="L"){
-		if(!queue_is_empty((regTag->colaLocksEscritura))){
-					cambiar_estado(proceso,BLOCKED);
-					//esperar que finalice
-					//posible semaforo hilo para esperar que termine la escritura
-		}
-		else{
-			if(!queue_is_empty((regTag->colaLocksLectura))){
-				agregar_proceso_como_participante(proceso);
-			}
-			else{
-				crear_lock_lectura(archivo);
-			}
-		}
-	}
-	if(modoApertura=="R"){
-		crear_lock_escritura(proceso);
-		if(existe_otro_lock()){
-			cambiar_estado(proceso,BLOCKED);
-		}
-	}
-}
-
-void f_close(PCB* proceso,char * archivo){
-	if(validar_lock_lectura(archivo)){
-		sem_post(&(get_lock_escritura(archivo)));//reducir participantes
-		//if participantes 0  cierra lock de lectura
-	}
-	else{
-		if(validar_lock_escritura(archivo)){
-			agregar_proceso_como_participante(proceso);
-			//sem_wait(&(get_lock_lectura()));//revisar si seria un wait el agregar participante
-		}
-		else{
-			crear_lock_lectura(archivo);
-		}
-	}
-	//HACER LUEGO METODO PARA DESTRUIR ARCHIVO
-	//dictionary_remove_and_destroy(t_dictionary *, char *, void(*element_destroyer)(void*));
-	//dictionary_remove(diccionarioArchivos,archivo);//VER SI ENREALIDAD SE SACA DE LA GLOBAL
-}
-
-void f_seek(PCB* proceso, char * archivo){
-/*
- * Actualiza el puntero del archivo en la tabla de archivos abiertos del proceso hacia la ubicación pasada por parámetro.
- * Se deberá devolver el contexto de ejecución a la CPU para que continúe el mismo proceso.
- */
-
-}
-void f_truncate(PCB* proceso, char * archivo){
-/*
- * Esta función solicitará al módulo File System que actualice el tamaño del archivo al nuevo tamaño pasado por parámetro
- *  y bloqueará al proceso hasta que el File System informe de la finalización de la operación.
- */
-
-}
-
-void f_read(PCB* proceso, char * archivo){
-/*
- * Para esta función se solicita al módulo File System que lea desde el puntero del archivo pasado por parámetro y
- *  lo grabe en la dirección física de memoria recibida por parámetro. El proceso que llamó a F_READ, deberá permanecer
- *  en estado bloqueado hasta que el módulo File System informe de la finalización de la operación.
- * */
-
-}
-
-void f_write(PCB* proceso, char * archivo){
-/*
- * Esta función, en caso de que el proceso haya solicitado un lock de escritura, solicitará al módulo File System
- * que escriba en el archivo desde la dirección física de memoria recibida por parámetro. El proceso que llamó a
- * F_WRITE, deberá permanecer en estado bloqueado hasta que el módulo File System informe de la finalización de
- *  la operación. En caso de que el proceso haya solicitado un lock de lectura, se deberá cancelar la operación y
- *   enviar el proceso a EXIT con motivo de INVALID_WRITE.
- * */
-
-}
-//PAGE FAULT
-void cargar_pagina(char * pagina){
-	//pendiente a definir bien la paginacion bajo demanda en memoria de usuario
-}
-//ver si no hace falta crear un hilo para el page fault
-void page_fault(PCB* proceso,char * pagina){
-	cambiar_estado(proceso,BLOCKED);
-	cargar_pagina(pagina);
-	//sem_wait(&paginaCargada);//agregar en procesar mensaje el sem_post para este semaforo y el semaforo
-	cambiar_estado(proceso,READY);
-}
 
 
 void procesar_mensaje(t_list* mensaje){
@@ -344,28 +253,30 @@ void procesar_mensaje(t_list* mensaje){
 
 	if(!strcasecmp(msg,"contexto")){
 		int motivo = motivo_desalojo((char*)list_get(mensaje,1));
-		int posInicio = (list_size(mensaje)-1);
-		uint32_t pid = *(uint32_t*)list_get(mensaje,posInicio);
+		int posInicio = (*(int*)(list_get(mensaje,list_size(mensaje)-2)));
+		uint32_t pid = (*(uint32_t*)list_get(mensaje,posInicio))-1;
 
 		pthread_mutex_lock(&mutexProcesos);
-		PCB* temp = (PCB*)list_get(procesos,pid-1);
+		PCB* proceso = (PCB*)list_get(procesos,pid);
 		pthread_mutex_unlock(&mutexProcesos);
 
-		deserializar_proceso(temp,mensaje,posInicio);
+		deserializar_proceso(proceso,mensaje,posInicio);
+
 		switch(motivo){
+
 		case PROCESOEXIT:
-				planificador_largo_salida(temp,"SUCCESS");
+				planificador_largo_salida(proceso,"SUCCESS");
 			break;
 
 		case PRIORIDADES:
-				cambiar_estado(temp,READY);
+				cambiar_estado(proceso,READY);
 				sem_post(&contexto);
 			break;
 
 		case ROUNDROBIN:
-				cambiar_estado(temp,READY);
+				cambiar_estado(proceso,READY);
 				pthread_mutex_lock(&mutexColaCorto);
-				queue_push(colaCorto,temp);
+				queue_push(colaCorto,proceso);
 				pthread_mutex_unlock(&mutexColaCorto);
 
 				pthread_mutex_lock(&mutexEjecutando);
@@ -374,29 +285,49 @@ void procesar_mensaje(t_list* mensaje){
 				sem_post(&planiCorto);
 			break;
 
-		case WAIT:
-				char* recurso = *(char*)list_get(mensaje,2);
-
-				wait_recurso(temp,recurso);
+		case WAIT:{
+				cambiar_estado(proceso,READY);
+				pthread_mutex_lock(&mutexEjecutando);
+				ejecutandoB = false;
+				pthread_mutex_unlock(&mutexEjecutando);
+				char* recurso = (char*)list_get(mensaje,2);
+				sem_post(&planiCorto);
+				wait_recurso(proceso,recurso);
+				free(recurso);
 			break;
-
+		}
 		case SLEEP:
-				uint32_t tiempo = *(uint32_t*)list_get(mensaje,2);
-				sleep_proceso(temp,tiempo);
+				cambiar_estado(proceso,READY);
+				pthread_mutex_lock(&mutexEjecutando);
+				ejecutandoB = false;
+				pthread_mutex_unlock(&mutexEjecutando);
+				t_list* parametros = list_create();
+				list_add(parametros,list_get(mensaje,2));
+				list_add(parametros, proceso);
+				sem_post(&planiCorto);
+				hilo_funcion(parametros,(void*)sleep_proceso);
 			break;
 
 		case SIGNAL:
-				char* recurso = *(char*)list_get(mensaje,2);
-				signal_recurso(temp,recurso);
+				cambiar_estado(proceso,READY);
+				pthread_mutex_lock(&mutexEjecutando);
+				ejecutandoB = false;
+				pthread_mutex_unlock(&mutexEjecutando);
+				char* recurso = (char*)list_get(mensaje,2);
+				sem_post(&planiCorto);
+				signal_recurso(proceso,recurso);
+				free(recurso);
+			break;
+
+		case DESALOJO_SIGNAL:
+				sem_post(&planiCorto);
 			break;
 
 		case EXIT:
 			error_show("Motivo desconocido");
 		}
 	}
-//	if(!strcasecmp(msg,"instruccion") && !strcasecmp(AlgoritmoPlanificacion, "round_robin\0")){
-//		sem_post(&clockT);
-//	}
+
 	free(msg);
 }
 

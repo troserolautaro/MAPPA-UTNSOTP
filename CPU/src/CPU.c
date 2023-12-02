@@ -23,11 +23,10 @@ pthread_mutex_t mutexProceso, mutexLog,mutexInstruccion, mutexBloquear, mutexInt
 //Semaforos
 sem_t ciclo,instruccion_s;
 int main() {
-	logger = malloc(sizeof(t_log));
-	t_config* config = malloc(sizeof(t_config));
+
 
 	logger = iniciar_logger("./log.log");
-	config = iniciar_config("./CPU.config");
+	t_config* config = iniciar_config("./CPU.config");
 
 	proceso = proceso_create();
 	instruccion = instruccion_create();
@@ -57,7 +56,7 @@ int main() {
 	serverDispatch = iniciar_servidor(puertoEscuchaDispatch);
 	serverInterrupt = iniciar_servidor(puertoEscuchaInterrupt);
 	// log_info(logger, "Servidor listo para recibir al cliente");
-	escritura_log("Servidor listo para recibir al cliente");
+	debug("Servidor listo para recibir al cliente");
 	clienteKernelDispatch = esperar_cliente(serverDispatch);
 	clienteKernelInterrupt = esperar_cliente(serverInterrupt);
 
@@ -108,7 +107,7 @@ void sleep_proceso(uint32_t tiempo){
 	//busca la instruccion en memoria
 	t_list * mensaje = list_create();
 	list_add(mensaje,"sleep");
-	list_add(mensaje,tiempo);
+	list_add(mensaje,string_itoa((int)tiempo));
 	contexto_ejecucion(mensaje);
 
 	pthread_mutex_lock(&mutexBloquear);
@@ -251,11 +250,11 @@ void execute(){
 	}
 	if(!strcasecmp(comando,"JNZ")){
 		registroOrigen = obtener_registro((char*)list_get(parametros,0));
-		uint32_t jnzPC=(uint32_t)strtol(list_get(parametros,1),NULL,10);
+		uint32_t jnzPC=(uint32_t)strtol(list_get(parametros,0),NULL,10);
 		jnz(registroOrigen,jnzPC);
 	}
 	if(!strcasecmp(comando,"SLEEP")){
-		uint32_t tiempo=(uint32_t)strtol(list_get(parametros,1),NULL,10);
+		uint32_t tiempo=(uint32_t)strtol(list_get(parametros,0),NULL,10);
 		sleep_proceso(tiempo);
 	}
 	if(!strcasecmp(comando,"WAIT")){
@@ -410,15 +409,15 @@ void contexto_ejecucion(t_list * mensaje){
 	for(int i=0;i<list_size(mensaje);i++){
 		agregar_a_paquete(paquete,list_get(mensaje,i),(strlen((char*)list_get(mensaje,i)))+1);
 	}
+	int size = (list_size(mensaje))+1;
 
 	pthread_mutex_lock(&mutexProceso);
 	PCB* temp = proceso_copy(proceso);
-//	proceso_clear(proceso);
 	pthread_mutex_unlock(&mutexProceso);
 
-	int size = (list_size(mensaje)+1);
+
 	serializar_proceso(paquete,temp);
-	agregar_a_paquete(paquete,size,sizeof(size));
+	agregar_a_paquete(paquete,&size,sizeof(size));
 	enviar_paquete(paquete,clienteKernelDispatch);
 	proceso_destroy(temp);
 	eliminar_paquete(paquete);

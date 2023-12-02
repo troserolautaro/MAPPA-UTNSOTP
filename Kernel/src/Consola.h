@@ -5,6 +5,7 @@
 
 #include"PlanificadorLargo.h"
 #include"PlanificadorCorto.h"
+
 typedef enum{
 	INICIAR_PROCESO,
 	FINALIZAR_PROCESO,

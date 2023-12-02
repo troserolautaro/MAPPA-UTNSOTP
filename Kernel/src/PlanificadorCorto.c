@@ -120,6 +120,14 @@ void enviar_interrupcion_cpu(char* motivo, void* pid){
 	enviar_paquete(paquete,conexionCPUInterrupt);
 	eliminar_paquete(paquete);
 }
+void enviar_interrupcion_cpu_sin_pid(char* motivo){
+	t_paquete* paquete = crear_paquete();
+	agregar_a_paquete(paquete,"interrupcion",sizeof("interrupcion"));
+	agregar_a_paquete(paquete,"desalojo",sizeof("desalojo"));
+	agregar_a_paquete(paquete,motivo,strlen(motivo)+1);
+	enviar_paquete(paquete,conexionCPUInterrupt);
+	eliminar_paquete(paquete);
+}
 //iniciar hilo de clock en kernel si algoritmo de planificacion es rr
 
 int planificador_enum(){
