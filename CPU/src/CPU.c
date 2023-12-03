@@ -125,6 +125,11 @@ void page_fault(uint32_t* direccionLogica){
 	list_add(mensaje,&numPagina);
 	contexto_ejecucion(mensaje);
 }
+void bloquear_proceso(){
+	pthread_mutex_lock(&mutexBloquear);
+	bloquear=true;
+	pthread_mutex_unlock(&mutexBloquear);
+}
 //FUNCIONES DE INSTRUCCION
 void set(uint32_t *registro, int valor){
 	*registro = valor;
@@ -149,9 +154,7 @@ void sleep_proceso(uint32_t tiempo){
 	list_add(mensaje,string_itoa((int)tiempo));
 	contexto_ejecucion(mensaje);
 
-	pthread_mutex_lock(&mutexBloquear);
-	bloquear=true;
-	pthread_mutex_unlock(&mutexBloquear);
+	bloquear_proceso();
 
 	list_destroy(mensaje);
 }
@@ -162,9 +165,7 @@ void wait_recurso(char* recurso){
 	list_add(mensaje,recurso);
 	contexto_ejecucion(mensaje);
 
-	pthread_mutex_lock(&mutexBloquear);
-	bloquear=true;
-	pthread_mutex_unlock(&mutexBloquear);
+	bloquear_proceso();
 
 	list_destroy(mensaje);
 }
@@ -175,9 +176,7 @@ void signal_recurso(char* recurso){
 	list_add(mensaje,recurso);
 	contexto_ejecucion(mensaje);
 
-	pthread_mutex_lock(&mutexBloquear);
-	bloquear=true;
-	pthread_mutex_unlock(&mutexBloquear);
+	bloquear_proceso();
 
 	list_destroy(mensaje);
 }
@@ -205,7 +204,8 @@ void mov_out(uint32_t* direccionLogica,uint32_t* registro) {
 	uint32_t direccionFisica;
 	uint32_t pid = proceso->pid;
 	direccionFisica=mmu(direccionLogica);
-	if(!pageFault){	t_paquete* paquete=crear_paquete();
+	if(!pageFault){
+		t_paquete* paquete=crear_paquete();
 		agregar_a_paquete(paquete,"mov_out",sizeof("mov_out"));
 		agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
 		agregar_a_paquete(paquete,registro,sizeof(uint32_t));
@@ -222,27 +222,94 @@ void mov_out(uint32_t* direccionLogica,uint32_t* registro) {
 }
 
 void f_open(char* nombreArchivo, char* modoApertura) {
+	t_list * mensaje = list_create();
+	list_add(mensaje,"f_open");
+	list_add(mensaje,nombreArchivo);
+	list_add(mensaje,modoApertura);
+	contexto_ejecucion(mensaje);
 
+	bloquear_proceso();
+
+	list_destroy(mensaje);
 }
 
 void f_close(char* nombreArchivo) {
+	t_list * mensaje = list_create();
+	list_add(mensaje,"f_close");
+	list_add(mensaje,nombreArchivo);
+	contexto_ejecucion(mensaje);
 
+	bloquear_proceso();
+
+	list_destroy(mensaje);
 }
 
 void f_seek(char* nombreArchivo, uint32_t* posicion) {
+	t_list * mensaje = list_create();
+	list_add(mensaje,"f_open");
+	list_add(mensaje,nombreArchivo);
+	list_add(mensaje,posicion);
+	contexto_ejecucion(mensaje);
 
+	bloquear_proceso();
+
+	list_destroy(mensaje);
 }
 
 void f_read(char* nombreArchivo, uint32_t* direccionLogica) {
+	uint32_t direccionFisica;
+	uint32_t pid = proceso->pid;
+	direccionFisica=mmu(direccionLogica);
+	if(!pageFault){
+		t_list * mensaje = list_create();
+		list_add(mensaje,"f_read");
+		list_add(mensaje,nombreArchivo);
+		list_add(mensaje,&direccionFisica);
 
+		contexto_ejecucion(mensaje);
+		pthread_mutex_lock(&mutexBloquear);
+		bloquear=true;
+		pthread_mutex_unlock(&mutexBloquear);
+
+		list_destroy(mensaje);
+	}
+	else{
+		page_fault(direccionLogica);
+	}
 }
 
 void f_write(char* nombreArchivo, uint32_t* direccionLogica) {
+	uint32_t direccionFisica;
+	uint32_t pid = proceso->pid;
+	direccionFisica=mmu(direccionLogica);
+	if(!pageFault){
+		t_list * mensaje = list_create();
+		list_add(mensaje,"f_write");
+		list_add(mensaje,nombreArchivo);
+		list_add(mensaje,&direccionFisica);
+		contexto_ejecucion(mensaje);
 
+		pthread_mutex_lock(&mutexBloquear);
+		bloquear=true;
+		pthread_mutex_unlock(&mutexBloquear);
+
+		list_destroy(mensaje);
+	}
+	else{
+		page_fault(direccionLogica);
+	}
 }
 
 void f_truncate(char* nombreArchivo, uint32_t* newSize) {
+	t_list * mensaje = list_create();
+	list_add(mensaje,"f_truncate");
+	list_add(mensaje,nombreArchivo);
+	list_add(mensaje,newSize);
+	contexto_ejecucion(mensaje);
 
+	bloquear_proceso();
+
+	list_destroy(mensaje);
 }
 
 void exit_i(){
@@ -250,9 +317,7 @@ void exit_i(){
 	t_list * mensaje = list_create();
 	list_add(mensaje,"procesoExit");
 	contexto_ejecucion(mensaje);
-	pthread_mutex_lock(&mutexBloquear);
-	bloquear=true;
-	pthread_mutex_unlock(&mutexBloquear);
+	bloquear_proceso();
 	list_destroy(mensaje);
 	/*t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"proceso_exit",sizeof(char*)*11);

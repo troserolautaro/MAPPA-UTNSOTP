@@ -107,13 +107,13 @@ void procesar_mensaje(t_list* mensaje){
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
 	}
-	if(!strcasecmp(msg,"cargar")){
+	if(!strcasecmp(msg,"cargar")){//cambiar cargar por crear proceso, y ver si se puede encapsular la parte de instrucciones
 
-		int pid=*(int*)list_get(mensaje,1);
+		uint32_t pid=*(uint32_t*)list_get(mensaje,1);
 		char* path=string_new();
-		string_append(&path,list_get(mensaje,2));
+		string_append(&path,(char*)list_get(mensaje,2));
 
-		int size=*(int*)list_get(mensaje,3);
+		uint32_t size=*(uint32_t*)list_get(mensaje,3);
 		t_list* instrucciones=list_create();
 		instrucciones=cargar_instrucciones(&path);
 		//list_add(instrucciones,"1");
@@ -122,7 +122,8 @@ void procesar_mensaje(t_list* mensaje){
 		pthread_mutex_lock(&mutexArchivos);
 		dictionary_put(archivosCargados,string_itoa(pid),instrucciones);
 		pthread_mutex_unlock(&mutexArchivos);
-
+		//crea las estructuras para la memoria de usuario del proceso
+		crear_proceso(pid,path,size);
 		//Acordarse liberar diccionario
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"cargado",sizeof("cargado"));
@@ -131,6 +132,16 @@ void procesar_mensaje(t_list* mensaje){
 		eliminar_paquete(paquete);
 		//free(instrucciones); puede que esto sea mejor porque el dictionary put te dice que el elemento no se libera
 		free(path);
+	}
+	if(!strcasecmp(msg,"finalizar_proceso")){
+		uint32_t pid=*(uint32_t*)list_get(mensaje,1);
+		//liberar diccionario de instrucciones
+		void finalizar_proceso(pid);
+		t_paquete * paquete = crear_paquete();
+		agregar_a_paquete(paquete,"proceso finalizado",sizeof("proceso finalizado"));
+		agregar_a_paquete(paquete,&pid,sizeof(int*));
+		enviar_paquete(paquete,conexion);
+		eliminar_paquete(paquete);
 	}
 	 if(!strcasecmp(msg,"instruccion")){
 		uint32_t pid =*(uint32_t*)list_get(mensaje,1);

@@ -49,6 +49,7 @@ void check_interrupt();
 void contexto_ejecucion(t_list * mensaje);
 void ejecutar_ciclo();
 uint32_t * obtener_registro(char* registro);
+void bloquear_proceso();
 
 
 
