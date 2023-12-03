@@ -5,8 +5,8 @@ int serverDispatch,serverInterrupt;
 int conexionMemoria;
 int clienteKernelDispatch,clienteKernelInterrupt;
 int reloj = 0; //Es el encargado de revisar el quantum
-uint32_t tamPagina, marco,numPagina;
-bool bloquear, interrupcion, pageFault;
+uint32_t tamPagina, marco,valor;
+bool bloquear, interrupcion, pageFault, error;
 char* motivo;
 //
 t_log* logger;
@@ -118,7 +118,13 @@ void obtener_marco(uint32_t numPagina){
 	eliminar_paquete(paquete);
 	sem_wait(&memoria_s);
 }
-
+void page_fault(uint32_t* direccionLogica){
+	uint32_t numPagina = floor((*direccionLogica) / tamPagina);
+	t_list * mensaje = list_create();
+	list_add(mensaje,"page_fault");
+	list_add(mensaje,&numPagina);
+	contexto_ejecucion(mensaje);
+}
 //FUNCIONES DE INSTRUCCION
 void set(uint32_t *registro, int valor){
 	*registro = valor;
@@ -138,7 +144,6 @@ void jnz(uint32_t * registro,uint32_t pc){
 }
 
 void sleep_proceso(uint32_t tiempo){
-	//busca la instruccion en memoria
 	t_list * mensaje = list_create();
 	list_add(mensaje,"sleep");
 	list_add(mensaje,string_itoa((int)tiempo));
@@ -152,7 +157,6 @@ void sleep_proceso(uint32_t tiempo){
 }
 
 void wait_recurso(char* recurso){
-	//busca la instruccion en memoria
 	t_list * mensaje = list_create();
 	list_add(mensaje,"wait");
 	list_add(mensaje,recurso);
@@ -166,7 +170,6 @@ void wait_recurso(char* recurso){
 }
 
 void signal_recurso(char* recurso){
-	//busca la instruccion en memoria
 	t_list * mensaje = list_create();
 	list_add(mensaje,"signal");
 	list_add(mensaje,recurso);
@@ -184,12 +187,18 @@ void mov_in(uint32_t* registro, uint32_t* direccionLogica) {
 	uint32_t pid = proceso->pid;
 	direccionFisica=mmu(direccionLogica);
 	if(!pageFault){
-	t_paquete* paquete=crear_paquete();
-	agregar_a_paquete(paquete,"mov_in",sizeof("mov_in"));
-	agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
-	enviar_paquete(paquete,conexionMemoria);
-	eliminar_paquete(paquete);
-	sem_wait(&memoria_s);
+		t_paquete* paquete=crear_paquete();
+		agregar_a_paquete(paquete,"mov_in",sizeof("mov_in"));
+		agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
+		enviar_paquete(paquete,conexionMemoria);
+		eliminar_paquete(paquete);
+		sem_wait(&memoria_s);
+		if(error){
+		//mostrar error
+		}
+	}
+	else{
+		page_fault(direccionLogica);
 	}
 }
 void mov_out(uint32_t* direccionLogica,uint32_t* registro) {
@@ -203,6 +212,12 @@ void mov_out(uint32_t* direccionLogica,uint32_t* registro) {
 		enviar_paquete(paquete,conexionMemoria);
 		eliminar_paquete(paquete);
 		sem_wait(&memoria_s);
+		if(error){
+			//mostrar error
+		}
+	}
+	else{
+		page_fault(direccionLogica);
 	}
 }
 
@@ -430,9 +445,19 @@ void procesar_mensaje(t_list* mensaje){
 		sem_post(&tamPagina_s);
 	}
 	if(!strcasecmp(msg,"marco")){
-		marco=strtol(list_get(mensaje,1),NULL,10);
+		pageFault=*(bool*)list_get(mensaje,1);
+		marco=strtol(list_get(mensaje,2),NULL,10);
 		sem_post(&memoria_s);
 	}
+	if(!strcasecmp(msg,"mov_in")){
+			error=*(bool*)list_get(mensaje,1);
+			valor=strtol(list_get(mensaje,2),NULL,10);
+			sem_post(&memoria_s);
+		}
+	if(!strcasecmp(msg,"mov_out")){
+			error=*(bool*)list_get(mensaje,1);
+			sem_post(&memoria_s);
+		}
 	if(!strcasecmp(msg,"proceso")){
 
 		pthread_mutex_lock(&mutexProceso);
@@ -500,8 +525,6 @@ void contexto_ejecucion(t_list * mensaje){
 	pthread_mutex_lock(&mutexProceso);
 	PCB* temp = proceso_copy(proceso);
 	pthread_mutex_unlock(&mutexProceso);
-
-
 	serializar_proceso(paquete,temp);
 	agregar_a_paquete(paquete,&size,sizeof(size));
 	enviar_paquete(paquete,clienteKernelDispatch);

@@ -34,9 +34,12 @@ extern int conexionFS,tamMemoria,tamPagina,cantMarcos,retardoRespuesta;
 extern int marcoFIFO;
 extern pagina_t* (*algoritmoRemplazo)();
 void iniciar_memoria_usuario();
-
+uint32_t get_dato(uint32_t direccion);
+void set_dato(uint32_t direccion, uint32_t valor);
+void page_fault(uint32_t pid,uint32_t numPagina);
 pagina_t* fifo();
 pagina_t* lru();
+
 
 
 #endif /* MEMORIAUSUARIO_H_ */

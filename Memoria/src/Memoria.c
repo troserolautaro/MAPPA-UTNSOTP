@@ -64,7 +64,46 @@ void procesar_mensaje(t_list* mensaje){
 	if(!strcasecmp(msg,"tamañoPagina")){
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"tamañoPagina",sizeof("tamañoPagina"));
-		agregar_a_paquete(paquete,&tamPagina,sizeof(int*));
+		agregar_a_paquete(paquete,&tamPagina,sizeof(int));
+		enviar_paquete(paquete,conexion);
+		eliminar_paquete(paquete);
+	}
+	if(!strcasecmp(msg,"mov_in")){
+		uint32_t direccionFisica=*(uint32_t*)list_get(mensaje,1);
+		bool error=true;
+		uint32_t dato=-1;
+		//valida si es una direccion fisica valida
+		if(direccionFisica<tamMemoria){
+		error=false;
+		dato=get_dato(*(uint32_t*)list_get(mensaje,1));
+		}
+		t_paquete * paquete = crear_paquete();
+		agregar_a_paquete(paquete,"mov_in",sizeof("mov_in"));
+		agregar_a_paquete(paquete,&error,sizeof(bool));
+		agregar_a_paquete(paquete,&dato,sizeof(int));
+		enviar_paquete(paquete,conexion);
+		eliminar_paquete(paquete);
+	}
+	if(!strcasecmp(msg,"mov_out")){
+		uint32_t direccionFisica=*(uint32_t*)list_get(mensaje,1);
+		bool error=true;
+		if(direccionFisica<tamMemoria){
+			error=false;
+			set_dato(*(uint32_t*)list_get(mensaje,1),*(uint32_t*)list_get(mensaje,2));
+		}
+		t_paquete * paquete = crear_paquete();
+		agregar_a_paquete(paquete,"mov_out",sizeof("mov_out"));
+		agregar_a_paquete(paquete,&error,sizeof(bool));
+		enviar_paquete(paquete,conexion);
+		eliminar_paquete(paquete);
+	}
+	if(!strcasecmp(msg,"page_fault")){
+		uint32_t pid, numPagina;
+		pid=*(uint32_t*)list_get(mensaje,1);
+		numPagina=*(uint32_t*)list_get(mensaje,2);
+		page_fault(pid,numPagina);
+		t_paquete * paquete = crear_paquete();
+		agregar_a_paquete(paquete,"page_fault",sizeof("page_fault"));
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
 	}

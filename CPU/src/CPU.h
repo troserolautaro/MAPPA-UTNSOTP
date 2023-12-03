@@ -24,8 +24,6 @@ void iterator(char* value);
 void cargar_tamaño_pagina();
 uint32_t mmu(uint32_t* direccionLogica);
 void obtener_marco(uint32_t numPagina);
-void obtener_dato(uint32_t numPagina,uint32_t desplazamiento);
-
 //INSTRUCCIONES
 void set_i(uint32_t * registroDestino, uint32_t valor);
 void sum(uint32_t * registroDestino,uint32_t * registroOrigen);
