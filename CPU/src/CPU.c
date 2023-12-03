@@ -98,9 +98,14 @@ void cargar_tamaño_pagina(){
 	eliminar_paquete(paquete);
 }
 //TRADUCCIR DIRECCION LOGICA A FISICA
-void mmu(uint32_t* direccionLogica, uint32_t* numPagina,uint32_t* desplazamiento){
-	(*numPagina )= floor((*direccionLogica) / tamPagina);
-	(*desplazamiento ) = (*direccionLogica) - (*numPagina) * tamPagina;
+uint32_t mmu(uint32_t* direccionLogica){
+	uint32_t numPagina,desplazamiento;
+	pageFault=false;
+	numPagina = floor((*direccionLogica) / tamPagina);
+	desplazamiento = (*direccionLogica) - numPagina * tamPagina;
+	obtener_marco(numPagina);
+	if(!pageFault)return marco*tamPagina+desplazamiento;
+	return -1;
 }
 //PARA FUNCIONES DE F_*
 void obtener_marco(uint32_t numPagina){
@@ -111,6 +116,7 @@ void obtener_marco(uint32_t numPagina){
 	agregar_a_paquete(paquete,&numPagina,sizeof(uint32_t));
 	enviar_paquete(paquete,conexionMemoria);
 	eliminar_paquete(paquete);
+	sem_wait(&memoria_s);
 }
 
 //FUNCIONES DE INSTRUCCION
@@ -174,32 +180,30 @@ void signal_recurso(char* recurso){
 }
 
 void mov_in(uint32_t* registro, uint32_t* direccionLogica) {
-	uint32_t numPagina,desplazamiento;
+	uint32_t direccionFisica;
 	uint32_t pid = proceso->pid;
-	mmu(direccionLogica,&numPagina,&desplazamiento);
+	direccionFisica=mmu(direccionLogica);
+	if(!pageFault){
 	t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"mov_in",sizeof("mov_in"));
-	agregar_a_paquete(paquete,&pid,sizeof(uint32_t));
-	agregar_a_paquete(paquete,&numPagina,sizeof(uint32_t));
-	agregar_a_paquete(paquete,&desplazamiento,sizeof(uint32_t));
+	agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
 	enviar_paquete(paquete,conexionMemoria);
 	eliminar_paquete(paquete);
 	sem_wait(&memoria_s);
-	//if();
+	}
 }
 void mov_out(uint32_t* direccionLogica,uint32_t* registro) {
-	uint32_t numPagina, desplazamiento;
+	uint32_t direccionFisica;
 	uint32_t pid = proceso->pid;
-	mmu(direccionLogica,&numPagina,&desplazamiento);
-	t_paquete* paquete=crear_paquete();
-	agregar_a_paquete(paquete,"mov_out",sizeof("mov_out"));
-	agregar_a_paquete(paquete,&pid,sizeof(uint32_t));
-	agregar_a_paquete(paquete,&numPagina,sizeof(uint32_t));
-	agregar_a_paquete(paquete,&desplazamiento,sizeof(uint32_t));
-	agregar_a_paquete(paquete,registro,sizeof(uint32_t));
-	enviar_paquete(paquete,conexionMemoria);
-	eliminar_paquete(paquete);
-	sem_wait(&memoria_s);
+	direccionFisica=mmu(direccionLogica);
+	if(!pageFault){	t_paquete* paquete=crear_paquete();
+		agregar_a_paquete(paquete,"mov_out",sizeof("mov_out"));
+		agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
+		agregar_a_paquete(paquete,registro,sizeof(uint32_t));
+		enviar_paquete(paquete,conexionMemoria);
+		eliminar_paquete(paquete);
+		sem_wait(&memoria_s);
+	}
 }
 
 void f_open(char* nombreArchivo, char* modoApertura) {

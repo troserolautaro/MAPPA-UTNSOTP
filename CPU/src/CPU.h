@@ -22,7 +22,7 @@ int clienteKernel;
 void iterator(char* value);
 //MEMORIA
 void cargar_tamaño_pagina();
-void mmu(uint32_t* direccionLogica, uint32_t* numPagina,uint32_t* desplazamiento);
+uint32_t mmu(uint32_t* direccionLogica);
 void obtener_marco(uint32_t numPagina);
 void obtener_dato(uint32_t numPagina,uint32_t desplazamiento);
 
