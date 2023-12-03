@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <commons/log.h>
 #include <commons/config.h>
 #include <commons/string.h>
@@ -15,17 +16,16 @@
 #include<utilsServidor.h>
 #include<utilsCliente.h>
 
-
-typedef struct {
-	char* nombreArchivo;
-	int tamanioArchivo;
-	int bloqueInicial;
-}FCB;
-
 void iterator(char* value);
 int abrir_archivo(char* archivo);
-int chequear_existencia_archivo(FCB* archivo);
+int existencia_archivo(char* archivo);
+void iniciar_bloques();
+void iniciar_fat();
 
-
+//estructura auxiliar de bloques
+typedef struct{
+	void* valor;
+	char* dueño;//proceso o archivo segun si es de swap o fat
+}bloque_t;
 
 #endif /* CPU_H_ */
