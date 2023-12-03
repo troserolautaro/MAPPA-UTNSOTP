@@ -2,7 +2,7 @@
 
 t_list* tablapaginasGlobales;//indice=marco
 t_list* tablaMarcos;//indice=marco
-t_dictionary* tablaProcesos;
+t_dictionary* tablaProcesos;//clave pid
 pagina_t* (*algoritmoRemplazo)();
 void* espacioContiguoMemoria;
 char* algoritmoReemplazo;
@@ -106,7 +106,7 @@ uint32_t devolver_num_marco(uint32_t pid, uint32_t numPagina){
 }
 
 //ACCESO A ESPACIO DE USUARIO LECTURA
-uint32_t leer_espacio_usuario(uint32_t direccion) {
+uint32_t get_dato(uint32_t direccion) {
 	uint32_t valor;
 	pthread_mutex_lock(&mutex_memoria);
 	//leer direccion
@@ -116,7 +116,7 @@ uint32_t leer_espacio_usuario(uint32_t direccion) {
 }
 
 //ACCESO A ESPACIO DE USUARIO ESCRITURA
-void escribir_espacio_usuario(uint32_t direccion, uint32_t valor) {
+void set_dato(uint32_t direccion, uint32_t valor) {
 	pthread_mutex_lock(&mutex_memoria);
 	//escribir direccion
 	//memcpy(espacioContiguoMemoria[direccion], &valor, sizeof(uint32_t));

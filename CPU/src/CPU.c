@@ -5,7 +5,8 @@ int serverDispatch,serverInterrupt;
 int conexionMemoria;
 int clienteKernelDispatch,clienteKernelInterrupt;
 int reloj = 0; //Es el encargado de revisar el quantum
-bool bloquear, interrupcion;
+uint32_t tamPagina, marco,valor;
+bool bloquear, interrupcion, pageFault, error;
 char* motivo;
 //
 t_log* logger;
@@ -13,6 +14,8 @@ t_config* config;
 t_instruccion * instruccion;
 PCB* proceso;
 pthread_mutex_t mutexProceso, mutexLog,mutexInstruccion, mutexBloquear, mutexInterrupcion;
+sem_t tamPagina_s;
+sem_t memoria_s;
 
 /*struct{
 	t_instruccion * instruccion;
@@ -44,6 +47,9 @@ int main() {
 	//Iniciar semaforos
 	sem_init(&ciclo,0,0);
 	sem_init(&instruccion_s,0,0);
+	sem_init(&tamPagina_s,0,0);
+	sem_init(&memoria_s,0,0);
+
 	pthread_mutex_init(&mutexProceso,NULL);
 	pthread_mutex_init(&mutexLog,NULL);
 	pthread_mutex_init(&mutexInstruccion,NULL);
@@ -51,7 +57,6 @@ int main() {
 	pthread_mutex_init(&mutexInterrupcion,NULL);
 	//Iniciar Cliente que conecta a memoria
 	conexionMemoria = crear_conexion(ipMemoria, puertoMemoria,CPUDispatch);
-	//sem_wait(&tamañoPagina);
 	//Inicia Servidor
 	serverDispatch = iniciar_servidor(puertoEscuchaDispatch);
 	serverInterrupt = iniciar_servidor(puertoEscuchaInterrupt);
@@ -73,6 +78,8 @@ int main() {
 	if ((resultado = pthread_create(&hiloMemoria,NULL,manejar_cliente,(void*)&conexionMemoria))!=0){
 		printf("Error al crear hilo. resultado %d",resultado);
 	}
+	cargar_tamaño_pagina();
+	sem_wait(&tamPagina_s);
 	//Hilos proceso
 	bloquear= false;
 	interrupcion=false;
@@ -84,7 +91,45 @@ int main() {
 	pthread_join(hiloKernelInterrupt,NULL);
 	return EXIT_SUCCESS;
 }
-
+void cargar_tamaño_pagina(){
+	t_paquete* paquete=crear_paquete();
+	agregar_a_paquete(paquete,"tamañoPagina",sizeof("tamañoPagina"));
+	enviar_paquete(paquete,clienteKernelDispatch);
+	eliminar_paquete(paquete);
+}
+//TRADUCCIR DIRECCION LOGICA A FISICA
+uint32_t mmu(uint32_t* direccionLogica){
+	uint32_t numPagina,desplazamiento;
+	pageFault=false;
+	numPagina = floor((*direccionLogica) / tamPagina);
+	desplazamiento = (*direccionLogica) - numPagina * tamPagina;
+	obtener_marco(numPagina);
+	if(!pageFault)return marco*tamPagina+desplazamiento;
+	return -1;
+}
+//PARA FUNCIONES DE F_*
+void obtener_marco(uint32_t numPagina){
+	uint32_t pid = proceso->pid;
+	t_paquete* paquete=crear_paquete();
+	agregar_a_paquete(paquete,"instruccion",sizeof("instruccion"));
+	agregar_a_paquete(paquete,&pid,sizeof(uint32_t));
+	agregar_a_paquete(paquete,&numPagina,sizeof(uint32_t));
+	enviar_paquete(paquete,conexionMemoria);
+	eliminar_paquete(paquete);
+	sem_wait(&memoria_s);
+}
+void page_fault(uint32_t* direccionLogica){
+	uint32_t numPagina = floor((*direccionLogica) / tamPagina);
+	t_list * mensaje = list_create();
+	list_add(mensaje,"page_fault");
+	list_add(mensaje,&numPagina);
+	contexto_ejecucion(mensaje);
+}
+void bloquear_proceso(){
+	pthread_mutex_lock(&mutexBloquear);
+	bloquear=true;
+	pthread_mutex_unlock(&mutexBloquear);
+}
 //FUNCIONES DE INSTRUCCION
 void set(uint32_t *registro, int valor){
 	*registro = valor;
@@ -104,43 +149,165 @@ void jnz(uint32_t * registro,uint32_t pc){
 }
 
 void sleep_proceso(uint32_t tiempo){
-	//busca la instruccion en memoria
 	t_list * mensaje = list_create();
 	list_add(mensaje,"sleep");
 	list_add(mensaje,string_itoa((int)tiempo));
 	contexto_ejecucion(mensaje);
 
-	pthread_mutex_lock(&mutexBloquear);
-	bloquear=true;
-	pthread_mutex_unlock(&mutexBloquear);
+	bloquear_proceso();
 
 	list_destroy(mensaje);
 }
 
 void wait_recurso(char* recurso){
-	//busca la instruccion en memoria
 	t_list * mensaje = list_create();
 	list_add(mensaje,"wait");
 	list_add(mensaje,recurso);
 	contexto_ejecucion(mensaje);
 
-	pthread_mutex_lock(&mutexBloquear);
-	bloquear=true;
-	pthread_mutex_unlock(&mutexBloquear);
+	bloquear_proceso();
 
 	list_destroy(mensaje);
 }
 
 void signal_recurso(char* recurso){
-	//busca la instruccion en memoria
 	t_list * mensaje = list_create();
 	list_add(mensaje,"signal");
 	list_add(mensaje,recurso);
 	contexto_ejecucion(mensaje);
 
-	pthread_mutex_lock(&mutexBloquear);
-	bloquear=true;
-	pthread_mutex_unlock(&mutexBloquear);
+	bloquear_proceso();
+
+	list_destroy(mensaje);
+}
+
+void mov_in(uint32_t* registro, uint32_t* direccionLogica) {
+	uint32_t direccionFisica;
+	uint32_t pid = proceso->pid;
+	direccionFisica=mmu(direccionLogica);
+	if(!pageFault){
+		t_paquete* paquete=crear_paquete();
+		agregar_a_paquete(paquete,"mov_in",sizeof("mov_in"));
+		agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
+		enviar_paquete(paquete,conexionMemoria);
+		eliminar_paquete(paquete);
+		sem_wait(&memoria_s);
+		if(error){
+		//mostrar error
+		}
+	}
+	else{
+		page_fault(direccionLogica);
+	}
+}
+void mov_out(uint32_t* direccionLogica,uint32_t* registro) {
+	uint32_t direccionFisica;
+	uint32_t pid = proceso->pid;
+	direccionFisica=mmu(direccionLogica);
+	if(!pageFault){
+		t_paquete* paquete=crear_paquete();
+		agregar_a_paquete(paquete,"mov_out",sizeof("mov_out"));
+		agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
+		agregar_a_paquete(paquete,registro,sizeof(uint32_t));
+		enviar_paquete(paquete,conexionMemoria);
+		eliminar_paquete(paquete);
+		sem_wait(&memoria_s);
+		if(error){
+			//mostrar error
+		}
+	}
+	else{
+		page_fault(direccionLogica);
+	}
+}
+
+void f_open(char* nombreArchivo, char* modoApertura) {
+	t_list * mensaje = list_create();
+	list_add(mensaje,"f_open");
+	list_add(mensaje,nombreArchivo);
+	list_add(mensaje,modoApertura);
+	contexto_ejecucion(mensaje);
+
+	bloquear_proceso();
+
+	list_destroy(mensaje);
+}
+
+void f_close(char* nombreArchivo) {
+	t_list * mensaje = list_create();
+	list_add(mensaje,"f_close");
+	list_add(mensaje,nombreArchivo);
+	contexto_ejecucion(mensaje);
+
+	bloquear_proceso();
+
+	list_destroy(mensaje);
+}
+
+void f_seek(char* nombreArchivo, uint32_t* posicion) {
+	t_list * mensaje = list_create();
+	list_add(mensaje,"f_open");
+	list_add(mensaje,nombreArchivo);
+	list_add(mensaje,posicion);
+	contexto_ejecucion(mensaje);
+
+	bloquear_proceso();
+
+	list_destroy(mensaje);
+}
+
+void f_read(char* nombreArchivo, uint32_t* direccionLogica) {
+	uint32_t direccionFisica;
+	uint32_t pid = proceso->pid;
+	direccionFisica=mmu(direccionLogica);
+	if(!pageFault){
+		t_list * mensaje = list_create();
+		list_add(mensaje,"f_read");
+		list_add(mensaje,nombreArchivo);
+		list_add(mensaje,&direccionFisica);
+
+		contexto_ejecucion(mensaje);
+		pthread_mutex_lock(&mutexBloquear);
+		bloquear=true;
+		pthread_mutex_unlock(&mutexBloquear);
+
+		list_destroy(mensaje);
+	}
+	else{
+		page_fault(direccionLogica);
+	}
+}
+
+void f_write(char* nombreArchivo, uint32_t* direccionLogica) {
+	uint32_t direccionFisica;
+	uint32_t pid = proceso->pid;
+	direccionFisica=mmu(direccionLogica);
+	if(!pageFault){
+		t_list * mensaje = list_create();
+		list_add(mensaje,"f_write");
+		list_add(mensaje,nombreArchivo);
+		list_add(mensaje,&direccionFisica);
+		contexto_ejecucion(mensaje);
+
+		pthread_mutex_lock(&mutexBloquear);
+		bloquear=true;
+		pthread_mutex_unlock(&mutexBloquear);
+
+		list_destroy(mensaje);
+	}
+	else{
+		page_fault(direccionLogica);
+	}
+}
+
+void f_truncate(char* nombreArchivo, uint32_t* newSize) {
+	t_list * mensaje = list_create();
+	list_add(mensaje,"f_truncate");
+	list_add(mensaje,nombreArchivo);
+	list_add(mensaje,newSize);
+	contexto_ejecucion(mensaje);
+
+	bloquear_proceso();
 
 	list_destroy(mensaje);
 }
@@ -150,9 +317,7 @@ void exit_i(){
 	t_list * mensaje = list_create();
 	list_add(mensaje,"procesoExit");
 	contexto_ejecucion(mensaje);
-	pthread_mutex_lock(&mutexBloquear);
-	bloquear=true;
-	pthread_mutex_unlock(&mutexBloquear);
+	bloquear_proceso();
 	list_destroy(mensaje);
 	/*t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"proceso_exit",sizeof(char*)*11);
@@ -216,20 +381,13 @@ void fetch(){
 // Fetch Instrucción: “PID: <PID> - FETCH - Program Counter: <PROGRAM_COUNTER>”.
 }
 
-//definir como llega de memoria para definir el tipo de parametro
-void decode(){
-	//obtener registros necesarios para ejecutar la instruccion y pasarselos a execute
-	//DECODIFICACION DE LA INSTRUCCION
-	//MMU (Direcciones logicas y fisicas)
-}
-void execute(){
+void decode_and_execute(){
 	pthread_mutex_lock(&mutexInstruccion);
 	t_list * parametros=instruccion->parametros;
 	char* comando = instruccion->comando;
 	pthread_mutex_unlock(&mutexInstruccion);
-	void *registroOrigen, *registroDestino;
+	uint32_t *registroOrigen, *registroDestino;
 	char*recurso;
-
 	//obtengo parametros
 	/*executo funcion, talvez es mejor que la funcion reciba un int y esto este dentro de un switch en el que adentro
 	revisemos las variables que haya que utilizar*/
@@ -266,28 +424,30 @@ void execute(){
 		signal_recurso(recurso);
 	}
 	if(!strcasecmp(comando,"MOV_IN")){
-		//MOV_IN();
+		registroOrigen =  obtener_registro((char*)list_get(parametros,0));
+		mov_in((uint32_t*)registroOrigen,(uint32_t*)list_get(parametros,1));
 	}
-	if(!strcasecmp(comando,"MOV_OUT")){
-		//MOV_OUT();
+	if (!strcasecmp(comando, "MOV_OUT")) {
+		registroDestino =  obtener_registro((char*)list_get(parametros,1));
+	    mov_out((uint32_t*)list_get(parametros,0),(uint32_t*)registroDestino);
 	}
-	if(!strcasecmp(comando,"F_OPEN")){
-		//F_OPEN();
+	if (!strcasecmp(comando, "F_OPEN")) {
+	    f_open((char*)list_get(parametros,0), (char*)list_get(parametros,1));
 	}
-	if(!strcasecmp(comando,"F_CLOSE")){
-		//F_CLOSE();
+	if (!strcasecmp(comando, "F_CLOSE")) {
+	    f_close((char*)list_get(parametros,0));
 	}
-	if(!strcasecmp(comando,"F_SEEK")){
-		//F_SEEK();
+	if (!strcasecmp(comando, "F_SEEK")) {
+	    f_seek((char*)list_get(parametros,0), (uint32_t*)list_get(parametros,1));
 	}
-	if(!strcasecmp(comando,"F_READ")){
-		//F_READ();
+	if (!strcasecmp(comando, "F_READ")) {
+	    f_read((char*)list_get(parametros,0), (uint32_t*)list_get(parametros,1));
 	}
-	if(!strcasecmp(comando,"F_WRITE")){
-		//F_WRITE();
+	if (!strcasecmp(comando, "F_WRITE")) {
+	    f_write((char*)list_get(parametros,0), (uint32_t*)list_get(parametros,1));
 	}
-	if(!strcasecmp(comando,"F_TRUNCATE")){
-		//F_TRUNCATE();
+	if (!strcasecmp(comando, "F_TRUNCATE")) {
+	    f_truncate((char*)list_get(parametros,0), (uint32_t*)list_get(parametros,1));
 	}
 	if(!strcasecmp(comando, "EXIT")){
 		exit_i();
@@ -298,7 +458,6 @@ void execute(){
 	//	Instrucción Ejecutada: “PID: <PID> - Ejecutando: <INSTRUCCION> - <PARAMETROS>”.
 }
 void check_interrupt(){
-
 	pthread_mutex_lock(&mutexBloquear);
 	pthread_mutex_lock(&mutexInterrupcion);
 	if(!interrupcion && !bloquear){sem_post(&ciclo);}
@@ -332,8 +491,7 @@ void ejecutar_ciclo(){
 		sem_wait(&ciclo);
 		fetch(proceso->pid,proceso->pc);
 		sem_wait(&instruccion_s);
-		decode();
-		execute();
+		decode_and_execute();
 		check_interrupt();
 	}while(true);
 }
@@ -347,7 +505,24 @@ void procesar_mensaje(t_list* mensaje){
 	string_trim(&msg);
 	string_to_lower(msg);
 //Seria excelente cuanto menos aprovechar que dentro de la lista "mensaje" se encuentra al final el socket para dividir con un switch las funciones
-
+	if(!strcasecmp(msg,"tamañoPagina")){
+		tamPagina=strtol(list_get(mensaje,1),NULL,10);
+		sem_post(&tamPagina_s);
+	}
+	if(!strcasecmp(msg,"marco")){
+		pageFault=*(bool*)list_get(mensaje,1);
+		marco=strtol(list_get(mensaje,2),NULL,10);
+		sem_post(&memoria_s);
+	}
+	if(!strcasecmp(msg,"mov_in")){
+			error=*(bool*)list_get(mensaje,1);
+			valor=strtol(list_get(mensaje,2),NULL,10);
+			sem_post(&memoria_s);
+		}
+	if(!strcasecmp(msg,"mov_out")){
+			error=*(bool*)list_get(mensaje,1);
+			sem_post(&memoria_s);
+		}
 	if(!strcasecmp(msg,"proceso")){
 
 		pthread_mutex_lock(&mutexProceso);
@@ -415,8 +590,6 @@ void contexto_ejecucion(t_list * mensaje){
 	pthread_mutex_lock(&mutexProceso);
 	PCB* temp = proceso_copy(proceso);
 	pthread_mutex_unlock(&mutexProceso);
-
-
 	serializar_proceso(paquete,temp);
 	agregar_a_paquete(paquete,&size,sizeof(size));
 	enviar_paquete(paquete,clienteKernelDispatch);
