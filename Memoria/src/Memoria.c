@@ -61,7 +61,14 @@ void procesar_mensaje(t_list* mensaje){
 	string_to_lower(msg);
 	int conexion = *(int*) (list_get(mensaje,list_size(mensaje)-1));
 	//Seria excelente cuanto menos aprovechar que dentro de la lista "mensaje" se encuentra al final el socket para dividir con un switch las funciones
-	 if(!strcasecmp(msg,"cargar")){
+	if(!strcasecmp(msg,"tamañoPagina")){
+		t_paquete * paquete = crear_paquete();
+		agregar_a_paquete(paquete,"tamañoPagina",sizeof("tamañoPagina"));
+		agregar_a_paquete(paquete,&tamPagina,sizeof(int*));
+		enviar_paquete(paquete,conexion);
+		eliminar_paquete(paquete);
+	}
+	if(!strcasecmp(msg,"cargar")){
 
 		int pid=*(int*)list_get(mensaje,1);
 		char* path=string_new();
@@ -80,7 +87,7 @@ void procesar_mensaje(t_list* mensaje){
 		//Acordarse liberar diccionario
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"cargado",sizeof("cargado"));
-		agregar_a_paquete(paquete,&pid,sizeof(int));
+		agregar_a_paquete(paquete,&pid,sizeof(int*));
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
 		//free(instrucciones); puede que esto sea mejor porque el dictionary put te dice que el elemento no se libera

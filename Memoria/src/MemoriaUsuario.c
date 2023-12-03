@@ -1,5 +1,8 @@
 #include "MemoriaUsuario.h"
 
+t_list* tablapaginasGlobales;//indice=marco
+t_list* tablaMarcos;//indice=marco
+t_dictionary* tablaProcesos;//clave pid
 pagina_t* (*algoritmoRemplazo)();
 void* espacioContiguoMemoria;
 char* algoritmoReemplazo;

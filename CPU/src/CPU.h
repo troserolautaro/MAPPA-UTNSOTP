@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <commons/log.h>
 #include <commons/config.h>
 #include <commons/string.h>
@@ -19,7 +20,11 @@ typedef enum{
 int serverDispatch,serverInterrupt;
 int clienteKernel;
 void iterator(char* value);
-void ejecutar_ciclo();
+//MEMORIA
+void cargar_tamaño_pagina();
+void mmu(uint32_t* direccionLogica, uint32_t* numPagina,uint32_t* desplazamiento);
+void obtener_marco(uint32_t numPagina);
+void obtener_dato(uint32_t numPagina,uint32_t desplazamiento);
 
 //INSTRUCCIONES
 void set_i(uint32_t * registroDestino, uint32_t valor);
@@ -29,22 +34,22 @@ void jnz(uint32_t * registroDestino,uint32_t pc);
 void sleep_i(uint32_t tiempo); //Bloqueante
 void wait(void* recurso); //Bloqueante ?¿
 void signal_i(void* recurso);
-void mov_in(uint32_t *registroDestino,void *direccionLogica);
-void mov_out(void *direccionLogica, uint32_t * regisdtroDestino);
-void f_open(void* nombreArchivo, void* apertura);
-void f_close(void* nombreArchivo);
-void f_seek(void*nombreArchivo,void* posicion);
-void f_read(void *nombreArchivo, void *direccionLogica);
-void f_write(void *nombreArchivo, void *direccionLogica);
-void f_truncate(void *nombreArchivo,void *tamaño);
+void mov_in(uint32_t* registro, uint32_t* direccionFisica);
+void mov_out(uint32_t* direccionFisica,uint32_t* registro);
+void f_open(char* nombreArchivo, char* modoApertura);
+void f_close(char* nombreArchivo);
+void f_seek(char* nombreArchivo, uint32_t* posicion);
+void f_read(char* nombreArchivo, uint32_t* direccionFisica);
+void f_write(char* nombreArchivo, uint32_t* direccionFisica);
+void f_truncate(char* nombreArchivo, uint32_t* newSize);
 void exit_i();
 
 //CICLO
 void fetch();
-void decode();
-void execute();
+void decode_and_execute();
 void check_interrupt();
 void contexto_ejecucion(t_list * mensaje);
+void ejecutar_ciclo();
 uint32_t * obtener_registro(char* registro);
 
 
