@@ -35,5 +35,21 @@ void cambiar_estado(PCB* proceso, int estado){
 
 	free(mensaje);
 }
+void iterar_lista(char** mensaje) {
+    void iterator(PCB* proceso) {
+    	string_append_with_format(mensaje,"PID_%s ",string_itoa((int)proceso->pid));
+    }
+    list_iterate(colaCorto->elements, (void*) iterator);
+}
+void push_colaCorto(PCB* proceso){
+	cambiar_estado(proceso,READY);
+	char* mensaje = string_from_format("Cola Ready %s: ",AlgoritmoPlanificacion);
+	pthread_mutex_lock(&mutexColaCorto);
+	queue_push(colaCorto,proceso);
+	iterar_lista(&mensaje);
+	pthread_mutex_unlock(&mutexColaCorto);
+	escritura_log(mensaje);
+	free(mensaje);
+}
 
 

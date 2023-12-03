@@ -41,9 +41,9 @@ int main() {
 	//printf("%ld \n %ld", (long)getpid(), (long)getppid());
 
 	debug("Servidor listo para recibir al cliente");
-	conexionFileSystem=crear_conexion(ipFyleSystem, puertoFyleSystem,MEMORIA);
-	pthread_t hiloFileSystem;
-	pthread_create(&hiloFileSystem,NULL,manejar_cliente,&conexionFileSystem);
+	//conexionFileSystem=crear_conexion(ipFyleSystem, puertoFyleSystem,MEMORIA);
+	//pthread_t hiloFileSystem;
+	//pthread_create(&hiloFileSystem,NULL,manejar_cliente,&conexionFileSystem);
 
 	//LA ESPERA DE CLIENTE SE PUEDE ENCAPSULAR PERO NO ES PRIORIDAD DE MOMENTO
 	int resultado;

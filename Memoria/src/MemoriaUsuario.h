@@ -28,9 +28,6 @@ typedef struct{
 	//ver que otros datos podriamos poner aca
 }marco_t;
 
-t_list* tablapaginasGlobales;//indice=marco
-t_list* tablaMarcos;//indice=marco
-t_dictionary* tablaProcesos;//clave pid
 
 extern void* espacioContiguoMemoria;
 extern char* algoritmoReemplazo;

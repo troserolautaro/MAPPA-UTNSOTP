@@ -153,7 +153,7 @@ void * recibir_conexiones(void * server){
 			int modulo = *(int*)list_get(mensaje,1);
 			if(!strcasecmp(msg,"conexion")){
 				char* mensaje = string_from_format("Hola! %d",modulo);
-				escritura_log(mensaje);
+				debug(mensaje);
 				free(mensaje);
 				int resultado;
 				int* cliente_fd_copy = (int*)malloc(sizeof(int));

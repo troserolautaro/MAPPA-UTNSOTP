@@ -127,15 +127,9 @@ void sleep_proceso(void* parametros){
 	int tiempo = atoi((char*)list_get((t_list*) parametros,0));
 	bloquear_proceso(proceso,"SLEEP");
 	sleep(tiempo);
-	cambiar_estado(proceso,READY);
-	pthread_mutex_lock(&mutexColaCorto);
-	queue_push(colaCorto,proceso);
-	pthread_mutex_unlock(&mutexColaCorto);
-
-	pthread_mutex_lock(&mutexEjecutando);
-	ejecutandoB = false;
-	pthread_mutex_unlock(&mutexEjecutando);
+	push_colaCorto(proceso);
 	sem_post(&planiCorto);
+
 }
 
 //MANEJO DE RECRUSOS
@@ -151,9 +145,15 @@ void wait_recurso(PCB* proceso,char* recurso){
 			char* mensaje = string_from_format("PID: %d - Wait: %s - Instancias: %d",proceso->pid,recurso,*instancias);
 			escritura_log(mensaje);
 			free(mensaje);
+			char* mensajeCola = string_from_format("Cola Ready %s: ",AlgoritmoPlanificacion);
+
 			pthread_mutex_lock(&mutexColaCorto);
 			queue_push(colaCorto,proceso);
+			iterar_lista(&mensajeCola);
 			pthread_mutex_unlock(&mutexColaCorto);
+
+			escritura_log(mensajeCola);
+			free(mensajeCola);
 		}else{
 			bloquear_proceso(proceso,recurso);
 			t_queue* colaEspera = (t_queue*)list_get(elements,1);
@@ -167,41 +167,58 @@ void wait_recurso(PCB* proceso,char* recurso){
 }
 
 void signal_recurso(PCB* proceso,char* recurso){
-	if(dictionary_has_key(diccionarioRecursos,recurso)){
+	if(dictionary_has_key(diccionarioRecursos,recurso) && !list_is_empty(proceso->recursos)){
+		bool buscar_recurso(void* element){
+			debug(string_from_format("Tiene: %s",(char*)element));
+			return (!strcasecmp((char*)element,recurso)) ? true : false;
+		}
+		char* recurso = (char*)list_remove_by_condition(proceso->recursos,buscar_recurso);
+		debug(string_from_format("Signal: %s",recurso));
+		if(recurso!=NULL){
 
-		if(!list_is_empty(proceso->recursos)){
-			bool buscar_recurso(void* element){
-				if(!strcasecmp(element,recurso)) return true;
-				return false;
-			}
-			char* recurso = (char*)list_find((t_list*)proceso->recursos,buscar_recurso);
+			t_list* elements = (t_list*)dictionary_get(diccionarioRecursos,recurso);
+			int* instancias = (int*)list_get(elements,0);
+			*instancias += 1;
 
-			if(recurso!=NULL){
-
-				t_list* elements = (t_list*)dictionary_get(diccionarioRecursos,recurso);
-				int* instancias = (int*)list_get(elements,0);
-				*instancias += 1;
-				char* mensaje = string_from_format("PID: %d - Signal: %s - Instancias: %d",proceso->pid,recurso,*instancias);
-				escritura_log(mensaje);
-				free(mensaje);
-				t_queue* colaEspera = (t_queue*)list_get(elements,1);
-
-				if(!queue_is_empty(colaEspera)){
-
-					PCB* temp = (PCB*) queue_pop(colaEspera);
-					cambiar_estado(temp,READY);
-
-					pthread_mutex_lock(&mutexColaCorto);
-					queue_push(colaCorto,temp);
-					pthread_mutex_unlock(&mutexColaCorto);
-				}
+			char* mensajeCola = string_from_format("Cola Ready %s: ",AlgoritmoPlanificacion);
+			pthread_mutex_lock(&mutexColaCorto);
+			if(!queue_is_empty(colaCorto)){
+				//List_iterate seria una buena solucion.
 				PCB* temp = (PCB*)list_replace(colaCorto->elements,0,proceso);
-				for(int i = 1;list_get(colaCorto->elements,i)!=NULL;i++){
-					temp = (PCB*)list_replace(colaCorto->elements,i,temp);
+				for(int i = 1;list_size(colaCorto->elements)<i;i++){
+					if(temp!=NULL){
+						temp = (PCB*)list_replace(colaCorto->elements,i,temp);
+					}
 				}
+
+			}else{
+				queue_push(colaCorto,proceso);
+			}
+			iterar_lista(&mensajeCola);
+			pthread_mutex_unlock(&mutexColaCorto);
+
+			escritura_log(mensajeCola);
+			free(mensajeCola);
+ /*---------------------------------*/
+			t_queue* colaEspera = (t_queue*)list_get(elements,1);
+			debug("Por si o por no?");
+			if(!queue_is_empty(colaEspera)){
+
+				PCB* temp = (PCB*) queue_pop(colaEspera);
+				*instancias -=1;
+				list_add(temp->recursos,recurso);
+				debug(string_from_format("Por si %s",recurso));
+				push_colaCorto(temp);
+			}
+
+			char* mensaje = string_from_format("PID: %d - Signal: %s - Instancias: %d",proceso->pid,recurso,*instancias);
+			escritura_log(mensaje);
+			free(mensaje);
+
+			if(ejecutandoB){
 				enviar_interrupcion_cpu_sin_pid("desalojo_signal");
 			}else{
-				planificador_largo_salida(proceso,"INVALID_RESOURCE");
+				sem_post(&planiCorto);
 			}
 		}else{
 			planificador_largo_salida(proceso,"INVALID_RESOURCE");
@@ -256,6 +273,10 @@ void procesar_mensaje(t_list* mensaje){
 		int posInicio = (*(int*)(list_get(mensaje,list_size(mensaje)-2)));
 		uint32_t pid = (*(uint32_t*)list_get(mensaje,posInicio))-1;
 
+		pthread_mutex_lock(&mutexEjecutando);
+		ejecutandoB = false;
+		pthread_mutex_unlock(&mutexEjecutando);
+
 		pthread_mutex_lock(&mutexProcesos);
 		PCB* proceso = (PCB*)list_get(procesos,pid);
 		pthread_mutex_unlock(&mutexProcesos);
@@ -274,49 +295,34 @@ void procesar_mensaje(t_list* mensaje){
 			break;
 
 		case ROUNDROBIN:
-				cambiar_estado(proceso,READY);
-				pthread_mutex_lock(&mutexColaCorto);
-				queue_push(colaCorto,proceso);
-				pthread_mutex_unlock(&mutexColaCorto);
-
-				pthread_mutex_lock(&mutexEjecutando);
-				ejecutandoB = false;
-				pthread_mutex_unlock(&mutexEjecutando);
+				push_colaCorto(proceso);
 				sem_post(&planiCorto);
 			break;
 
 		case WAIT:{
 				cambiar_estado(proceso,READY);
-				pthread_mutex_lock(&mutexEjecutando);
-				ejecutandoB = false;
-				pthread_mutex_unlock(&mutexEjecutando);
-				char* recurso = (char*)list_get(mensaje,2);
 				sem_post(&planiCorto);
+				char* recurso = (char*)list_get(mensaje,2);
 				wait_recurso(proceso,recurso);
-				free(recurso);
+				//free(recurso);
 			break;
 		}
 		case SLEEP:
 				cambiar_estado(proceso,READY);
-				pthread_mutex_lock(&mutexEjecutando);
-				ejecutandoB = false;
-				pthread_mutex_unlock(&mutexEjecutando);
+				sem_post(&planiCorto);
 				t_list* parametros = list_create();
 				list_add(parametros,list_get(mensaje,2));
 				list_add(parametros, proceso);
-				sem_post(&planiCorto);
 				hilo_funcion(parametros,(void*)sleep_proceso);
 			break;
 
-		case SIGNAL:
+		case SIGNAL:{
 				cambiar_estado(proceso,READY);
-				pthread_mutex_lock(&mutexEjecutando);
-				ejecutandoB = false;
-				pthread_mutex_unlock(&mutexEjecutando);
-				char* recurso = (char*)list_get(mensaje,2);
 				sem_post(&planiCorto);
+				char* recurso = (char*)list_get(mensaje,2);
 				signal_recurso(proceso,recurso);
-				free(recurso);
+				//free(recurso);
+		}
 			break;
 
 		case DESALOJO_SIGNAL:

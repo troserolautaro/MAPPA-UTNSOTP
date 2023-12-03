@@ -25,5 +25,7 @@ extern sem_t planiLargo,planiCorto;
 extern t_dictionary *diccionarioRecursos;
 char* estado_enum(uint32_t estado);
 void  cambiar_estado(PCB* proceso, int estado);
+void push_colaCorto(PCB* proceso);
+void iterar_lista(char** mensaje);
 
 #endif /* GENERALES_H_ */

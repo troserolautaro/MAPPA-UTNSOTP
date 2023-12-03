@@ -1,5 +1,8 @@
 #include "MemoriaUsuario.h"
 
+t_list* tablapaginasGlobales;//indice=marco
+t_list* tablaMarcos;//indice=marco
+t_dictionary* tablaProcesos;
 pagina_t* (*algoritmoRemplazo)();
 void* espacioContiguoMemoria;
 char* algoritmoReemplazo;
@@ -10,22 +13,22 @@ pthread_mutex_t mutex_memoria;
 
 //INICIAR  MEMORIA DE USUARIO
 marco_t* crear_marco(int i){
-	marco_t* nuevoMarco=malloc(sizeof(marco_t*));
+	marco_t* nuevoMarco=malloc(sizeof(marco_t));
 	nuevoMarco->libre=true;
-	nuevoMarco->base=tamPagina*i;
-	nuevoMarco->limite=tamPagina*(i+1);
+	nuevoMarco->base=tamPagina * i;
+	nuevoMarco->limite=tamPagina * (i+1);
 	return nuevoMarco;
 }
 
 pagina_global_t* crear_pagina_global(int i){
-	pagina_global_t *paginaGlobal=malloc(sizeof(marco_t*));
+	pagina_global_t *paginaGlobal=malloc(sizeof(pagina_global_t));
 	paginaGlobal->pagina=-1;
 	paginaGlobal->pid=-1;
 	paginaGlobal->accesos=0;
 	return paginaGlobal;
 }
 pagina_t* crear_pagina(){
-	pagina_t* nuevaPagina=malloc(sizeof(pagina_t*));
+	pagina_t* nuevaPagina=malloc(sizeof(pagina_t));
 	nuevaPagina->marco=-1;
 	nuevaPagina->p=0;
 	nuevaPagina->m=0;
@@ -43,13 +46,13 @@ void cargar_tabla_marcos_y_pglobales(){
 	tablapaginasGlobales=list_create();
 	for(int i=0;i<cantMarcos;i++){
 		list_add(tablaMarcos,crear_marco(i));
-		list_add(tablaMarcos,crear_pagina_global(i));
+		//list_add(tablapaginasGlobales,crear_pagina_global(i));
 	}
 }
 
 void iniciar_memoria_usuario(){
 	//algoritmo de remplazo
-	espacioContiguoMemoria=malloc(sizeof(void*) * tamMemoria);
+	espacioContiguoMemoria=malloc(sizeof( tamMemoria));
 	cantMarcos=tamMemoria/tamPagina;
 	marcoFIFO=0;
 	tablaProcesos=dictionary_create();

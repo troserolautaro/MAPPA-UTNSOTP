@@ -107,7 +107,7 @@ void proceso_estado(){
 			case EXEC: string_append_with_format(&exec,"PID_%s ",string_itoa(proceso->pid)); break;
 			case TERMINATED:string_append_with_format(&terminated,"PID_%s ",string_itoa(proceso->pid)); break;
 			}
-		}
+	}
 	pthread_mutex_unlock(&mutexProcesos);
 	char * estados = string_new();
 	string_append_with_format(&estados,"%s \n",new);

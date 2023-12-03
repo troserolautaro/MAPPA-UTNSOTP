@@ -51,7 +51,7 @@ int main() {
 	pthread_mutex_init(&mutexInterrupcion,NULL);
 	//Iniciar Cliente que conecta a memoria
 	conexionMemoria = crear_conexion(ipMemoria, puertoMemoria,CPUDispatch);
-
+	//sem_wait(&tamañoPagina);
 	//Inicia Servidor
 	serverDispatch = iniciar_servidor(puertoEscuchaDispatch);
 	serverInterrupt = iniciar_servidor(puertoEscuchaInterrupt);
@@ -347,6 +347,7 @@ void procesar_mensaje(t_list* mensaje){
 	string_trim(&msg);
 	string_to_lower(msg);
 //Seria excelente cuanto menos aprovechar que dentro de la lista "mensaje" se encuentra al final el socket para dividir con un switch las funciones
+
 	if(!strcasecmp(msg,"proceso")){
 
 		pthread_mutex_lock(&mutexProceso);

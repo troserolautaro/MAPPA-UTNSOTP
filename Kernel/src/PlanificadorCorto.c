@@ -86,7 +86,7 @@ void prioridad(){
 	if(ejecutandoB){
 
 		pthread_mutex_lock(&mutexProcesos);
-		PCB* ejecutando = list_find(procesos,buscar_proceso_ejecutando);
+		PCB* ejecutando = (PCB*)list_find(procesos,buscar_proceso_ejecutando);
 		pthread_mutex_unlock(&mutexProcesos);
 
 		pthread_mutex_lock(&mutexColaCorto);
@@ -96,7 +96,6 @@ void prioridad(){
 		if(ejecutando != NULL && ejecutando->pid != prioritario->pid && ejecutando->prioridad > prioritario->prioridad){
 			enviar_interrupcion_cpu("prioridades",&(ejecutando->pid));
 			sem_wait(&contexto);
-			ejecutandoB = false;
 
 		}
 	pthread_mutex_unlock(&mutexEjecutando);
@@ -128,6 +127,7 @@ void enviar_interrupcion_cpu_sin_pid(char* motivo){
 	enviar_paquete(paquete,conexionCPUInterrupt);
 	eliminar_paquete(paquete);
 }
+
 //iniciar hilo de clock en kernel si algoritmo de planificacion es rr
 
 int planificador_enum(){
