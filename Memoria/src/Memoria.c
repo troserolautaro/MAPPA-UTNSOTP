@@ -60,10 +60,12 @@ void procesar_mensaje(t_list* mensaje){
 	string_trim(&msg);
 	string_to_lower(msg);
 	int conexion = *(int*) (list_get(mensaje,list_size(mensaje)-1));
+
 	//Seria excelente cuanto menos aprovechar que dentro de la lista "mensaje" se encuentra al final el socket para dividir con un switch las funciones
-	if(!strcasecmp(msg,"tamañoPagina")){
+	if(!strcasecmp(msg,"tamanioPagina")){
+		debug(string_itoa(tamPagina));
 		t_paquete * paquete = crear_paquete();
-		agregar_a_paquete(paquete,"tamañoPagina",sizeof("tamañoPagina"));
+		agregar_a_paquete(paquete,"tamanioPagina",sizeof("tamanioPagina"));
 		agregar_a_paquete(paquete,&tamPagina,sizeof(int));
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
@@ -127,7 +129,7 @@ void procesar_mensaje(t_list* mensaje){
 		//Acordarse liberar diccionario
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"cargado",sizeof("cargado"));
-		agregar_a_paquete(paquete,&pid,sizeof(int*));
+		agregar_a_paquete(paquete,&pid,sizeof(uint32_t));
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
 		//free(instrucciones); puede que esto sea mejor porque el dictionary put te dice que el elemento no se libera
@@ -136,10 +138,10 @@ void procesar_mensaje(t_list* mensaje){
 	if(!strcasecmp(msg,"finalizar_proceso")){
 		uint32_t pid=*(uint32_t*)list_get(mensaje,1);
 		//liberar diccionario de instrucciones
-		void finalizar_proceso(pid);
+		finalizar_proceso(pid);
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"proceso finalizado",sizeof("proceso finalizado"));
-		agregar_a_paquete(paquete,&pid,sizeof(int*));
+		agregar_a_paquete(paquete,&pid,sizeof(uint32_t));
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
 	}
@@ -161,6 +163,7 @@ void procesar_mensaje(t_list* mensaje){
 			char** parametros = string_array_new();
 			parametros = string_n_split(instruccion,3," ");
 			for(int i = 0; parametros[i]!=NULL; i++){
+				debug(parametros[i]);
 				agregar_a_paquete(paquete,parametros[i],strlen(parametros[i])+1);
 			}
 		}

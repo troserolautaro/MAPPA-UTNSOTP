@@ -18,8 +18,8 @@ void* clock_rr(void* pid) {
 
     }
     return NULL;
- //   free(args);
 }
+
 void* planificador_corto(){
 	sem_init(&contexto,0,0);
 	pthread_mutex_init(&mutexEjecutando,NULL);
@@ -29,7 +29,7 @@ void* planificador_corto(){
 		pthread_mutex_lock(&mutexColaCorto);
 		if(!queue_is_empty(colaCorto) && !detenida){
 			pthread_mutex_unlock(&mutexColaCorto);
-
+			//Se podria mejorar haciendo lo de algoritmoRemplazo();
 			switch(idPlanificador){
 				case PRIORIDADES: prioridad(); break;
 				case ROUNDROBIN:  break;

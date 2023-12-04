@@ -15,8 +15,8 @@ pthread_mutex_t mutex_memoria;
 marco_t* crear_marco(int i){
 	marco_t* nuevoMarco=malloc(sizeof(marco_t));
 	nuevoMarco->libre=true;
-	nuevoMarco->base=tamPagina * i;
-	nuevoMarco->limite=tamPagina * (i+1);
+	nuevoMarco->base=tamPagina * i;//0
+	nuevoMarco->limite=tamPagina * (i+1);//32
 	return nuevoMarco;
 }
 
@@ -52,7 +52,7 @@ void cargar_tabla_marcos_y_pglobales(){
 
 void iniciar_memoria_usuario(){
 	//algoritmo de remplazo
-	espacioContiguoMemoria=malloc(sizeof( tamMemoria));
+	espacioContiguoMemoria=malloc(sizeof(tamMemoria));
 	cantMarcos=tamMemoria/tamPagina;
 	marcoFIFO=0;
 	tablaProcesos=dictionary_create();
@@ -110,7 +110,8 @@ uint32_t get_dato(uint32_t direccion) {
 	uint32_t valor;
 	pthread_mutex_lock(&mutex_memoria);
 	//leer direccion
-	//memcpy(&valor,espacioContiguoMemoria[direccion], sizeof(uint32_t));
+	memcpy(&valor,(uint32_t*)((char*)espacioContiguoMemoria + direccion),sizeof(uint32_t));
+//	memcpy(&valor,espacioContiguoMemoria[direccion], sizeof(uint32_t));
 	pthread_mutex_unlock(&mutex_memoria);
 	return valor;
 }
@@ -119,7 +120,7 @@ uint32_t get_dato(uint32_t direccion) {
 void set_dato(uint32_t direccion, uint32_t valor) {
 	pthread_mutex_lock(&mutex_memoria);
 	//escribir direccion
-	//memcpy(espacioContiguoMemoria[direccion], &valor, sizeof(uint32_t));
+	memcpy((void*)((char*)espacioContiguoMemoria + direccion),(void*)&valor,sizeof(uint32_t));
 	pthread_mutex_unlock(&mutex_memoria);
 }
 

@@ -57,6 +57,7 @@ int main() {
 	pthread_mutex_init(&mutexInterrupcion,NULL);
 	//Iniciar Cliente que conecta a memoria
 	conexionMemoria = crear_conexion(ipMemoria, puertoMemoria,CPUDispatch);
+
 	//Inicia Servidor
 	serverDispatch = iniciar_servidor(puertoEscuchaDispatch);
 	serverInterrupt = iniciar_servidor(puertoEscuchaInterrupt);
@@ -93,14 +94,16 @@ int main() {
 }
 void cargar_tamaño_pagina(){
 	t_paquete* paquete=crear_paquete();
-	agregar_a_paquete(paquete,"tamañoPagina",sizeof("tamañoPagina"));
-	enviar_paquete(paquete,clienteKernelDispatch);
+	agregar_a_paquete(paquete,"tamanioPagina",sizeof("tamanioPagina"));
+	enviar_paquete(paquete,conexionMemoria);
 	eliminar_paquete(paquete);
+
 }
 //TRADUCCIR DIRECCION LOGICA A FISICA
 uint32_t mmu(uint32_t* direccionLogica){
 	uint32_t numPagina,desplazamiento;
 	pageFault=false;
+	//debug(string_itoa(*(int*)direccionLogica));
 	numPagina = floor((*direccionLogica) / tamPagina);
 	desplazamiento = (*direccionLogica) - numPagina * tamPagina;
 	obtener_marco(numPagina);
@@ -425,11 +428,13 @@ void decode_and_execute(){
 	}
 	if(!strcasecmp(comando,"MOV_IN")){
 		registroOrigen =  obtener_registro((char*)list_get(parametros,0));
-		mov_in((uint32_t*)registroOrigen,(uint32_t*)list_get(parametros,1));
+		uint32_t direccionLogica =(uint32_t)strtol(list_get(parametros,0),NULL,10);
+		mov_in(registroOrigen,&direccionLogica);
 	}
 	if (!strcasecmp(comando, "MOV_OUT")) {
 		registroDestino =  obtener_registro((char*)list_get(parametros,1));
-	    mov_out((uint32_t*)list_get(parametros,0),(uint32_t*)registroDestino);
+		uint32_t direccionLogica =(uint32_t)strtol(list_get(parametros,0),NULL,10);
+	    mov_out(&direccionLogica,registroDestino);
 	}
 	if (!strcasecmp(comando, "F_OPEN")) {
 	    f_open((char*)list_get(parametros,0), (char*)list_get(parametros,1));
@@ -504,10 +509,13 @@ void procesar_mensaje(t_list* mensaje){
 	string_append(&msg,list_get(mensaje,0));
 	string_trim(&msg);
 	string_to_lower(msg);
+
 //Seria excelente cuanto menos aprovechar que dentro de la lista "mensaje" se encuentra al final el socket para dividir con un switch las funciones
-	if(!strcasecmp(msg,"tamañoPagina")){
-		tamPagina=strtol(list_get(mensaje,1),NULL,10);
+	if(!strcasecmp(msg,"tamanioPagina")){
+		tamPagina=*(int*)list_get(mensaje,1);
+		debug(string_itoa(tamPagina));
 		sem_post(&tamPagina_s);
+		debug(msg);
 	}
 	if(!strcasecmp(msg,"marco")){
 		pageFault=*(bool*)list_get(mensaje,1);

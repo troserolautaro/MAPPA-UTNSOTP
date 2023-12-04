@@ -151,6 +151,7 @@ void wait_recurso(PCB* proceso,char* recurso){
 			queue_push(colaCorto,proceso);
 			iterar_lista(&mensajeCola);
 			pthread_mutex_unlock(&mutexColaCorto);
+			sem_post(&planiCorto);
 
 			escritura_log(mensajeCola);
 			free(mensajeCola);
@@ -159,6 +160,7 @@ void wait_recurso(PCB* proceso,char* recurso){
 			t_queue* colaEspera = (t_queue*)list_get(elements,1);
 			queue_push(colaEspera,proceso);
 		}
+
 	}else{
 		planificador_largo_salida(proceso,"INVALID_RESOURCE");
 	}
@@ -207,8 +209,10 @@ void signal_recurso(PCB* proceso,char* recurso){
 				PCB* temp = (PCB*) queue_pop(colaEspera);
 				*instancias -=1;
 				list_add(temp->recursos,recurso);
-				debug(string_from_format("Por si %s",recurso));
+				debug(string_from_format("Por si %s :)",recurso));
 				push_colaCorto(temp);
+			}else{
+				debug(string_from_format("Por no %s :(",recurso));
 			}
 
 			char* mensaje = string_from_format("PID: %d - Signal: %s - Instancias: %d",proceso->pid,recurso,*instancias);
