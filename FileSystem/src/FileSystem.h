@@ -17,15 +17,16 @@
 #include<utilsCliente.h>
 
 void iterator(char* value);
-int abrir_archivo(char* archivo);
-int existencia_archivo(char* archivo);
+uint32_t abrir_archivo(char* archivo);
+bool existencia_archivo(char* archivo);
 void iniciar_bloques();
 void iniciar_fat();
 
 //estructura auxiliar de bloques
 typedef struct{
-	void* valor;
-	char* dueño;//proceso o archivo segun si es de swap o fat
-}bloque_t;
+	uint32_t proximoBloque;
+	char* nombreArchivo;
+	t_list* bloques;//solo se usa en el bloque inicial al estilo de asignacion de bloques indexada
+}registroFAT_t;
 
 #endif /* CPU_H_ */
