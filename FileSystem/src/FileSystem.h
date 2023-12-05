@@ -26,7 +26,7 @@ void iniciar_fat();
 typedef struct{
 	uint32_t proximoBloque;
 	char* nombreArchivo;
-	t_list* bloques;//solo se usa en el bloque inicial al estilo de asignacion de bloques indexada
+	//t_list* bloques;//solo se usa en el bloque inicial al estilo de asignacion de bloques indexada
 }registroFAT_t;
 
 #endif /* CPU_H_ */

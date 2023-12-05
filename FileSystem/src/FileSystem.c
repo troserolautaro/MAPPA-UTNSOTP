@@ -4,7 +4,7 @@
 
 t_dictionary* tablaFCB;
 void* bloques;//como espacio contiguo de memoria
-registroFAT_t* tablaFAT;//como espacio contiguo de memoria
+registroFAT_t** tablaFAT;//como espacio contiguo de memoria
 pthread_t hiloRecibirCliente;
 int serverFilesystem;
 char* ipMemoria;
@@ -71,13 +71,13 @@ void iniciar_fat(){
 			//return 1;
 		}
 		for (int i = 0; i < cantBloquesFAT; ++i) {
-			(tablaFAT[i]).proximoBloque=0;
+			(tablaFAT[i])->proximoBloque=0;
 		}
 	}
 	else{
 		//carga memoria con el archivo fat
 		for (int i = 0; i < cantBloquesFAT; ++i) {
-		    fread(&((tablaFAT[i]).proximoBloque), sizeof(uint32_t), 1, archivoFAT);
+		    fread(&((tablaFAT[i])->proximoBloque), sizeof(uint32_t), 1, archivoFAT);
 		}
 	}
 }
@@ -113,23 +113,50 @@ bool crear_archivo(char* nombreArchivo){
 	return true;
 }
 
-//la idea seria que vaya enlazando los bloques y cargando en la lista del primer bloque la secuencia de bloques
-//por ahi abria que cambiar la estructura de dicha lista para saber el bloque y el bloque al que apunta
-//y asignar la constante al ultimo bloque
+//si devuelve null no hay anteultimo elemento
+registroFAT_t* get_anteultimo_bloque_archivo(uint32_t bloqueInicial){
+	registroFAT_t* anteUltimoBloque=tablaFAT[bloqueInicial];
+	bool esAnteultimoBLoque=(anteUltimoBloque->proximoBloque == UINT32_MAX );
+	if(esAnteultimoBLoque)return NULL;
+    while (!esAnteultimoBLoque ) {
+    	if(anteUltimoBloque->proximoBloque != UINT32_MAX){
+    		anteUltimoBloque=tablaFAT[(anteUltimoBloque->proximoBloque)];
+    	}else{
+    		esAnteultimoBLoque=true;
+    	}
+    }
+	return anteUltimoBloque;
+}
+registroFAT_t* get_ultimo_bloque_archivo(uint32_t bloqueInicial){
+	registroFAT_t* ultimoBloque=tablaFAT[bloqueInicial];
+    while (ultimoBloque->proximoBloque != UINT32_MAX) {
+    	ultimoBloque=tablaFAT[(ultimoBloque->proximoBloque)];
+    }
+	return ultimoBloque;
+}
+
 void asignar_bloques_FAT(t_config* archivo, uint32_t cantidad){
 	bool tieneBloqueInicial=config_has_property(archivo,"BLOQUE_INICIAL");
 	int numBloqueInicial;
+	registroFAT_t* ultimoBloque=malloc(sizeof(registroFAT_t));
 	if(tieneBloqueInicial){
 		numBloqueInicial=config_get_int_value(archivo,"BLOQUE_INICIAL");
+		ultimoBloque =get_ultimo_bloque_archivo(numBloqueInicial);
 	}
 	for(int i=0; i<cantBloquesFAT && cantidad>0;i++){
-		if((tablaFAT[i]).proximoBloque==0){
+		if((tablaFAT[i])->proximoBloque==0){
 			if(!tieneBloqueInicial ){
 				config_set_value(archivo,"BLOQUE_INICIAL",string_itoa(i));
 				numBloqueInicial=i;
 				tieneBloqueInicial=true;
+				ultimoBloque =tablaFAT[i];
 			}
-			list_add(((tablaFAT[numBloqueInicial]).bloques), i);//revisar que no vaya cambiando
+			else if(cantidad>1){
+				(ultimoBloque->proximoBloque)=i;
+			}
+			else{//cantidad==1 asigno fin del archivo
+				(tablaFAT[i])->proximoBloque=UINT32_MAX;
+			}
 			cantidad--;
 		}
 	}
@@ -139,11 +166,29 @@ void asignar_bloques_FAT(t_config* archivo, uint32_t cantidad){
 //por ahi abria que cambiar la estructura de dicha lista para saber el bloque y el bloque al que apunta
 //y asignar la constante al ultimo bloque cuando apunta al bloque siguiete
 void liberar_bloques_FAT(t_config* archivo, uint32_t cantidad){
-	int numBloqueInicial=config_get_int_value(archivo,"BLOQUE_INICIAL");
-	registroFAT_t BloqueInicial=tablaFAT[numBloqueInicial];
-	int indiceBloque;
-	for(int i=list_size(BloqueInicial.bloques) ; i>0 && cantidad>0;i--){
-		//bloqueFAT[]->bloqueSiguiente=0;
+	bool tieneBloqueInicial=config_has_property(archivo,"BLOQUE_INICIAL");
+	bool tieneAnteUltimoBloque=false;
+	bool error=false;
+	int numBloqueInicial;
+	registroFAT_t* ultimoBloque=malloc(sizeof(registroFAT_t));
+	registroFAT_t* anteultimoBloque=malloc(sizeof(registroFAT_t));
+	if(tieneBloqueInicial){
+		numBloqueInicial=config_get_int_value(archivo,"BLOQUE_INICIAL");
+		ultimoBloque =get_ultimo_bloque_archivo(numBloqueInicial);
+		anteultimoBloque =get_anteultimo_bloque_archivo(numBloqueInicial);
+		if(anteultimoBloque==NULL){
+			tieneAnteUltimoBloque=false;
+		}
+	}
+	while(cantidad>0 || !error){
+		if(!tieneBloqueInicial ){
+			error=true;//si no tengo bloque inicial errror
+		}
+		else{
+			anteultimoBloque =get_anteultimo_bloque_archivo(numBloqueInicial);
+			(ultimoBloque->proximoBloque)=0;//LIBERO EL ULTIMO BLOQUE
+			(anteultimoBloque->proximoBloque)=UINT32_MAX;// AL ANTE ULTIMO BLOQUE LI DIGO QUE ES EL ULTIMO
+		}
 		cantidad--;
 	}
 }
@@ -151,7 +196,7 @@ void liberar_bloques_FAT(t_config* archivo, uint32_t cantidad){
 void truncar_archivo(char*nombreArchivo, uint32_t tamaño){ //situacionDeseada : ampliar o reducir tamanio
 	t_config* archivo = dictionary_get(tablaFCB,nombreArchivo);
 	uint32_t tamañoActual =(uint32_t) config_get_int_value(archivo,"TAMAÑO_ARCHIVO");
-	config_set_value(archivo, "TAMANIO_ARCHIVO", tamaño);
+	config_set_value(archivo, "TAMANIO_ARCHIVO", (void*)&tamaño);
 	if(tamaño > tamañoActual){
 		uint32_t cantidad=tamaño-tamañoActual;
 		asignar_bloques_FAT(archivo,cantidad);
@@ -195,10 +240,10 @@ void procesar_mensaje(t_list* mensaje){
 	int conexion = *(int*) (list_get(mensaje,list_size(mensaje)-1));
 	//peticiones del kernel
 	if(!strcasecmp(msg,"abrir archivo")){
-		int tamaño =abrir_archivo(((char)list_get(mensaje,1)));
+		int tamaño =abrir_archivo((char*)list_get(mensaje,1));
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"tamaño",sizeof("tamaño"));
-		agregar_a_paquete(paquete,tamaño,sizeof(int));
+		agregar_a_paquete(paquete,&tamaño,sizeof(int));
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
 	}
