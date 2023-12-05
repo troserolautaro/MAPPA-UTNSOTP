@@ -39,6 +39,7 @@ void liberar_recursos(PCB* proceso){
 		}
 	}
 	dictionary_iterator(diccionarioRecursos,(void*)remover_espera);
+
 	int i =0;
 	while(!list_is_empty(proceso->recursos)){
 		char* recurso = (char*)list_remove(proceso->recursos,i);
@@ -57,6 +58,7 @@ void liberar_recursos(PCB* proceso){
 		}
 		i++;
 	}
+
 }
 void planificador_largo_salida(PCB* proceso,char* razon){
 

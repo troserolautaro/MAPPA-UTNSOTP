@@ -114,12 +114,49 @@ void terminar_programa()
 	//terminar_hilos();
 	//int conexionCPUDispatch, conexionCPUInterrupt,conexionMemoria,conexionFileSystem;
 }
+void deteccion_deadlock(PCB* proceso){
+	escritura_log("Analisis de deteccion de Deadlocks");
+	if(!list_is_empty(proceso->recursos)){
+		bool verificacion_DL(char* recurso){
+			t_list* elements = (t_list*)dictionary_get(diccionarioRecursos,recurso);
+			t_queue* colaEspera = (t_queue*)list_get(elements,1);
+			bool bandera = false;
+			if(!queue_is_empty(colaEspera)){
+				int i = 0;
+				while(!bandera && i<queue_size(colaEspera)){
+					PCB* temp = list_get(colaEspera->elements,i);
+					if(temp->pid == proceso->pid){
+						bandera = true;
+					}else if(!list_is_empty(temp->recursos)){
+						PCB* encontrado = list_find(temp->recursos,(void*)verificacion_DL);
+						if(encontrado!=NULL){
+							bandera=true;
+							//Hay deadlock
+						}
+					}
+
+					i++;
+				}
+			}
+			return bandera;
+		}
+		PCB* encontrado = list_find(proceso->recursos,(void*)verificacion_DL);
+		if(encontrado!=NULL){
+			debug("Hay Deadlock");
+		}
+
+	}
+}
+
 void bloquear_proceso(PCB* proceso,char* motivo){
 	cambiar_estado(proceso,BLOCKED);
+	//“PID: <PID> - Bloqueado por: <SLEEP / NOMBRE_RECURSO / NOMBRE_ARCHIVO>”
 	char* mensaje = string_from_format("PID: %d - Bloqueado por: %s",proceso->pid,motivo);
 	escritura_log(mensaje);
 	free(mensaje);
-	//“PID: <PID> - Bloqueado por: <SLEEP / NOMBRE_RECURSO / NOMBRE_ARCHIVO>”
+	if(dictionary_has_key(diccionarioRecursos,motivo)) deteccion_deadlock(proceso);
+
+
 }
 //MANEJO DE PROCESO
 void sleep_proceso(void* parametros){
@@ -156,9 +193,9 @@ void wait_recurso(PCB* proceso,char* recurso){
 			escritura_log(mensajeCola);
 			free(mensajeCola);
 		}else{
-			bloquear_proceso(proceso,recurso);
 			t_queue* colaEspera = (t_queue*)list_get(elements,1);
 			queue_push(colaEspera,proceso);
+			bloquear_proceso(proceso,recurso);
 		}
 
 	}else{
@@ -171,7 +208,6 @@ void wait_recurso(PCB* proceso,char* recurso){
 void signal_recurso(PCB* proceso,char* recurso){
 	if(dictionary_has_key(diccionarioRecursos,recurso) && !list_is_empty(proceso->recursos)){
 		bool buscar_recurso(void* element){
-			debug(string_from_format("Tiene: %s",(char*)element));
 			return (!strcasecmp((char*)element,recurso)) ? true : false;
 		}
 		char* recurso = (char*)list_remove_by_condition(proceso->recursos,buscar_recurso);
