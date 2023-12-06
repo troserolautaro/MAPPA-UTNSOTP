@@ -60,8 +60,41 @@ void liberar_recursos(PCB* proceso){
 	}
 
 }
-void planificador_largo_salida(PCB* proceso,char* razon){
+void deteccion_deadlock(PCB* proceso){
+	escritura_log("Analisis de deteccion de Deadlocks");
+	if(!list_is_empty(proceso->recursos)){
+		bool verificacion_DL(char* recurso){
+			t_list* elements = (t_list*)dictionary_get(diccionarioRecursos,recurso);
+			t_queue* colaEspera = (t_queue*)list_get(elements,1);
+			bool bandera = false;
+			if(!queue_is_empty(colaEspera)){
+				int i = 0;
+				while(!bandera && i<queue_size(colaEspera)){
+					PCB* temp = list_get(colaEspera->elements,i);
+					if(temp->pid == proceso->pid){
+						bandera = true;
+					}else if(!list_is_empty(temp->recursos)){
+						PCB* encontrado = list_find(temp->recursos,(void*)verificacion_DL);
+						if(encontrado!=NULL){
+							bandera=true;
+							//Hay deadlock
+						}
+					}
 
+					i++;
+				}
+			}
+			return bandera;
+		}
+		PCB* encontrado = list_find(proceso->recursos,(void*)verificacion_DL);
+		if(encontrado!=NULL){
+			debug("Hay Deadlock");
+		}
+
+	}
+}
+void planificador_largo_salida(PCB* proceso,char* razon){
+	if(proceso->estado == BLOCKED) deteccion_deadlock(proceso);
 	cambiar_estado(proceso,TERMINATED);
 	liberar_recursos(proceso);
 	// <SUCCESS / INVALID_RESOURCE / INVALID_WRITE>”

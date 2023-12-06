@@ -1,4 +1,11 @@
 #!/bin/bash
-#script de FileSystem
-echo 'ejecutando binario de FileSystem'
+#script de Filesystem
+#
+echo 'compilando binario de Filesystem'
+cd Debug
+gcc -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"src/FileSystem.d" -MT"src/FileSystem.o" -o "src/FileSystem.o" "../src/FileSystem.c"
+gcc -o "Filesystem" ./src/FileSystem.o   -lcommons -lUtils -lreadline
+cd ..
+echo 'ejecutando binario de Filesystem'
 valgrind -s ./Debug/FileSystem
+

@@ -9,7 +9,8 @@ typedef enum{
 	WAIT=4,
 	SIGNAL=5,
 	SLEEP=6,
-	DESALOJO_SIGNAL=7
+	DESALOJO_SIGNAL=7,
+	PAGE_FAULT = 8
 }desalojo;
 void paquete(int);
 void terminar_programa();

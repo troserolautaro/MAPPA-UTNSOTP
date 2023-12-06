@@ -1,6 +1,12 @@
 //MANEJO DE FILE SYSTEM
 #include "KernelMemoria.h"
 int dfGlobal=0;
+sem_t paginaCargada;
+sem_t  semLectura;
+sem_t  semEscritura;
+
+t_queue * colaLocks;
+t_dictionary *diccionarioDeDiccionariosLocales;
 /*void abrir_archivo(char* archivo){
 	//ver como lo mando fs
 }
@@ -147,14 +153,23 @@ void f_write(PCB* proceso, char * archivo){
 
 }
 //PAGE FAULT
-void cargar_pagina(char * pagina){
+void cargar_pagina(uint32_t pid, uint32_t pagina){
+	t_paquete * paquete = crear_paquete();
+	agregar_a_paquete(paquete,"pageFault",sizeof("pageFault"));
+	agregar_a_paquete(paquete,&pid,sizeof(uint32_t));
+	agregar_a_paquete(paquete,&pagina,sizeof(uint32_t));
+	enviar_paquete(paquete,conexionMemoria);
+	eliminar_paquete(paquete);
 	//pendiente a definir bien la paginacion bajo demanda en memoria de usuario
 }
 //ver si no hace falta crear un hilo para el page fault
-void page_fault(PCB* proceso,char * pagina){
-	cambiar_estado(proceso,BLOCKED);
-	cargar_pagina(pagina);
-	//sem_wait(&paginaCargada);//agregar en procesar mensaje el sem_post para este semaforo y el semaforo
-	cambiar_estado(proceso,READY);
+void page_fault(t_list* parametros){
+	uint32_t pagina = (uint32_t) strtol(list_get(parametros,1), (char **)NULL, 10);
+	PCB* proceso = list_get(parametros,0);
+	cambiar_estado(proceso,PAGBLOCK);
+	cargar_pagina((uint32_t)proceso->pid,pagina);
+	sem_wait(&paginaCargada);//agregar en procesar mensaje el sem_post para este semaforo y el semaforo
+	push_colaCorto(proceso);
+	sem_post(&planiCorto);
 }
 

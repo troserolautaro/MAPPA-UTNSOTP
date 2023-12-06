@@ -59,7 +59,8 @@ typedef enum{
 	READY,
 	EXEC,
 	TERMINATED,
-	BLOCKED
+	BLOCKED,
+	PAGBLOCK
 }estados;
 
 //CODIGOS DE OPERACION

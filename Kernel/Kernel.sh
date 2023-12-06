@@ -24,6 +24,11 @@ echo 'Invoking: GCC C Compiler'
 gcc -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"src/PlanificadorLargo.d" -MT"src/PlanificadorLargo.o" -o "src/PlanificadorLargo.o" "../src/PlanificadorLargo.c"
 echo 'Finished building: ../src/PlanificadorLargo.c'
 
+echo 'Building file: ../src/KernelMemoria.c'
+echo 'Invoking: GCC C Compiler'
+gcc -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"src/KernelMemoria.d" -MT"src/KernelMemoria.o" -o "src/KernelMemoria.o" "../src/KernelMemoria.c"
+echo 'Finished building: ../src/KernelMemoria.c'
+
 echo 'Building file: ../src/Kernel.c'
 echo 'Invoking: GCC C Compiler'
 gcc -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"src/Kernel.d" -MT"src/Kernel.o" -o "src/Kernel.o" "../src/Kernel.c"
@@ -31,7 +36,7 @@ echo 'Finished building: ../src/Kernel.c'
 
 echo 'Building target: Kernel'
 echo 'Invoking: GCC C Linker'
-gcc -o "Kernel" ./src/Consola.o ./src/Generales.o ./src/Kernel.o ./src/PlanificadorCorto.o ./src/PlanificadorLargo.o    -lcommons -lUtils -lreadline
+gcc -o "Kernel" ./src/Consola.o ./src/Generales.o ./src/Kernel.o ./src/PlanificadorCorto.o ./src/PlanificadorLargo.o ./src/KernelMemoria.o   -lcommons -lUtils -lreadline
 echo 'Finished building target: Kernel'
 
 cd ..

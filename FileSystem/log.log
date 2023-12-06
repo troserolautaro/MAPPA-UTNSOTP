@@ -1,1 +1,78 @@
 [INFO] 21:17:06:605 Servidor/(18414:18414): Servidor listo para recibir al cliente
+[INFO] 17:27:24:304 log/(9254:9254): Servidor listo para recibir al cliente
+[INFO] 17:55:13:529 log/(9848:9848): Servidor listo para recibir al cliente
+[INFO] 17:55:27:346 log/(9878:9878): Servidor listo para recibir al cliente
+[INFO] 17:56:18:814 log/(9953:9953): Servidor listo para recibir al cliente
+[DEBUG] 17:58:15:487 log/(10237:10237): Servidor listo para recibir al cliente
+[DEBUG] 18:11:53:468 log/(10375:10375): Servidor listo para recibir al cliente
+[DEBUG] 18:12:27:160 log/(10507:10507): Servidor listo para recibir al cliente
+[DEBUG] 18:16:25:961 log/(10797:10797): Servidor listo para recibir al cliente
+[DEBUG] 18:18:20:804 log/(10945:10945): Servidor listo para recibir al cliente
+[DEBUG] 18:59:00:486 log/(11289:11289): Servidor listo para recibir al cliente
+[ERROR] 18:59:00:536 log/(11289:11289): Error al abrir archivo
+[DEBUG] 18:59:47:717 log/(11321:11321): Servidor listo para recibir al cliente
+[ERROR] 18:59:47:766 log/(11321:11321): Error al abrir archivo
+[DEBUG] 19:00:02:127 log/(11383:11383): Servidor listo para recibir al cliente
+[ERROR] 19:00:02:176 log/(11383:11383): Error al abrir archivo
+[DEBUG] 20:19:10:129 log/(11882:11882): Servidor listo para recibir al cliente
+[ERROR] 20:19:10:177 log/(11882:11882): Error al abrir archivo
+[DEBUG] 20:24:07:276 log/(11947:11947): Servidor listo para recibir al cliente
+[ERROR] 20:24:07:325 log/(11947:11947): Error al abrir archivo
+[DEBUG] 20:24:20:779 log/(12033:12033): Servidor listo para recibir al cliente
+[DEBUG] 20:26:11:747 log/(12105:12105): Servidor listo para recibir al cliente
+[DEBUG] 23:15:24:507 log/(15776:15776): Servidor listo para recibir al cliente
+[DEBUG] 02:24:13:711 log/(21305:21305): Servidor listo para recibir al cliente
+[DEBUG] 02:28:43:498 log/(21875:21875): Servidor listo para recibir al cliente
+[DEBUG] 02:29:47:180 log/(21954:21954): Servidor listo para recibir al cliente
+[DEBUG] 02:34:50:291 log/(22339:22339): Servidor listo para recibir al cliente
+[DEBUG] 02:39:51:326 log/(22781:22781): Servidor listo para recibir al cliente
+[DEBUG] 02:45:34:607 log/(23212:23212): Servidor listo para recibir al cliente
+[DEBUG] 02:45:37:479 log/(23212:23215): Hola! 0
+[ERROR] 02:46:03:439 log/(23212:23214): Un cliente se desconecto.
+[DEBUG] 02:54:59:044 log/(23965:23965): Servidor listo para recibir al cliente
+[DEBUG] 02:55:02:411 log/(23965:23968): Hola! 0
+[ERROR] 03:00:57:989 log/(23965:24001): Un cliente se desconecto.
+[DEBUG] 03:01:02:508 log/(24325:24325): Servidor listo para recibir al cliente
+[DEBUG] 03:01:05:136 log/(24325:24328): Hola! 0
+[ERROR] 04:41:42:684 log/(24325:24362): Un cliente se desconecto.
+[DEBUG] 04:41:47:615 log/(29664:29664): Servidor listo para recibir al cliente
+[DEBUG] 04:41:52:035 log/(29664:29667): Hola! 0
+[ERROR] 04:51:12:716 log/(29664:29699): Un cliente se desconecto.
+[DEBUG] 04:51:18:128 log/(29898:29898): Servidor listo para recibir al cliente
+[DEBUG] 04:51:21:079 log/(29898:29901): Hola! 0
+[ERROR] 05:07:09:609 log/(29898:29934): Un cliente se desconecto.
+[DEBUG] 05:07:14:549 log/(30120:30120): Servidor listo para recibir al cliente
+[DEBUG] 05:07:23:542 log/(30120:30123): Hola! 0
+[ERROR] 05:18:30:166 log/(30120:30156): Un cliente se desconecto.
+[DEBUG] 05:38:23:639 log/(30311:30311): Servidor listo para recibir al cliente
+[DEBUG] 05:38:27:861 log/(30311:30314): Hola! 0
+[ERROR] 05:58:04:267 log/(30311:30346): Un cliente se desconecto.
+[DEBUG] 05:58:08:293 log/(30618:30618): Servidor listo para recibir al cliente
+[DEBUG] 05:58:10:862 log/(30618:30621): Hola! 0
+[ERROR] 05:58:21:872 log/(30618:30654): Un cliente se desconecto.
+[DEBUG] 07:40:04:282 log/(31721:31721): Servidor listo para recibir al cliente
+[DEBUG] 07:40:07:777 log/(31721:31724): Hola! 0
+[DEBUG] 07:41:38:880 log/(31908:31908): Servidor listo para recibir al cliente
+[DEBUG] 07:41:41:721 log/(31908:31911): Hola! 0
+[ERROR] 07:44:22:223 log/(31908:31944): Un cliente se desconecto.
+[DEBUG] 07:44:26:322 log/(32068:32068): Servidor listo para recibir al cliente
+[DEBUG] 07:44:29:032 log/(32068:32071): Hola! 0
+[ERROR] 07:44:41:002 log/(32068:32104): Un cliente se desconecto.
+[DEBUG] 07:45:07:485 log/(32151:32151): Servidor listo para recibir al cliente
+[DEBUG] 07:45:10:060 log/(32151:32154): Hola! 0
+[ERROR] 07:45:32:852 log/(32151:32187): Un cliente se desconecto.
+[DEBUG] 07:52:24:409 log/(32418:32418): Servidor listo para recibir al cliente
+[DEBUG] 07:52:29:914 log/(32418:32421): Hola! 0
+[ERROR] 07:52:36:270 log/(32418:32420): Un cliente se desconecto.
+[DEBUG] 07:54:14:137 log/(32658:32658): Servidor listo para recibir al cliente
+[DEBUG] 07:54:16:964 log/(32658:32661): Hola! 0
+[ERROR] 07:54:26:524 log/(32658:32660): Un cliente se desconecto.
+[DEBUG] 07:55:35:173 log/(32759:32759): Servidor listo para recibir al cliente
+[DEBUG] 07:55:38:326 log/(32759:32762): Hola! 0
+[ERROR] 07:55:47:890 log/(32759:32761): Un cliente se desconecto.
+[DEBUG] 07:58:32:310 log/(32876:32876): Servidor listo para recibir al cliente
+[DEBUG] 07:58:48:784 log/(32876:32879): Hola! 0
+[ERROR] 07:59:02:802 log/(32876:32878): Un cliente se desconecto.
+[DEBUG] 08:01:09:750 log/(32968:32968): Servidor listo para recibir al cliente
+[DEBUG] 08:01:13:655 log/(32968:32971): Hola! 0
+[ERROR] 08:01:23:676 log/(32968:32970): Un cliente se desconecto.

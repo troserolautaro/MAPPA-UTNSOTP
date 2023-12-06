@@ -25,7 +25,6 @@ void iniciar_fat();
 //estructura auxiliar de bloques
 typedef struct{
 	uint32_t proximoBloque;
-	char* nombreArchivo;
 	//t_list* bloques;//solo se usa en el bloque inicial al estilo de asignacion de bloques indexada
 }registroFAT_t;
 

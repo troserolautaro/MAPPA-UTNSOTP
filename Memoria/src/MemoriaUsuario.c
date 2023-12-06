@@ -10,6 +10,7 @@ int tamPagina,tamMemoria,cantMarcos,retardoRespuesta;
 int conexionFS;
 int marcoFIFO;
 pthread_mutex_t mutex_memoria;
+sem_t sem_bloquesSwap, sem_paginaSwap;
 
 //INICIAR  MEMORIA DE USUARIO
 marco_t* crear_marco(int i){
@@ -36,8 +37,8 @@ pagina_t* crear_pagina(){
 	return nuevaPagina;
 }
 pagina_t * pagina_get(uint32_t pid, uint32_t numPagina){
-	t_list* tablaPaginacion =dictionary_get(tablaProcesos,string_itoa(pid));
-	return list_get(tablaPaginacion,numPagina);
+	t_list* tablaPaginacion =dictionary_get(tablaProcesos,string_itoa((int)pid));
+	return (pagina_t*)list_get(tablaPaginacion,numPagina);
 }
 
 void cargar_tabla_marcos_y_pglobales(){
@@ -46,7 +47,7 @@ void cargar_tabla_marcos_y_pglobales(){
 	tablapaginasGlobales=list_create();
 	for(int i=0;i<cantMarcos;i++){
 		list_add(tablaMarcos,crear_marco(i));
-		//list_add(tablapaginasGlobales,crear_pagina_global(i));
+		list_add(tablapaginasGlobales,crear_pagina_global(i));
 	}
 }
 
@@ -71,11 +72,12 @@ void crear_proceso(uint32_t pid,char* nombre, uint32_t tamaño){
 	//reservar swap con fs
 	t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"reservarSWAP",sizeof("reservarSWAP"));
-	agregar_a_paquete(paquete,&pid,sizeof(uint32_t*));
-	agregar_a_paquete(paquete,&cantPaginasProceso,sizeof(uint32_t*));
-	usleep(retardoRespuesta*1000);
+	agregar_a_paquete(paquete,&pid,sizeof(uint32_t));
+	agregar_a_paquete(paquete,&cantPaginasProceso,sizeof(int));
+//	usleep(retardoRespuesta*1000);
 	enviar_paquete(paquete,conexionFS);
 	eliminar_paquete(paquete);
+	sem_wait(&sem_bloquesSwap);
 	//asignar la posSWAP en cada pagina segun lo que responda en procesar mensaje con el pid
 }
 
@@ -127,12 +129,13 @@ void set_dato(uint32_t direccion, uint32_t valor) {
 //PAGE FAULT
 void obtener_pagina_swap(uint32_t pid,uint32_t posSWAP){
 	t_paquete* paquete=crear_paquete();
-		agregar_a_paquete(paquete,"paginaSWAP",sizeof("paginaSWAP"));
-		agregar_a_paquete(paquete,&pid,sizeof(int*));
-		agregar_a_paquete(paquete,&posSWAP,sizeof(uint32_t*));
-		usleep(retardoRespuesta*1000);
-		enviar_paquete(paquete,conexionFS);
-		eliminar_paquete(paquete);
+	agregar_a_paquete(paquete,"paginaSWAP",sizeof("paginaSWAP"));
+	agregar_a_paquete(paquete,&pid,sizeof(uint32_t));
+	agregar_a_paquete(paquete,&posSWAP,sizeof(uint32_t));
+	//	usleep(retardoRespuesta*1000);
+	enviar_paquete(paquete,conexionFS);
+	eliminar_paquete(paquete);
+	sem_wait(&sem_paginaSwap);
 }
 void* contar_marcosLibres(void* contador,void* marco ){
 	marco_t* m=(marco_t*)marco;
@@ -144,15 +147,44 @@ int marcos_libres(){
 	int contador=0;
 	return *((int*)list_fold (tablaMarcos,(void*)&contador,contar_marcosLibres));
 }
+bool marco_libre(marco_t * marco){return (marco->libre);}
+
 void page_fault(uint32_t pid,uint32_t numPagina){
 	pagina_t* pagina=pagina_get(pid,numPagina);
 	uint32_t posSWAP=(pagina->posSWAP);
+	marco_t * marcoLibre;
 	obtener_pagina_swap(pid,posSWAP);
-	if(marcos_libres()){
+	if((marcos_libres())==0){
 		pagina_t* paginaVictima=algoritmoRemplazo();
+		if(paginaVictima->m==0){
+			marcoLibre = list_get(tablaMarcos,paginaVictima->marco);
+			paginaVictima->p = 0;
+		}
+	}else{
+		marcoLibre = list_find(tablaMarcos,(void*)marco_libre);
 	}
+	marcoLibre->libre = false;
+	pagina->marco = marcoLibre->base / tamPagina;
+	pagina->p = 1;
+	pagina_global_t* paginaGlobal = (pagina_global_t*) list_get(tablapaginasGlobales,pagina->marco);
+	paginaGlobal->pid = pid;
+	paginaGlobal->pagina = numPagina;
+	paginaGlobal->accesos++; // No sabia que hacer ?
+
+
 }
 
+void asignar_swap(t_list* args){
+	uint32_t pid = *(uint32_t*)list_get(args,1);
+	uint32_t cantBloques = *(uint32_t*)list_get(args,2);
+	//t_list* paginas =diccionario_get(tablaProcesos,string_itoa((int) pid));
+	pagina_t* temp;
+	for(int i=3; i < cantBloques+3 ; i++){
+		temp = pagina_get(pid,i-3);
+		temp->posSWAP = *(uint32_t*) list_get(args,i);
+	}
+	sem_post(&sem_bloquesSwap);
+}
 
 //SELECCION DE VICTIMA
 //FIFO

@@ -3,9 +3,9 @@
 int main(void)
 {
 	//MEMORY ALLOCATION
-	char* ipCPU=malloc(sizeof(char*)),*ipMemoria=malloc(sizeof(char*)),*ipFileSystem=malloc(sizeof(char*)) ;
-	char* puertoCPUDispatch=malloc(sizeof(char*)),*puertoCPUInterrupt=malloc(sizeof(char*)),
-		* puertoMemoria=malloc(sizeof(char*)),*puertoFileSystem=malloc(sizeof(char*));
+	char* ipCPU,*ipMemoria,*ipFileSystem;
+	char* puertoCPUDispatch,*puertoCPUInterrupt,
+		* puertoMemoria,*puertoFileSystem;
 	char** recursos=string_array_new();
 	char**temp=string_array_new();
 	//logger=malloc(sizeof(t_log));
@@ -21,6 +21,7 @@ int main(void)
 	sem_init(&planiLargo,0,0);
 	sem_init(&planiCorto,0,0);
 	sem_init(&desalojo_signal,0,0);
+	sem_init(&paginaCargada,0,0);
 	pthread_mutex_init(&mutexColaCorto,NULL);
 	pthread_mutex_init(&mutexColaLargo,NULL);
 	pthread_mutex_init(&mutexProcesos,NULL);
@@ -44,7 +45,7 @@ int main(void)
 	puertoMemoria=config_get_string_value(config,"PUERTO_MEMORIA");
 
 	//CONFIGURACION DE FILESYSTEM
-	ipMemoria = config_get_string_value(config,"IP_MEMORIA");
+	ipFileSystem = config_get_string_value(config,"IP_MEMORIA");
 	puertoFileSystem=config_get_string_value(config,"PUERTO_FILESYSTEM");
 
 	//CONFIGURACION DE RECURSOS
@@ -66,7 +67,7 @@ int main(void)
 	conexionCPUDispatch = crear_conexion(ipCPU, puertoCPUDispatch,KERNEL);
 	conexionCPUInterrupt = crear_conexion(ipCPU, puertoCPUInterrupt,KERNEL);
 	conexionMemoria = crear_conexion(ipMemoria, puertoMemoria,KERNEL);
-	//conexionFileSystem = crear_conexion(ipFileSystem, puertoFileSystem,KERNEL);
+	conexionFileSystem = crear_conexion(ipFileSystem, puertoFileSystem,KERNEL);
 
 	/************************************INICIALIZAR HILOS DE RECIBO DE MENSAJES************************************/
 	//HILO DE MANEJO DE MOODULOS
@@ -81,8 +82,8 @@ int main(void)
 	if ((resultado=pthread_create(&hiloMemoria,NULL,manejar_cliente,&conexionMemoria))!=0)
 		printf("Error al crear hilo. resultado %d",resultado);
 
-	//pthread_t * hiloFilesystem;
-	//pthread_create(hiloFilesystem,NULL,manejar_cliente, conexionFileSystem);
+	pthread_t hiloFilesystem;
+	pthread_create(&hiloFilesystem,NULL,manejar_cliente, &conexionFileSystem);
 
 	/************************************INICIO CONSOLA INTERACTIVA*************************************************/
 	pthread_t hiloConsola, hiloCorto,hiloLargo;
@@ -114,39 +115,7 @@ void terminar_programa()
 	//terminar_hilos();
 	//int conexionCPUDispatch, conexionCPUInterrupt,conexionMemoria,conexionFileSystem;
 }
-void deteccion_deadlock(PCB* proceso){
-	escritura_log("Analisis de deteccion de Deadlocks");
-	if(!list_is_empty(proceso->recursos)){
-		bool verificacion_DL(char* recurso){
-			t_list* elements = (t_list*)dictionary_get(diccionarioRecursos,recurso);
-			t_queue* colaEspera = (t_queue*)list_get(elements,1);
-			bool bandera = false;
-			if(!queue_is_empty(colaEspera)){
-				int i = 0;
-				while(!bandera && i<queue_size(colaEspera)){
-					PCB* temp = list_get(colaEspera->elements,i);
-					if(temp->pid == proceso->pid){
-						bandera = true;
-					}else if(!list_is_empty(temp->recursos)){
-						PCB* encontrado = list_find(temp->recursos,(void*)verificacion_DL);
-						if(encontrado!=NULL){
-							bandera=true;
-							//Hay deadlock
-						}
-					}
 
-					i++;
-				}
-			}
-			return bandera;
-		}
-		PCB* encontrado = list_find(proceso->recursos,(void*)verificacion_DL);
-		if(encontrado!=NULL){
-			debug("Hay Deadlock");
-		}
-
-	}
-}
 
 void bloquear_proceso(PCB* proceso,char* motivo){
 	cambiar_estado(proceso,BLOCKED);
@@ -277,6 +246,7 @@ int motivo_desalojo(char * desalojo){
 	if(!strcasecmp(desalojo,"signal")) return SIGNAL;
 	if(!strcasecmp(desalojo,"sleep")) return SLEEP;
 	if(!strcasecmp(desalojo,"desalojo_signal"))return DESALOJO_SIGNAL;
+	if(!strcasecmp(desalojo,"page_fault")) return PAGE_FAULT;
 	return motivo;
 }
 
@@ -364,16 +334,23 @@ void procesar_mensaje(t_list* mensaje){
 				//free(recurso);
 		}
 			break;
-
 		case DESALOJO_SIGNAL:
 				sem_post(&planiCorto);
 			break;
-
+		case PAGE_FAULT:
+				debug("Page Fault");
+				t_list* parameters = list_create();
+				list_add(parameters, proceso);
+				list_add(parameters,list_get(mensaje,2));
+				hilo_funcion(parameters,(void*)page_fault);
+			break;
 		case EXIT:
 			error_show("Motivo desconocido");
 		}
 	}
-
+	if(!strcasecmp(msg,"paginaCargada")){
+		sem_post(&paginaCargada);
+	}
 	free(msg);
 }
 

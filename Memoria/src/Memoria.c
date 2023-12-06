@@ -2,12 +2,11 @@
 
 t_log* logger;
 t_config* config;
-int conexionKernel, conexionDispatch,conexionFileSystem;
 pthread_t hiloRecibirCliente;
 int serverMemoria;
 t_dictionary *archivosCargados;
 pthread_mutex_t mutexLog,mutexArchivos;
-
+sem_t sem_conexion;
 int main() {
 //	logger = malloc(sizeof(t_log)); No es necesario
 //	config = malloc(sizeof(t_config));
@@ -15,16 +14,17 @@ int main() {
 	logger = iniciar_logger("./log.log");
 	config = iniciar_config("./Memoria.config");
 
-	char* ipFyleSystem = malloc(sizeof(char*)),
-		* puertoEscucha = malloc(sizeof(char*)),
-		* puertoFyleSystem = malloc(sizeof(char*));
-	algoritmoReemplazo = malloc(sizeof(char*));
-	pathInstrucciones = malloc(sizeof(char*));
+	char* ipFyleSystem,
+		* puertoEscucha,
+		* puertoFyleSystem;
 
 
 	//Semaforos
 	pthread_mutex_init(&mutexLog,NULL);
 	pthread_mutex_init(&mutexArchivos,NULL);
+	sem_init(&sem_conexion,0,0);
+	sem_init(&sem_bloquesSwap,0,0);
+	sem_init(&sem_paginaSwap,0,0);
 	//CONFIGURACION DE MEMORIA
 	ipFyleSystem = config_get_string_value(config,"IP_FILESYSTEM");
 	puertoFyleSystem = config_get_string_value(config,"PUERTO_FYLESYSTEM");
@@ -49,7 +49,8 @@ int main() {
 	int resultado;
 	if ((resultado=pthread_create(&hiloRecibirCliente,NULL,(void *)recibir_conexiones,( void *) &serverMemoria))!=0)
 		printf("Error al crear hilo. resultado %d",resultado);
-			//}
+	sem_wait(&sem_conexion);
+	debug("Conexion con file system");
 	pthread_join(hiloRecibirCliente,NULL);
 	return EXIT_SUCCESS;
 }
@@ -60,7 +61,10 @@ void procesar_mensaje(t_list* mensaje){
 	string_trim(&msg);
 	string_to_lower(msg);
 	int conexion = *(int*) (list_get(mensaje,list_size(mensaje)-1));
-
+	if(!strcasecmp(msg,"FS")){
+		conexionFS = conexion;
+		sem_post(&sem_conexion);
+	}
 	//Seria excelente cuanto menos aprovechar que dentro de la lista "mensaje" se encuentra al final el socket para dividir con un switch las funciones
 	if(!strcasecmp(msg,"tamanioPagina")){
 		debug(string_itoa(tamPagina));
@@ -77,7 +81,7 @@ void procesar_mensaje(t_list* mensaje){
 		//valida si es una direccion fisica valida
 		if(direccionFisica<tamMemoria){
 		error=false;
-		dato=get_dato(*(uint32_t*)list_get(mensaje,1));
+		//dato=get_dato(*(uint32_t*)list_get(mensaje,1));
 		}
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"mov_in",sizeof("mov_in"));
@@ -91,7 +95,7 @@ void procesar_mensaje(t_list* mensaje){
 		bool error=true;
 		if(direccionFisica<tamMemoria){
 			error=false;
-			set_dato(*(uint32_t*)list_get(mensaje,1),*(uint32_t*)list_get(mensaje,2));
+			//set_dato(*(uint32_t*)list_get(mensaje,1),*(uint32_t*)list_get(mensaje,2));
 		}
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"mov_out",sizeof("mov_out"));
@@ -99,13 +103,13 @@ void procesar_mensaje(t_list* mensaje){
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
 	}
-	if(!strcasecmp(msg,"page_fault")){
+	if(!strcasecmp(msg,"pageFault")){
 		uint32_t pid, numPagina;
-		pid=*(uint32_t*)list_get(mensaje,1);
-		numPagina=*(uint32_t*)list_get(mensaje,2);
+		pid = *(uint32_t*)list_get(mensaje,1);
+		numPagina = *(uint32_t*)list_get(mensaje,2);
 		page_fault(pid,numPagina);
 		t_paquete * paquete = crear_paquete();
-		agregar_a_paquete(paquete,"page_fault",sizeof("page_fault"));
+		agregar_a_paquete(paquete,"paginaCargada",sizeof("paginaCargada"));
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
 	}
@@ -119,8 +123,6 @@ void procesar_mensaje(t_list* mensaje){
 		t_list* instrucciones=list_create();
 		instrucciones=cargar_instrucciones(&path);
 		//list_add(instrucciones,"1");
-		printf("La primera linea es : %s",(char *)list_get(instrucciones,0));
-
 		pthread_mutex_lock(&mutexArchivos);
 		dictionary_put(archivosCargados,string_itoa(pid),instrucciones);
 		pthread_mutex_unlock(&mutexArchivos);
@@ -163,7 +165,6 @@ void procesar_mensaje(t_list* mensaje){
 			char** parametros = string_array_new();
 			parametros = string_n_split(instruccion,3," ");
 			for(int i = 0; parametros[i]!=NULL; i++){
-				debug(parametros[i]);
 				agregar_a_paquete(paquete,parametros[i],strlen(parametros[i])+1);
 			}
 		}
@@ -171,6 +172,34 @@ void procesar_mensaje(t_list* mensaje){
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
 		free(instruccion);
+	}
+	if(!strcasecmp(msg,"marco")){
+		uint32_t pid = *(uint32_t*)list_get(mensaje,1);
+		uint32_t numeroPagina = *(uint32_t*)list_get(mensaje,2);
+		bool pageFault = true;
+		uint32_t marco = -1;
+		debug(string_from_format("PID: %s, Numero de pagina: %s",string_itoa(pid),string_itoa(numeroPagina)));
+		pagina_t * pagina = pagina_get(pid,numeroPagina);
+		if(pagina!=NULL){
+
+			pagina_global_t* paginaGlobal = (pagina_global_t*) list_get(tablapaginasGlobales,pagina->marco);
+			if(paginaGlobal!=NULL && paginaGlobal->pid == pid && paginaGlobal->pagina == numeroPagina){
+				marco = pagina->marco;
+				pageFault = false;
+		}
+			t_paquete* paquete=crear_paquete();
+			agregar_a_paquete(paquete,"marco",sizeof("marco"));
+			agregar_a_paquete(paquete,&pageFault,sizeof(bool));
+			agregar_a_paquete(paquete,&marco,sizeof(uint32_t));
+			enviar_paquete(paquete,conexion);
+		}
+	}
+	if(!strcasecmp(msg,"bloquesSwap")){
+		asignar_swap(mensaje);
+	}
+	if(!strcasecmp(msg,"paginaSwap")){
+
+		sem_post(&sem_paginaSwap);
 	}
 	free(msg);
 }

@@ -5,8 +5,8 @@
 #define KERNELMEMORIA_H_
 #include"Generales.h"
 //MANEJO DE MEMORIA
-void cargar_pagina(char * pagina);
-void page_fault(PCB* proceso,char * pagina);
+void cargar_pagina(uint32_t pid, uint32_t pagina);
+void page_fault(t_list * parametros);
 
 //MANEJO DE ARCHIVO
 void f_open(PCB* proceso,char * archivo,char*);
@@ -15,11 +15,8 @@ void f_seek(PCB* proceso, char * archivo);
 void f_truncate(PCB* proceso, char * archivo);
 void f_read(PCB* proceso, char * archivo);
 void f_write(PCB* proceso, char * archivo);
+extern sem_t paginaCargada;
 
-sem_t  semLectura;
-sem_t  semEscritura;
-t_queue * colaLocks;
-t_dictionary *diccionarioDeDiccionariosLocales;
 typedef struct {
 	char* archivo;
 	int tipoDeLock;

@@ -102,7 +102,6 @@ void cargar_tamaño_pagina(){
 //TRADUCCIR DIRECCION LOGICA A FISICA
 uint32_t mmu(uint32_t* direccionLogica){
 	uint32_t numPagina,desplazamiento;
-	pageFault=false;
 	//debug(string_itoa(*(int*)direccionLogica));
 	numPagina = floor((*direccionLogica) / tamPagina);
 	desplazamiento = (*direccionLogica) - numPagina * tamPagina;
@@ -114,7 +113,7 @@ uint32_t mmu(uint32_t* direccionLogica){
 void obtener_marco(uint32_t numPagina){
 	uint32_t pid = proceso->pid;
 	t_paquete* paquete=crear_paquete();
-	agregar_a_paquete(paquete,"instruccion",sizeof("instruccion"));
+	agregar_a_paquete(paquete,"marco",sizeof("marco"));
 	agregar_a_paquete(paquete,&pid,sizeof(uint32_t));
 	agregar_a_paquete(paquete,&numPagina,sizeof(uint32_t));
 	enviar_paquete(paquete,conexionMemoria);
@@ -122,10 +121,15 @@ void obtener_marco(uint32_t numPagina){
 	sem_wait(&memoria_s);
 }
 void page_fault(uint32_t* direccionLogica){
+	pthread_mutex_lock(&mutexProceso);
+	proceso->pc--;
+	pthread_mutex_unlock(&mutexProceso);
+	bloquear_proceso();
 	uint32_t numPagina = floor((*direccionLogica) / tamPagina);
+	debug(string_itoa(numPagina));
 	t_list * mensaje = list_create();
 	list_add(mensaje,"page_fault");
-	list_add(mensaje,&numPagina);
+	list_add(mensaje,string_itoa((int)numPagina));
 	contexto_ejecucion(mensaje);
 }
 void bloquear_proceso(){
@@ -218,8 +222,7 @@ void mov_out(uint32_t* direccionLogica,uint32_t* registro) {
 		if(error){
 			//mostrar error
 		}
-	}
-	else{
+	}else{
 		page_fault(direccionLogica);
 	}
 }
@@ -494,7 +497,7 @@ void ejecutar_ciclo(){
 
 	do{
 		sem_wait(&ciclo);
-		fetch(proceso->pid,proceso->pc);
+		fetch();
 		sem_wait(&instruccion_s);
 		decode_and_execute();
 		check_interrupt();
@@ -518,8 +521,8 @@ void procesar_mensaje(t_list* mensaje){
 		debug(msg);
 	}
 	if(!strcasecmp(msg,"marco")){
-		pageFault=*(bool*)list_get(mensaje,1);
-		marco=strtol(list_get(mensaje,2),NULL,10);
+		pageFault = *(bool*)list_get(mensaje,1);
+		marco = *(uint32_t*)list_get(mensaje,2);
 		sem_post(&memoria_s);
 	}
 	if(!strcasecmp(msg,"mov_in")){
@@ -574,7 +577,6 @@ void procesar_mensaje(t_list* mensaje){
 					pid= *(uint32_t*)list_get(mensaje,3);
 					pthread_mutex_lock(&mutexProceso);
 					if (pid == (proceso->pid)) banderaInterrumpir = true;
-
 					pthread_mutex_unlock(&mutexProceso);
 				break;
 		}
