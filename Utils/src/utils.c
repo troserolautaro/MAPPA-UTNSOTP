@@ -19,6 +19,7 @@ PCB* proceso_create(){
 	proceso->prioridad=0;
 	proceso->registros=registros_create();
 	proceso->recursos = list_create();
+	proceso->tablaArchivos = dictionary_create();
 	return proceso;
 }
 
@@ -31,6 +32,7 @@ registros_CPU* registros_create(){
 	return registros;
 }
 void proceso_destroy(PCB* proceso){
+	//dictionary_destroy_and_destroy_elements(proceso->tablaArchivos,destruir_registro_tap);
 	list_destroy_and_destroy_elements(proceso->recursos,free);
 	free(proceso->registros);
 	free(proceso);

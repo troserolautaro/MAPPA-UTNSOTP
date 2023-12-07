@@ -91,14 +91,14 @@ int main(void)
 	pthread_create(&hiloCorto,NULL,planificador_corto,NULL);
 	pthread_create(&hiloLargo,NULL,planificador_largo,NULL);
 	/************************************FINALIZA LOS PROGRAMAS O HILOS A FUTURO************************************/
+	pthread_join(hiloConsola,NULL);
+	terminar_programa();
 	pthread_join(hiloCPUDispatch,NULL);
 	pthread_join(hiloCPUInterrupt,NULL);
 	pthread_join(hiloMemoria,NULL);
 	pthread_join(hiloCorto,NULL);
 	pthread_join(hiloLargo,NULL);
-	pthread_join(hiloConsola,NULL);
-	//pthread_join(hiloFilesystem,NULL);
-	pthread_join(hiloConsola,NULL);
+	pthread_join(hiloFilesystem,NULL);
 	return EXIT_SUCCESS;
 }
 void terminar_programa()
@@ -208,16 +208,13 @@ void signal_recurso(PCB* proceso,char* recurso){
 			free(mensajeCola);
  /*---------------------------------*/
 			t_queue* colaEspera = (t_queue*)list_get(elements,1);
-			debug("Por si o por no?");
 			if(!queue_is_empty(colaEspera)){
 
 				PCB* temp = (PCB*) queue_pop(colaEspera);
 				*instancias -=1;
 				list_add(temp->recursos,recurso);
-				debug(string_from_format("Por si %s :)",recurso));
+
 				push_colaCorto(temp);
-			}else{
-				debug(string_from_format("Por no %s :(",recurso));
 			}
 
 			char* mensaje = string_from_format("PID: %d - Signal: %s - Instancias: %d",proceso->pid,recurso,*instancias);
@@ -247,6 +244,15 @@ int motivo_desalojo(char * desalojo){
 	if(!strcasecmp(desalojo,"sleep")) return SLEEP;
 	if(!strcasecmp(desalojo,"desalojo_signal"))return DESALOJO_SIGNAL;
 	if(!strcasecmp(desalojo,"page_fault")) return PAGE_FAULT;
+	if(!strcasecmp(desalojo,"f_open")) return F_OPEN;
+	if(!strcasecmp(desalojo,"f_close")) return F_CLOSE;
+	if(!strcasecmp(desalojo,"f_write")) return F_WRITE;
+	if(!strcasecmp(desalojo,"f_read")) return F_READ;
+	if(!strcasecmp(desalojo,"f_truncate")) return F_TRUNCATE;
+	if(!strcasecmp(desalojo,"f_seek")) return F_SEEK;
+
+
+
 	return motivo;
 }
 
@@ -343,6 +349,24 @@ void procesar_mensaje(t_list* mensaje){
 				list_add(parameters,list_get(mensaje,2));
 				hilo_funcion(parameters,(void*)page_fault);
 				sem_post(&planiCorto);
+			break;
+		case F_OPEN:
+
+			break;
+		case F_CLOSE:
+
+			break;
+		case F_WRITE:
+
+			break;
+		case F_READ:
+
+			break;
+		case F_TRUNCATE:
+
+			break;
+		case F_SEEK:
+
 			break;
 		case EXIT:
 			error_show("Motivo desconocido");

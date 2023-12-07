@@ -10,7 +10,13 @@ typedef enum{
 	SIGNAL=5,
 	SLEEP=6,
 	DESALOJO_SIGNAL=7,
-	PAGE_FAULT = 8
+	PAGE_FAULT = 8,
+	F_OPEN = 9,
+	F_CLOSE = 10,
+	F_WRITE = 11,
+	F_READ = 12,
+	F_TRUNCATE = 13,
+	F_SEEK = 14
 }desalojo;
 void paquete(int);
 void terminar_programa();
@@ -20,7 +26,6 @@ void wait_recurso(PCB* proceso, char* recurso);
 void signal_recurso(PCB* proceso, char* recurso);
 
 
-t_dictionary *tag;
 sem_t desalojo_signal;//clave archivo, valor archivo_t
 //clave proceso, valor diccionario de archivos abiertos por el proceso
 

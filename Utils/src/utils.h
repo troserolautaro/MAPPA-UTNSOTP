@@ -46,7 +46,7 @@ typedef struct{
 	uint32_t prioridad;
 	uint32_t estado;
 	registros_CPU* registros;
-	//char* tablaArchivos[];
+	t_dictionary* tablaArchivos;
 	t_list * recursos;
 }PCB;
 

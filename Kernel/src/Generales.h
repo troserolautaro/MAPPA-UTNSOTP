@@ -27,5 +27,6 @@ char* estado_enum(uint32_t estado);
 void  cambiar_estado(PCB* proceso, int estado);
 void push_colaCorto(PCB* proceso);
 void iterar_lista(char** mensaje);
+void bloquear_proceso(PCB* proceso,char* motivo);
 
 #endif /* GENERALES_H_ */
