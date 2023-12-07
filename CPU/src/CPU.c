@@ -106,7 +106,12 @@ uint32_t mmu(uint32_t* direccionLogica){
 	numPagina = floor((*direccionLogica) / tamPagina);
 	desplazamiento = (*direccionLogica) - numPagina * tamPagina;
 	obtener_marco(numPagina);
-	if(!pageFault)return marco*tamPagina+desplazamiento;
+	if(!pageFault){
+		escritura_log(string_from_format("PID %d - OBTENER MARCO - Pagina: %d - Marco: %d",proceso->pid,numPagina,marco));
+		return marco*tamPagina+desplazamiento ;
+	}else{
+		escritura_log(string_from_format("Page Fault PID: %d - Página: %d",proceso->pid,numPagina));
+	}
 	return -1;
 }
 //PARA FUNCIONES DE F_*
@@ -192,12 +197,13 @@ void mov_in(uint32_t* registro, uint32_t* direccionLogica) {
 	uint32_t pid = proceso->pid;
 	direccionFisica=mmu(direccionLogica);
 	if(!pageFault){
-		debug("No hubo pageFault");
 		t_paquete* paquete=crear_paquete();
 		agregar_a_paquete(paquete,"mov_in",sizeof("mov_in"));
 		agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
+		agregar_a_paquete(paquete,&pid,sizeof(uint32_t));
 		enviar_paquete(paquete,conexionMemoria);
 		eliminar_paquete(paquete);
+		escritura_log(string_from_format("PID: %d - Accion: Leer - Direccion Fisica: %d - Valor: %d", proceso->pid,direccionFisica, *registro));
 		sem_wait(&memoria_s);
 		if(error){
 		//mostrar error
@@ -212,13 +218,14 @@ void mov_out(uint32_t* direccionLogica,uint32_t* registro) {
 	uint32_t pid = proceso->pid;
 	direccionFisica=mmu(direccionLogica);
 	if(!pageFault){
-		debug("No hubo pageFault");
 		t_paquete* paquete=crear_paquete();
 		agregar_a_paquete(paquete,"mov_out",sizeof("mov_out"));
 		agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
 		agregar_a_paquete(paquete,registro,sizeof(uint32_t));
+		agregar_a_paquete(paquete,&pid,sizeof(uint32_t));
 		enviar_paquete(paquete,conexionMemoria);
 		eliminar_paquete(paquete);
+		escritura_log(string_from_format("PID: %d - Accion: Escribir - Direccion Fisica: %d - Valor %d", proceso->pid,direccionFisica, *registro));
 		sem_wait(&memoria_s);
 		if(error){
 			//mostrar error
@@ -432,7 +439,7 @@ void decode_and_execute(){
 	}
 	if(!strcasecmp(comando,"MOV_IN")){
 		registroOrigen =  obtener_registro((char*)list_get(parametros,0));
-		uint32_t direccionLogica =(uint32_t)strtol(list_get(parametros,0),NULL,10);
+		uint32_t direccionLogica =(uint32_t)strtol(list_get(parametros,1),NULL,10);
 		mov_in(registroOrigen,&direccionLogica);
 	}
 	if (!strcasecmp(comando, "MOV_OUT")) {
@@ -522,6 +529,7 @@ void procesar_mensaje(t_list* mensaje){
 	if(!strcasecmp(msg,"marco")){
 		pageFault = *(bool*)list_get(mensaje,1);
 		marco = *(uint32_t*)list_get(mensaje,2);
+
 		sem_post(&memoria_s);
 	}
 	if(!strcasecmp(msg,"mov_in")){

@@ -3,8 +3,8 @@
 t_list* tablapaginasGlobales;//indice=marco
 t_list* tablaMarcos;//indice=marco
 t_dictionary* tablaProcesos;//clave pid
-typedef pagina_t* (*AlgoritmoRemplazoFunction)();
-AlgoritmoRemplazoFunction algoritmoRemplazo;
+typedef pagina_t* (*AlgoritmoRemplazoFuncion)();
+AlgoritmoRemplazoFuncion algoritmoRemplazo;
 void* espacioContiguoMemoria;
 char* algoritmoReemplazo;
 int tamPagina,tamMemoria,cantMarcos,retardoRespuesta;
@@ -52,12 +52,6 @@ void cargar_tabla_marcos_y_pglobales(){
 	}
 }
 
-
-void iterador(void* pagina){
-	pagina_t * paginaT = pagina;
-	char* posSwap = string_itoa(0);
-	debug(posSwap);
-}
 //CREAR PROCESO
 void crear_proceso(uint32_t pid,char* nombre, uint32_t tamaño){
 	//reservar paginas
@@ -128,11 +122,12 @@ void set_dato(uint32_t direccion, uint32_t valor) {
 }
 
 //PAGE FAULT
-void obtener_pagina_swap(uint32_t pid,uint32_t posSWAP){
+void obtener_pagina_swap(uint32_t pid,uint32_t posSWAP,uint32_t pagina){
 	t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"paginaSWAP",sizeof("paginaSWAP"));
 	agregar_a_paquete(paquete,&pid,sizeof(uint32_t));
 	agregar_a_paquete(paquete,&posSWAP,sizeof(uint32_t));
+	agregar_a_paquete(paquete,&pagina,sizeof(uint32_t));
 	//	usleep(retardoRespuesta*1000);
 	enviar_paquete(paquete,conexionFS);
 	eliminar_paquete(paquete);
@@ -154,12 +149,15 @@ void page_fault(uint32_t pid,uint32_t numPagina){
 	pagina_t* pagina=pagina_get(pid,numPagina);
 	uint32_t posSWAP=(pagina->posSWAP);
 	marco_t * marcoLibre;
-	obtener_pagina_swap(pid,posSWAP);
+	bool victima = false;
+	char * mensaje = string_new();
 	if((marcos_libres())==0){
 		pagina_t* paginaVictima=algoritmoRemplazo();
 		if(paginaVictima->m==0){
 			marcoLibre = list_get(tablaMarcos,paginaVictima->marco);
 			paginaVictima->p = 0;
+			string_append_with_format(&mensaje,"REEMPLAZO - Marco: %d - ",paginaVictima->marco);
+			victima = true;
 		}
 	}else{
 		marcoLibre = list_find(tablaMarcos,(void*)marco_libre);
@@ -168,10 +166,15 @@ void page_fault(uint32_t pid,uint32_t numPagina){
 	pagina->marco = marcoLibre->base / tamPagina;
 	pagina->p = 1;
 	pagina_global_t* paginaGlobal = (pagina_global_t*) list_get(tablapaginasGlobales,pagina->marco);
+	if (victima){
+		string_append_with_format(&mensaje,"Page Out: %d-%d - Page In: %d-%d",paginaGlobal->pid,paginaGlobal->pagina,pid,numPagina);
+	}
+	free(mensaje);
 	paginaGlobal->pid = pid;
 	paginaGlobal->pagina = numPagina;
-	paginaGlobal->accesos++; // No sabia que hacer ?
-
+	paginaGlobal->accesos = 0; // No sabia que hacer ?
+	obtener_pagina_swap(pid,posSWAP,numPagina);
+	escritura_log(string_from_format("SWAP IN -  PID: %d - Marco: %d - Page In: %d-%d",pid,pagina->marco,pid,numPagina));
 
 }
 
@@ -183,6 +186,7 @@ void asignar_swap(t_list* args){
 	for(int i=3; i < cantBloques+3 ; i++){
 		temp = pagina_get(pid,i-3);
 		temp->posSWAP = *(uint32_t*) list_get(args,i);
+
 	}
 	sem_post(&sem_bloquesSwap);
 }
@@ -191,6 +195,12 @@ void asignar_swap(t_list* args){
 //FIFO
 pagina_t* FIFO(){
 	pagina_global_t* paginaVictima=(pagina_global_t*)list_get(tablapaginasGlobales,marcoFIFO);
+	if(marcoFIFO == cantMarcos){
+		marcoFIFO = 0;
+	}else{
+		marcoFIFO++;
+	}
+
 	return (pagina_t* )pagina_get((paginaVictima->pid),(paginaVictima->pagina));
 }
 //LRU
@@ -212,9 +222,18 @@ void iniciar_memoria_usuario(){
 	}else{
 		algoritmoRemplazo = LRU;
 	}
-	espacioContiguoMemoria=malloc(sizeof(tamMemoria));
+	espacioContiguoMemoria=malloc(tamMemoria);
 	cantMarcos=tamMemoria/tamPagina;
 	marcoFIFO=0;
 	tablaProcesos=dictionary_create();
 	cargar_tabla_marcos_y_pglobales();
+}
+void cargar_pagina_swap(uint32_t pid, uint32_t numPagina, void* datos){
+	marco_t* marco = (marco_t*) list_get(tablaMarcos,devolver_num_marco(pid,numPagina));
+	for(int i = 0; i < tamPagina/sizeof(uint32_t);i++){
+		set_dato((marco->base)+(i*sizeof(uint32_t)),*((uint32_t*)((char*)datos + i * sizeof(uint32_t))));
+		escritura_log(string_from_format("PID: %d - Accion: ESCRIBIR - Direccion fisica: %d",pid,(int)(marco->base+i*sizeof(uint32_t))));
+	}
+	free(datos);
+	sem_post(&sem_paginaSwap);
 }

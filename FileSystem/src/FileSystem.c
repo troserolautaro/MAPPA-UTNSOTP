@@ -24,6 +24,12 @@ void conectar_a_memoria(){
 	enviar_paquete(paquete,conexionMemoria);
 	eliminar_paquete(paquete);
 }
+void iniciar_swap(){
+	for(int  i = 0; i<cantBloquesSWAP;i++){
+		tablaSWAP[i] = false;
+	}
+
+}
 int main(void) {
 	tablaFCB = dictionary_create();
 	logger = iniciar_logger("./log.log");
@@ -77,12 +83,7 @@ void iniciar_bloques(){
 	fclose(archivoBloques);
 	//fread(bloques, (cantBloques*tamBloque), 1, archivoBloques);
 }
-void iniciar_swap(){
-	for(int  i = 0; i<cantBloquesSWAP;i++){
-		tablaSWAP[i] = false;
-	}
 
-}
 void iniciar_fat(){
 	FILE *archivoFAT = fopen(pathFAT, "rb+");
 	if (archivoFAT == NULL) {
@@ -280,7 +281,7 @@ void reservar_SWAP(uint32_t pid, uint32_t cantBloques){
 }
 void* obtener_pagina_swap(uint32_t pid, uint32_t posSWAP){
 	FILE* archivoBloques = fopen(pathBloques,"rb");
-	escritura_log(string_from_format("Acceso SWAP: %d", posSWAP/tamBloque));
+	escritura_log(string_from_format("Acceso SWAP: %d", (posSWAP/tamBloque)));
 	void * datos = malloc(tamBloque);
 	fseek(archivoBloques, posSWAP,SEEK_SET);
 	fread(datos,tamBloque,1,archivoBloques);
@@ -334,12 +335,18 @@ void procesar_mensaje(t_list* mensaje){
 		reservar_SWAP(*(uint32_t*)list_get(mensaje,1),*(uint32_t*)list_get(mensaje,2));
 	}
 	if(!strcasecmp(msg,"paginaSWAP")){
-		void * datos = obtener_pagina_swap(*(uint32_t*) list_get(mensaje,1),*(uint32_t*) list_get(mensaje,1));
+		uint32_t pid = *(uint32_t*) list_get(mensaje,1);
+		uint32_t posSwap = *(uint32_t*) list_get(mensaje,2);
+		uint32_t pagina = *(uint32_t*) list_get(mensaje,3);
+		void * datos = obtener_pagina_swap(pid,posSwap);
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"paginaSWAP",sizeof("paginaSWAP"));
-		agregar_a_paquete(paquete,datos,sizeof(datos));
+		agregar_a_paquete(paquete,&pid,sizeof(uint32_t));
+		agregar_a_paquete(paquete,&pagina,sizeof(uint32_t));
+		agregar_a_paquete(paquete,datos,tamBloque);
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
+		free(datos);
 	}
 
 }

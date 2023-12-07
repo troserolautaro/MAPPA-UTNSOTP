@@ -99,7 +99,7 @@ void proceso_estado(){
 		*blocked=string_from_format("Estado: BLOCKED - Procesos: "),
 		*terminated=string_from_format("Estado: TERMINATED - Procesos: ");
 		for(i = 0 ; i<list_size(procesos); i++){
-			proceso= list_get(procesos,i);
+			proceso = list_get(procesos,i);
 			switch(proceso->estado){
 			case NEW:string_append_with_format(&new,"PID_%s ",string_itoa(proceso->pid)); break;
 			case READY: string_append_with_format(&ready,"PID_%s ",string_itoa(proceso->pid)); break;
@@ -174,7 +174,11 @@ void * manejar_consola( void* args ){
 					//enviar_mensaje("DETENER PLANIFICACION",conexionCPUDispatch);
 			break;
 			case MULTIPROGRAMACION:
+				char * mensaje = string_from_format("Grado Anterior: %d",gradoMultiprogramacion);
 				gradoMultiprogramacion=(int)strtol((parametros[1]), (char **)NULL, 10);
+				string_append_with_format(&mensaje," - Grado Actual: %d",gradoMultiprogramacion);
+				escritura_log(mensaje);
+				free(mensaje);
 				if(!detenida){sem_post(&planiLargo);}
 			break;
 

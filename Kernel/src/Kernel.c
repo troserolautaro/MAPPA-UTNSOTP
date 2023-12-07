@@ -337,7 +337,7 @@ void procesar_mensaje(t_list* mensaje){
 				sem_post(&planiCorto);
 			break;
 		case PAGE_FAULT:
-				debug("Page Fault");
+				escritura_log(string_from_format("Page Fault PID: %d - Pagina: %s", proceso->pid,(char*)list_get(mensaje,2)));
 				t_list* parameters = list_create();
 				list_add(parameters, proceso);
 				list_add(parameters,list_get(mensaje,2));

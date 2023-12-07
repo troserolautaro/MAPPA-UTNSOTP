@@ -43,6 +43,7 @@ void set_dato(uint32_t direccion, uint32_t valor);
 void page_fault(uint32_t pid,uint32_t numPagina);
 void asignar_swap(t_list* args);
 pagina_t * pagina_get(uint32_t pid, uint32_t pagina);
+uint32_t devolver_num_marco(uint32_t pid, uint32_t numPagina);
 pagina_t* fifo();
 pagina_t* lru();
 

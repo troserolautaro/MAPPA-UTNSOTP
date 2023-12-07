@@ -21,6 +21,7 @@ char* estado_enum(uint32_t estado){
 		case EXEC:return("EXEC\n");break;
 		case BLOCKED:return("BLOCKED\n");break;
 		case TERMINATED:return("TERMINATED\n");break;
+		case PAGBLOCK: return("PAGBLOCK"); break;
 		default:return("Estado no definido\n");break;
 		}
 }

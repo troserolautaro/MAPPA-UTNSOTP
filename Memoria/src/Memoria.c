@@ -80,7 +80,8 @@ void procesar_mensaje(t_list* mensaje){
 		//valida si es una direccion fisica valida
 		if(direccionFisica<tamMemoria){
 		error=false;
-		//dato=get_dato(*(uint32_t*)list_get(mensaje,1));
+		escritura_log(string_from_format("PID: %d - Accion: LEER - Direccion fisica: %d",*(uint32_t*)list_get(mensaje,3),direccionFisica));
+		dato=get_dato(*(uint32_t*)list_get(mensaje,1));
 		}
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"mov_in",sizeof("mov_in"));
@@ -94,7 +95,8 @@ void procesar_mensaje(t_list* mensaje){
 		bool error=true;
 		if(direccionFisica<tamMemoria){
 			error=false;
-			//set_dato(*(uint32_t*)list_get(mensaje,1),*(uint32_t*)list_get(mensaje,2));
+			escritura_log(string_from_format("PID: %d - Accion: ESCRIBIR - Direccion fisica: %d",*(uint32_t*)list_get(mensaje,3),direccionFisica));
+			set_dato(*(uint32_t*)list_get(mensaje,1),*(uint32_t*)list_get(mensaje,2));
 		}
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"mov_out",sizeof("mov_out"));
@@ -106,7 +108,7 @@ void procesar_mensaje(t_list* mensaje){
 		uint32_t pid, numPagina;
 		pid = *(uint32_t*)list_get(mensaje,1);
 		numPagina = *(uint32_t*)list_get(mensaje,2);
-		debug(string_from_format("PAGE FAULT -> PID: %d, Numero de pagina: %d", pid,numPagina));
+	//	debug(string_from_format("PAGE FAULT -> PID: %d, Numero de pagina: %d", pid,numPagina));
 		page_fault(pid,numPagina);
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"paginaCargada",sizeof("paginaCargada"));
@@ -178,15 +180,16 @@ void procesar_mensaje(t_list* mensaje){
 		uint32_t numeroPagina = *(uint32_t*)list_get(mensaje,2);
 		bool pageFault = true;
 		uint32_t marco = -1;
+
 	//	debug(string_from_format("PID: %s, Numero de pagina: %s",string_itoa(pid),string_itoa(numeroPagina)));
 		pagina_t * pagina = pagina_get(pid,numeroPagina);
 		if(pagina!=NULL){
-
-			pagina_global_t* paginaGlobal = (pagina_global_t*) list_get(tablapaginasGlobales,pagina->marco);
-			if(paginaGlobal!=NULL && paginaGlobal->pid == pid && paginaGlobal->pagina == numeroPagina){
+			//Talvez habria que liberarlos
+			escritura_log(string_from_format("PID: %d - Pagina: %d - Marco: %d",pid,numeroPagina,pagina->marco));
+			if(pagina->p == 1){
 				marco = pagina->marco;
 				pageFault = false;
-		}
+			}
 			t_paquete* paquete=crear_paquete();
 			agregar_a_paquete(paquete,"marco",sizeof("marco"));
 			agregar_a_paquete(paquete,&pageFault,sizeof(bool));
@@ -198,8 +201,10 @@ void procesar_mensaje(t_list* mensaje){
 		asignar_swap(mensaje);
 	}
 	if(!strcasecmp(msg,"paginaSwap")){
-
-		sem_post(&sem_paginaSwap);
+		uint32_t pid = *(uint32_t*)list_get(mensaje,1);
+		uint32_t numPagina =  *(uint32_t*)list_get(mensaje,2);
+		void * datos = list_get(mensaje,3);
+		cargar_pagina_swap(pid,numPagina,datos);
 	}
 	free(msg);
 }
