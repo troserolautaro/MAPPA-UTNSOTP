@@ -145,21 +145,21 @@ void * manejar_consola( void* args ){
 					if(parametros[1]==NULL){
 						break;
 					}
-					char* path = malloc(sizeof(parametros[1]));
+					char* path =string_new();
 					path = string_duplicate(parametros[1]);
 					if(parametros[2]==NULL){
 						free(path);
 						break;
 					}
-					int size = (int) *parametros[2];
+					int size = strtol(parametros[2],NULL,10);
 
 					if(parametros[3]==NULL){
 						free(path);
 						break;
 					}
-					int prioridad = (int) *parametros[3];
+					int prioridad = strtol(parametros[3],NULL,10);
 					iniciar_proceso(path,size,prioridad);
-
+					free(path);
 			break;
 			case FINALIZAR_PROCESO:
 				finalizar_proceso((int)strtol((parametros[1]), (char **)NULL, 10));

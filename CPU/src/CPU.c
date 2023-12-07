@@ -126,7 +126,6 @@ void page_fault(uint32_t* direccionLogica){
 	pthread_mutex_unlock(&mutexProceso);
 	bloquear_proceso();
 	uint32_t numPagina = floor((*direccionLogica) / tamPagina);
-	debug(string_itoa(numPagina));
 	t_list * mensaje = list_create();
 	list_add(mensaje,"page_fault");
 	list_add(mensaje,string_itoa((int)numPagina));
@@ -193,6 +192,7 @@ void mov_in(uint32_t* registro, uint32_t* direccionLogica) {
 	uint32_t pid = proceso->pid;
 	direccionFisica=mmu(direccionLogica);
 	if(!pageFault){
+		debug("No hubo pageFault");
 		t_paquete* paquete=crear_paquete();
 		agregar_a_paquete(paquete,"mov_in",sizeof("mov_in"));
 		agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
@@ -212,6 +212,7 @@ void mov_out(uint32_t* direccionLogica,uint32_t* registro) {
 	uint32_t pid = proceso->pid;
 	direccionFisica=mmu(direccionLogica);
 	if(!pageFault){
+		debug("No hubo pageFault");
 		t_paquete* paquete=crear_paquete();
 		agregar_a_paquete(paquete,"mov_out",sizeof("mov_out"));
 		agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
@@ -516,9 +517,7 @@ void procesar_mensaje(t_list* mensaje){
 //Seria excelente cuanto menos aprovechar que dentro de la lista "mensaje" se encuentra al final el socket para dividir con un switch las funciones
 	if(!strcasecmp(msg,"tamanioPagina")){
 		tamPagina=*(int*)list_get(mensaje,1);
-		debug(string_itoa(tamPagina));
 		sem_post(&tamPagina_s);
-		debug(msg);
 	}
 	if(!strcasecmp(msg,"marco")){
 		pageFault = *(bool*)list_get(mensaje,1);

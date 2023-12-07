@@ -270,8 +270,7 @@ void procesar_mensaje(t_list* mensaje){
 		queue_push(colaLargo,proceso);
 		pthread_mutex_unlock(&mutexColaLargo);
 
-		char * mensaje = string_from_format("Se crea el proceso %d en NEW",proceso->pid);
-		hilo_funcion(mensaje,(void*)escritura_log);
+		escritura_log(string_from_format("Se crea el proceso %d en NEW",proceso->pid));
 		if(!detenida){
 				sem_post(&planiLargo);
 		}
@@ -343,6 +342,7 @@ void procesar_mensaje(t_list* mensaje){
 				list_add(parameters, proceso);
 				list_add(parameters,list_get(mensaje,2));
 				hilo_funcion(parameters,(void*)page_fault);
+				sem_post(&planiCorto);
 			break;
 		case EXIT:
 			error_show("Motivo desconocido");

@@ -67,7 +67,6 @@ void procesar_mensaje(t_list* mensaje){
 	}
 	//Seria excelente cuanto menos aprovechar que dentro de la lista "mensaje" se encuentra al final el socket para dividir con un switch las funciones
 	if(!strcasecmp(msg,"tamanioPagina")){
-		debug(string_itoa(tamPagina));
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"tamanioPagina",sizeof("tamanioPagina"));
 		agregar_a_paquete(paquete,&tamPagina,sizeof(int));
@@ -107,6 +106,7 @@ void procesar_mensaje(t_list* mensaje){
 		uint32_t pid, numPagina;
 		pid = *(uint32_t*)list_get(mensaje,1);
 		numPagina = *(uint32_t*)list_get(mensaje,2);
+		debug(string_from_format("PAGE FAULT -> PID: %d, Numero de pagina: %d", pid,numPagina));
 		page_fault(pid,numPagina);
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"paginaCargada",sizeof("paginaCargada"));
@@ -178,7 +178,7 @@ void procesar_mensaje(t_list* mensaje){
 		uint32_t numeroPagina = *(uint32_t*)list_get(mensaje,2);
 		bool pageFault = true;
 		uint32_t marco = -1;
-		debug(string_from_format("PID: %s, Numero de pagina: %s",string_itoa(pid),string_itoa(numeroPagina)));
+	//	debug(string_from_format("PID: %s, Numero de pagina: %s",string_itoa(pid),string_itoa(numeroPagina)));
 		pagina_t * pagina = pagina_get(pid,numeroPagina);
 		if(pagina!=NULL){
 

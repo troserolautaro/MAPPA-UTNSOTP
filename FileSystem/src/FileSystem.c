@@ -280,6 +280,7 @@ void reservar_SWAP(uint32_t pid, uint32_t cantBloques){
 }
 void* obtener_pagina_swap(uint32_t pid, uint32_t posSWAP){
 	FILE* archivoBloques = fopen(pathBloques,"rb");
+	escritura_log(string_from_format("Acceso SWAP: %d", posSWAP/tamBloque));
 	void * datos = malloc(tamBloque);
 	fseek(archivoBloques, posSWAP,SEEK_SET);
 	fread(datos,tamBloque,1,archivoBloques);

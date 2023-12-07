@@ -43,7 +43,7 @@ void liberar_recursos(PCB* proceso){
 	int i =0;
 	while(!list_is_empty(proceso->recursos)){
 		char* recurso = (char*)list_remove(proceso->recursos,i);
-		debug(string_from_format("Libero el recurso %s de PID_%d",recurso, proceso->pid));
+
 		t_list* elements = (t_list*)dictionary_get(diccionarioRecursos,recurso);
 		int* instancias = (int*)list_get(elements,0);
 		t_queue* colaEspera = (t_queue*)list_get(elements,1);

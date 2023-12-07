@@ -3,7 +3,8 @@
 t_list* tablapaginasGlobales;//indice=marco
 t_list* tablaMarcos;//indice=marco
 t_dictionary* tablaProcesos;//clave pid
-pagina_t* (*algoritmoRemplazo)();
+typedef pagina_t* (*AlgoritmoRemplazoFunction)();
+AlgoritmoRemplazoFunction algoritmoRemplazo;
 void* espacioContiguoMemoria;
 char* algoritmoReemplazo;
 int tamPagina,tamMemoria,cantMarcos,retardoRespuesta;
@@ -51,30 +52,30 @@ void cargar_tabla_marcos_y_pglobales(){
 	}
 }
 
-void iniciar_memoria_usuario(){
-	//algoritmo de remplazo
-	espacioContiguoMemoria=malloc(sizeof(tamMemoria));
-	cantMarcos=tamMemoria/tamPagina;
-	marcoFIFO=0;
-	tablaProcesos=dictionary_create();
-	cargar_tabla_marcos_y_pglobales();
-}
 
+void iterador(void* pagina){
+	pagina_t * paginaT = pagina;
+	char* posSwap = string_itoa(0);
+	debug(posSwap);
+}
 //CREAR PROCESO
 void crear_proceso(uint32_t pid,char* nombre, uint32_t tamaño){
 	//reservar paginas
 	int cantPaginasProceso=ceil(tamaño/tamPagina);
 	t_list* tablaPaginacion=list_create();
 	for(int i=0;i<cantPaginasProceso;i++){
-		list_add(tablaPaginacion,crear_pagina());
+		pagina_t * nuevaPagina = crear_pagina();
+		list_add(tablaPaginacion,nuevaPagina);
+	//	debug(string_from_format("Pagina Nro : %d",i));
 	}
+	//if(list_size(tablaPaginacion) != cantPaginasProceso ) debug("No hay cantidad paginas cargadas necesarias");
 	dictionary_put(tablaProcesos,string_itoa(pid),tablaPaginacion);
+	escritura_log(string_from_format("Creacion Tabla Paginas PID: %d - Tamaño: %d",pid,tamaño));
 	//reservar swap con fs
 	t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"reservarSWAP",sizeof("reservarSWAP"));
 	agregar_a_paquete(paquete,&pid,sizeof(uint32_t));
 	agregar_a_paquete(paquete,&cantPaginasProceso,sizeof(int));
-//	usleep(retardoRespuesta*1000);
 	enviar_paquete(paquete,conexionFS);
 	eliminar_paquete(paquete);
 	sem_wait(&sem_bloquesSwap);
@@ -188,7 +189,7 @@ void asignar_swap(t_list* args){
 
 //SELECCION DE VICTIMA
 //FIFO
-pagina_t* fifo(){
+pagina_t* FIFO(){
 	pagina_global_t* paginaVictima=(pagina_global_t*)list_get(tablapaginasGlobales,marcoFIFO);
 	return (pagina_t* )pagina_get((paginaVictima->pid),(paginaVictima->pagina));
 }
@@ -200,8 +201,20 @@ void* pagina_mas_reciente(void* pagina1,void* pagina2){
 	return pagina2;
 }
 
-pagina_t* lru(){
+pagina_t* LRU(){
 	pagina_global_t* paginaVictima=(pagina_global_t*)list_get_minimum(tablapaginasGlobales,pagina_mas_reciente);
 	return (pagina_t* )pagina_get((paginaVictima->pid),(paginaVictima->pagina));
 }
-
+void iniciar_memoria_usuario(){
+	//algoritmo de remplazo
+	if(!strcasecmp(algoritmoReemplazo,"fifo")){
+		algoritmoRemplazo = FIFO;
+	}else{
+		algoritmoRemplazo = LRU;
+	}
+	espacioContiguoMemoria=malloc(sizeof(tamMemoria));
+	cantMarcos=tamMemoria/tamPagina;
+	marcoFIFO=0;
+	tablaProcesos=dictionary_create();
+	cargar_tabla_marcos_y_pglobales();
+}
