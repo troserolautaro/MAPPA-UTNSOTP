@@ -6,7 +6,7 @@ sem_t  semLectura;
 sem_t  semEscritura;
 
 t_queue * colaLocks;
-t_dictionary *diccionarioDeDiccionariosLocales;
+t_dictionary *diccionarioDeDiccionariosLocales,* tag,*t_dictionarytap;
 /*void abrir_archivo(char* archivo){
 	//ver como lo mando fs
 }
@@ -30,7 +30,7 @@ registro_tag* crear_reg_tag(char* archivo){
 	return registroTag;
 }
 
-/*registro_tag* get_reg_tag(char* archivo){
+registro_tag* get_reg_tag(char* archivo){
 	//VALIDO SI ESTA EN LA TABLA DE ARCHIVOS GLOBAL
 	//si esta el archivo en global lo recupera
 	//sino lo crea y añade
@@ -39,11 +39,11 @@ registro_tag* crear_reg_tag(char* archivo){
 		registroTag = (registro_tag*)dictionary_get(tag,archivo);
 	}else{
 		//sino esta en global lo crea y lo añade
-		registroTag=crear_registroTag(archivo);
+		registroTag=crear_reg_tag(archivo);
 		dictionary_put(tag,archivo,&registroTag);
 	}
 	return registroTag;
-}*/
+}
 
 t_dictionary * get_tap(int pid){
 	t_dictionary * tap;
@@ -57,7 +57,7 @@ t_dictionary * get_tap(int pid){
 	}
 	return tap;
 }
-
+//no usar
 registro_tap* get_reg_tap(int pid,int df){
 	//VALIDO SI ESTA EN LA TABLA DE ARCHIVOS POR PROCESO
 	//si esta el archivo en la tabla por proceso lo recupera
@@ -70,6 +70,13 @@ registro_tap* get_reg_tap(int pid,int df){
 		return (registro_tap*)dictionary_get(tap,string_itoa(df));
 	}
 	return NULL;
+}
+
+//usar la version 2
+registro_tap* get_reg_tap_v2(int pid,char* archivo){
+	registro_tag* registroTag =get_reg_tag(archivo);
+	registro_tap* registroTap=get_reg_tap(pid,(registroTag->df));
+	return registroTap;
 }
 
 /*void f_open(PCB* proceso,char * archivo,char* modoApertura){
@@ -118,31 +125,45 @@ registro_tap* get_reg_tap(int pid,int df){
 	//dictionary_remove(diccionarioArchivos,archivo);//VER SI ENREALIDAD SE SACA DE LA GLOBAL
 } */
 
-void f_seek(PCB* proceso, char * archivo){
-/*
- * Actualiza el puntero del archivo en la tabla de archivos abiertos del proceso hacia la ubicación pasada por parámetro.
- * Se deberá devolver el contexto de ejecución a la CPU para que continúe el mismo proceso.
- */
-
+void f_seek(PCB* proceso, char * archivo,uint32_t puntero){
+	registro_tap *registroTap=get_reg_tap_v2((proceso->pid),archivo);
+	if(registroTap!=NULL){
+	registroTap->puntero=puntero;
+	}
 }
-void f_truncate(PCB* proceso, char * archivo){
+
+void f_truncate(PCB* proceso, char * archivo,uint32_t tamaño){
 /*
  * Esta función solicitará al módulo File System que actualice el tamaño del archivo al nuevo tamaño pasado por parámetro
  *  y bloqueará al proceso hasta que el File System informe de la finalización de la operación.
  */
-
+	t_paquete * paquete = crear_paquete();
+	agregar_a_paquete(paquete,"f_truncate",sizeof("f_truncate"));
+	agregar_a_paquete(paquete,&(proceso->pid),sizeof(uint32_t));
+	agregar_a_paquete(paquete,archivo,sizeof(char));
+	agregar_a_paquete(paquete,&tamaño,sizeof(uint32_t));
+	enviar_paquete(paquete,conexionFileSystem);
+	eliminar_paquete(paquete);
+	//semaforo de filesystem
 }
 
-void f_read(PCB* proceso, char * archivo){
+void f_read(PCB* proceso, char * archivo,uint32_t direccionFisica){
 /*
  * Para esta función se solicita al módulo File System que lea desde el puntero del archivo pasado por parámetro y
  *  lo grabe en la dirección física de memoria recibida por parámetro. El proceso que llamó a F_READ, deberá permanecer
  *  en estado bloqueado hasta que el módulo File System informe de la finalización de la operación.
  * */
-
+	t_paquete * paquete = crear_paquete();
+	agregar_a_paquete(paquete,"f_read",sizeof("f_read"));
+	agregar_a_paquete(paquete,&(proceso->pid),sizeof(uint32_t));
+	agregar_a_paquete(paquete,archivo,sizeof(char));
+	agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
+	enviar_paquete(paquete,conexionFileSystem);
+	eliminar_paquete(paquete);
+	//semaforo de filesystem
 }
 
-void f_write(PCB* proceso, char * archivo){
+void f_write(PCB* proceso, char * archivo,uint32_t direccionFisica){
 /*
  * Esta función, en caso de que el proceso haya solicitado un lock de escritura, solicitará al módulo File System
  * que escriba en el archivo desde la dirección física de memoria recibida por parámetro. El proceso que llamó a
@@ -150,6 +171,14 @@ void f_write(PCB* proceso, char * archivo){
  *  la operación. En caso de que el proceso haya solicitado un lock de lectura, se deberá cancelar la operación y
  *   enviar el proceso a EXIT con motivo de INVALID_WRITE.
  * */
+	t_paquete * paquete = crear_paquete();
+	agregar_a_paquete(paquete,"f_write",sizeof("f_write"));
+	agregar_a_paquete(paquete,&(proceso->pid),sizeof(uint32_t));
+	agregar_a_paquete(paquete,archivo,sizeof(char));
+	agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
+	enviar_paquete(paquete,conexionFileSystem);
+	eliminar_paquete(paquete);
+	//semaforo de filesystem
 
 }
 //PAGE FAULT
