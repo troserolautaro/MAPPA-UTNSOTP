@@ -3,7 +3,8 @@
 #define valor_EOF UINT32_MAX  //Este valor representa al EOF (End of File)
 
 //t_dictionary* tablaFCB;
-void* bloques;//como espacio contiguo de memoria
+void* bloques;//se usa solo para los bloques de swap
+void* bufferMemoria;
 uint32_t* tablaFAT;
 bool * tablaSWAP;//como espacio contiguo de memoria
 pthread_t hiloRecibirCliente;
@@ -17,6 +18,9 @@ int retardoAccesoBloque,retardoAccesoFAT;
 int tamañoFAT;  //Tamaño de los bloques FAT (lo defino en el main)
 pthread_mutex_t mutexLog;
 int conexionMemoria;
+sem_t validRead_s;
+sem_t datosMemoria_s;
+
 
 void conectar_a_memoria(){
 	t_paquete* paquete = crear_paquete();
@@ -52,6 +56,8 @@ int main(void) {
 	retardoAccesoFAT = config_get_int_value(config,"RETARDO_ACCESO_FAT");
 	cantBloquesFAT=(cantBloques - cantBloquesSWAP);
 	//tamañoFAT =  cantBloquesFAT* sizeof(uint32_t);
+	sem_init(&validRead_s,0,0);
+	sem_init(&datosMemoria_s,0,0);
 	conexionMemoria=crear_conexion(ipMemoria, puertoMemoria,FILESYSTEM);
 	pthread_t hiloMemoria;
 	pthread_create(&hiloMemoria,NULL,manejar_cliente,&conexionMemoria);
@@ -235,36 +241,73 @@ void truncar_archivo(char*path, uint32_t tamaño){ //situacionDeseada : ampliar 
 		liberar_bloques_FAT(archivo,cantidad);
 	}
 }
-int obtener_bloque(char*path, uint32_t puntero){
-	t_config* configArchivofcb = config_create(path);
-	uint32_t bloqueInicial =(uint32_t) config_get_int_value(configArchivofcb,"BLOQUE_INICIAL");
-	uint32_t siguiente=tablaFAT[bloqueInicial];
-	for(int i=0;i<puntero){
-		tablaFat[i];
+uint32_t obtener_bloque(t_config *config, uint32_t puntero){
+	uint32_t bloqueInicial =(uint32_t) config_get_int_value(config,"BLOQUE_INICIAL");
+	while(puntero>0){
+		bloqueInicial=tablaFAT[bloqueInicial];
+		puntero--;
 	}
-	config_destroy(configArchivofcb);
+	return bloqueInicial;
 }
-void leer_archivo(char*nombreArchivo,uint32_t direccionFisica, uint32_t puntero){
+void leer_archivo(char*path,uint32_t direccionFisica, uint32_t puntero,int conexion){
 	//comunicacion con memoria
+	uint32_t bloque;
+	t_config *configArchivo=config_create(path);
 	t_paquete * paquete = crear_paquete();
-	agregar_a_paquete(paquete,"f_read",sizeof("f_read"));
-	agregar_a_paquete(paquete,direccionFisica,sizeof(uint32_t));
-	obtener_bloque(puntero);
-	//agrega los datos, envia
-	//agregar_a_paquete(paquete,(char*)list_get(mensaje,1),strlen((char*)list_get(mensaje,1))+1);
-	enviar_paquete(paquete,conexionMemoria);
+
+	int tamaño=config_get_int_value(configArchivo,"TAMANIO_ARCHIVO");
+	if( tamaño>=puntero){
+		uint32_t bloque=obtener_bloque(configArchivo,puntero);
+		uint32_t punteroFisico=cantBloquesSWAP+bloque;
+		void* valorBloque=malloc(tamBloque);
+		FILE *archivoBloques = fopen(pathBloques, "rb+");
+		fseek(archivoBloques,punteroFisico,SEEK_SET);
+		fread(&valorBloque,tamBloque,1,archivoBloques);
+		agregar_a_paquete(paquete,"f_read",sizeof("f_read"));
+		agregar_a_paquete(paquete,direccionFisica,sizeof(uint32_t));
+		agregar_a_paquete(paquete,valorBloque,tamBloque);
+		enviar_paquete(paquete,conexionMemoria);
+		sem_wait(&validRead_s);
+		t_paquete * paquete = crear_paquete();
+		agregar_a_paquete(paquete,"valid_read",sizeof("valid_read"));
+		enviar_paquete(paquete,conexion);
+		eliminar_paquete(paquete);
+	}
+	else{
+		agregar_a_paquete(paquete,"invalid_read",sizeof("invalid_read"));
+		enviar_paquete(paquete,conexion);
+	}
+
 	eliminar_paquete(paquete);
+	config_destroy(configArchivo);
+
+
 }
 
-void escribir_archivo(char*nombreArchivo,uint32_t direccionFisica, uint32_t puntero){
-	//comunicacion con memoria
-	t_paquete * paquete = crear_paquete();
-	agregar_a_paquete(paquete,"f_write",sizeof("f_write"));
-	//agregar_a_paquete(paquete,(char*)list_get(mensaje,1),strlen((char*)list_get(mensaje,1))+1);
-	enviar_paquete(paquete,conexionMemoria);
-	eliminar_paquete(paquete);
+void solicitar_datos_memoria(char*path,uint32_t direccionFisica, uint32_t puntero){
+	t_config *configArchivo=config_create(path);
+	int tamaño=config_get_int_value(configArchivo,"TAMANIO_ARCHIVO");
+	if( tamaño>=puntero){
+		t_paquete * paquete = crear_paquete();
+		agregar_a_paquete(paquete,"f_write",sizeof("f_write"));
+		enviar_paquete(paquete,conexionMemoria);
+		eliminar_paquete(paquete);
+	}
 }
 
+void escribir_archivo(char*path, uint32_t puntero,int conexion){
+	t_config *configArchivo=config_create(path);
+	uint32_t bloque=obtener_bloque(configArchivo,puntero);
+	uint32_t punteroFisico=cantBloquesSWAP+bloque;
+	FILE *archivoBloques = fopen(pathBloques, "rb+");
+	fseek(archivoBloques,punteroFisico,SEEK_SET);
+	fwrite(bufferMemoria,tamBloque,1,archivoBloques);
+	t_paquete * paquete = crear_paquete();
+	agregar_a_paquete(paquete,"valid_write",sizeof("valid_write"));
+	enviar_paquete(paquete,conexion);
+	eliminar_paquete(paquete);
+	config_destroy(configArchivo);
+}
 /*-----------------------*/
 
 //Comunicacion con Memoria
@@ -359,11 +402,21 @@ void procesar_mensaje(t_list* mensaje){
 		eliminar_paquete(paquete);
 	}
 	if(!strcasecmp(msg,"f_read")){
+		char* path=devolver_path((char*)list_get(mensaje,1));
+		leer_archivo(path,*(uint32_t*)list_get(mensaje,2),*(uint32_t*)list_get(mensaje,3),conexion);
+	}
+	if(!strcasecmp(msg,"valid_read")){
+		sem_post(&validRead_s);
 
-		//leer_archivo();
 	}
 	if(!strcasecmp(msg,"f_write")){
-		//escribir_archivo();
+		char* path=devolver_path((char*)list_get(mensaje,1));
+		solicitar_datos_memoria(path,*(uint32_t*)list_get(mensaje,2), *(uint32_t*)list_get(mensaje,2));
+		escribir_archivo(path,*(uint32_t*)list_get(mensaje,2),conexion);
+	}
+	if(!strcasecmp(msg,"datos_memoria")){
+		bufferMemoria=(char*)list_get(mensaje,1);
+		sem_post(&datosMemoria_s);
 	}
 	//peticiones de memoria
 	if(!strcasecmp(msg,"iniciar proceso")){
