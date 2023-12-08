@@ -3,6 +3,7 @@
 sem_t paginaCargada;
 sem_t  semLectura;
 sem_t  semEscritura;
+sem_t sem_archivoCreado,sem_truncado;
 
 t_queue * colaLocks;
 t_dictionary * tag,*t_dictionarytap;
@@ -109,20 +110,20 @@ void agregar_reg_tap(PCB* proceso, char* archivo, uint32_t modoApertura){
 	registro_tap* regTap = crear_reg_tap(modoApertura);
 	dictionary_put(proceso->tablaArchivos,archivo,regTap);
 }
-void f_open(PCB* proceso,char * archivo,uint32_t modoApertura){
+bool f_open(PCB* proceso,char * archivo,uint32_t modoApertura){
 	//parte fisica del fopen
-	if(!dictionary_has_key(tag,archivo)){
-	t_paquete * paquete = crear_paquete();
-	agregar_a_paquete(paquete,"f_open",sizeof("f_open"));
-	//agregar_a_paquete(paquete,&(proceso->pid),sizeof(uint32_t));
-	agregar_a_paquete(paquete,archivo,strlen(archivo)+1);
-	enviar_paquete(paquete,conexionFileSystem);
-	eliminar_paquete(paquete);
+	bool bloqueado = false;
+	if(!dictionary_has_key(tag,archivo)){ //Revisar existencia en tabla archivos globales abiertos
+		t_paquete * paquete = crear_paquete();
+		agregar_a_paquete(paquete,"f_open",sizeof("f_open"));
+		agregar_a_paquete(paquete,archivo,strlen(archivo)+1);
+		enviar_paquete(paquete,conexionFileSystem);
+		eliminar_paquete(paquete);
+		sem_wait(&sem_archivoCreado);
 	}
 	//posible semaforo aca esperando respuesta de fs
 	//parte logica del fopen
 	registro_tag* regTag=get_reg_tag(archivo);
-//	registro_tap* regTap=get_reg_tap((proceso.),archivo);
 
 	switch(modoApertura){
 		case ESCRITURA:
@@ -135,6 +136,7 @@ void f_open(PCB* proceso,char * archivo,uint32_t modoApertura){
 				regTag->lockActivo = lockEscritura;
 				agregar_reg_tap(proceso,archivo,modoApertura);
 			}else{
+				bloqueado = true;
 				//Bloquear y agregar a la COLA LOCK
 				bloquear_proceso(proceso,archivo);
 				agregar_a_colaLock(lockEscritura,regTag);
@@ -147,6 +149,7 @@ void f_open(PCB* proceso,char * archivo,uint32_t modoApertura){
 				agregar_participante(lockLectura,proceso);
 				bloquear_proceso(proceso,archivo);
 				agregar_a_colaLock(lockLectura,regTag);
+				bloqueado = true;
 				//Bloquear proceso y agregar a cola LOCK
 				//Al hacer que la cola solo reciba lock* tengo que crear uno nuevo por cada nuevo de lectura,
 				//por ende despues solo habria que usar el primero
@@ -166,6 +169,7 @@ void f_open(PCB* proceso,char * archivo,uint32_t modoApertura){
 			break;
 	}
 
+	return bloqueado;
 	}
 
 //F CLOSE
@@ -217,18 +221,26 @@ void f_seek(PCB* proceso, char * archivo,uint32_t puntero){
 	}
 }
 
-void f_truncate(PCB* proceso, char * archivo,uint32_t tamaño){
+void f_truncate(t_list* parameters){
 /*
  * Esta función solicitará al módulo File System que actualice el tamaño del archivo al nuevo tamaño pasado por parámetro
  *  y bloqueará al proceso hasta que el File System informe de la finalización de la operación.
  */
+
+	PCB* proceso = list_get(parameters,0);
+	char* archivo = list_get(parameters,1);
+	uint32_t tamaño = (uint32_t)strtol((char*)list_get(parameters,2),NULL,10);
+	bloquear_proceso(proceso,archivo);
+	sem_post(&planiCorto);
 	t_paquete * paquete = crear_paquete();
 	agregar_a_paquete(paquete,"f_truncate",sizeof("f_truncate"));
-	agregar_a_paquete(paquete,&(proceso->pid),sizeof(uint32_t));
-	agregar_a_paquete(paquete,archivo,sizeof(char));
+	//agregar_a_paquete(paquete,&(proceso->pid),sizeof(uint32_t));
+	agregar_a_paquete(paquete,archivo,strlen(archivo)+1);
 	agregar_a_paquete(paquete,&tamaño,sizeof(uint32_t));
 	enviar_paquete(paquete,conexionFileSystem);
 	eliminar_paquete(paquete);
+	free(archivo);
+	sem_wait(&sem_truncado);
 	//semaforo de filesystem
 }
 

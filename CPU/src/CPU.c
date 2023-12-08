@@ -259,11 +259,11 @@ void f_close(char* nombreArchivo) {
 	list_destroy(mensaje);
 }
 
-void f_seek(char* nombreArchivo, uint32_t* posicion) {
+void f_seek(char* nombreArchivo, uint32_t posicion) {
 	t_list * mensaje = list_create();
-	list_add(mensaje,"f_open");
+	list_add(mensaje,"f_seek");
 	list_add(mensaje,nombreArchivo);
-	list_add(mensaje,posicion);
+	list_add(mensaje,string_itoa(posicion));
 	contexto_ejecucion(mensaje);
 
 	bloquear_proceso();
@@ -271,10 +271,9 @@ void f_seek(char* nombreArchivo, uint32_t* posicion) {
 	list_destroy(mensaje);
 }
 
-void f_read(char* nombreArchivo, uint32_t* direccionLogica) {
+void f_read(char* nombreArchivo, uint32_t direccionLogica) {
 	uint32_t direccionFisica;
-	uint32_t pid = proceso->pid;
-	direccionFisica=mmu(direccionLogica);
+	direccionFisica=mmu(&direccionLogica);
 	if(!pageFault){
 		t_list * mensaje = list_create();
 		list_add(mensaje,"f_read");
@@ -289,14 +288,13 @@ void f_read(char* nombreArchivo, uint32_t* direccionLogica) {
 		list_destroy(mensaje);
 	}
 	else{
-		page_fault(direccionLogica);
+		page_fault(&direccionLogica);
 	}
 }
 
-void f_write(char* nombreArchivo, uint32_t* direccionLogica) {
+void f_write(char* nombreArchivo, uint32_t direccionLogica) {
 	uint32_t direccionFisica;
-	uint32_t pid = proceso->pid;
-	direccionFisica=mmu(direccionLogica);
+	direccionFisica=mmu(&direccionLogica);
 	if(!pageFault){
 		t_list * mensaje = list_create();
 		list_add(mensaje,"f_write");
@@ -311,15 +309,15 @@ void f_write(char* nombreArchivo, uint32_t* direccionLogica) {
 		list_destroy(mensaje);
 	}
 	else{
-		page_fault(direccionLogica);
+		page_fault(&direccionLogica);
 	}
 }
 
-void f_truncate(char* nombreArchivo, uint32_t* newSize) {
+void f_truncate(char* nombreArchivo, uint32_t newSize) {
 	t_list * mensaje = list_create();
 	list_add(mensaje,"f_truncate");
 	list_add(mensaje,nombreArchivo);
-	list_add(mensaje,newSize);
+	list_add(mensaje,string_itoa(newSize));
 	contexto_ejecucion(mensaje);
 
 	bloquear_proceso();
@@ -455,16 +453,16 @@ void decode_and_execute(){
 	    f_close((char*)list_get(parametros,0));
 	}
 	if (!strcasecmp(comando, "F_SEEK")) {
-	    f_seek((char*)list_get(parametros,0), (uint32_t*)list_get(parametros,1));
+	    f_seek((char*)list_get(parametros,0),((uint32_t)strtol(list_get(parametros,1),NULL,10)));
 	}
 	if (!strcasecmp(comando, "F_READ")) {
-	    f_read((char*)list_get(parametros,0), (uint32_t*)list_get(parametros,1));
+	    f_read((char*)list_get(parametros,0), ((uint32_t)strtol(list_get(parametros,1),NULL,10)));
 	}
 	if (!strcasecmp(comando, "F_WRITE")) {
-	    f_write((char*)list_get(parametros,0), (uint32_t*)list_get(parametros,1));
+	    f_write((char*)list_get(parametros,0), ((uint32_t)strtol(list_get(parametros,1),NULL,10)));
 	}
 	if (!strcasecmp(comando, "F_TRUNCATE")) {
-	    f_truncate((char*)list_get(parametros,0), (uint32_t*)list_get(parametros,1));
+	    f_truncate((char*)list_get(parametros,0), ((uint32_t)strtol(list_get(parametros,1),NULL,10)));
 	}
 	if(!strcasecmp(comando, "EXIT")){
 		exit_i();

@@ -129,6 +129,7 @@ void * manejar_cliente(void* socket){
 			//printf("%d",socketint);
 			list_add(mensaje, socket);
 			procesar_mensaje(mensaje);
+			//liberar mensaje
 		}
 		if(mensaje==NULL){
 			//free(socket);

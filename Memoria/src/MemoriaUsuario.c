@@ -117,8 +117,9 @@ uint32_t get_dato(uint32_t direccion) {
 
 //ACCESO A ESPACIO DE USUARIO ESCRITURA
 void set_dato(uint32_t direccion, uint32_t valor) {
+	debug(string_itoa(direccion));
 	pthread_mutex_lock(&mutex_memoria);
-	memcpy((void*)((char*)espacioContiguoMemoria + direccion),(void*)&valor,sizeof(uint32_t));
+	memcpy((void*)(((char*)espacioContiguoMemoria) + direccion),(void*)&valor,sizeof(uint32_t));
 	pthread_mutex_unlock(&mutex_memoria);
 	//MARCO MODIFICADO
 	pagina_global_t* paginaGlobal = (list_get(tablapaginasGlobales,direccion/tamPagina));
@@ -169,6 +170,7 @@ void page_fault(uint32_t pid,uint32_t numPagina){
 		marcoLibre = list_get(tablaMarcos,paginaVictima->marco);
 		if(paginaVictima->m!=0){
 			void* datos = descargar_pagina_swap(marcoLibre->base);
+			debug(string_from_format("PORCION EN BYTES EN MEMORIA: %s",mem_hexstring(datos,tamPagina)));
 			//Guardar en bloques SWAP y luego continuar
 			t_paquete* paquete = crear_paquete();
 			agregar_a_paquete(paquete,"escribirSwap",sizeof("escribirSwap"));

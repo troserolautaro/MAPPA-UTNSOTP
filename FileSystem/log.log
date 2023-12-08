@@ -76,3 +76,459 @@
 [DEBUG] 08:01:09:750 log/(32968:32968): Servidor listo para recibir al cliente
 [DEBUG] 08:01:13:655 log/(32968:32971): Hola! 0
 [ERROR] 08:01:23:676 log/(32968:32970): Un cliente se desconecto.
+[DEBUG] 18:33:50:485 log/(9083:9083): Servidor listo para recibir al cliente
+[DEBUG] 18:33:57:986 log/(9083:9086): Hola! 0
+[ERROR] 18:34:02:987 log/(9083:9122): Un cliente se desconecto.
+[DEBUG] 18:35:13:148 log/(9428:9428): Servidor listo para recibir al cliente
+[DEBUG] 18:35:16:001 log/(9428:9431): Hola! 0
+[INFO] 18:36:06:582 log/(9428:9463): Abrir Archivo: consolas
+[INFO] 18:36:06:585 log/(9428:9463): Crear Archivo: consolas
+[DEBUG] 18:37:01:070 log/(9503:9503): Servidor listo para recibir al cliente
+[DEBUG] 18:37:14:931 log/(9562:9562): Servidor listo para recibir al cliente
+[DEBUG] 18:37:17:611 log/(9562:9565): Hola! 0
+[INFO] 18:37:28:375 log/(9562:9597): Abrir Archivo: consolas
+[INFO] 18:37:28:378 log/(9562:9597): Crear Archivo: consolas
+[ERROR] 18:44:49:663 log/(9562:9597): Un cliente se desconecto.
+[DEBUG] 18:44:53:214 log/(9931:9931): Servidor listo para recibir al cliente
+[DEBUG] 18:44:55:638 log/(9931:9934): Hola! 0
+[ERROR] 18:45:00:122 log/(9931:9965): Un cliente se desconecto.
+[DEBUG] 18:45:32:668 log/(10170:10170): Servidor listo para recibir al cliente
+[DEBUG] 18:45:35:014 log/(10170:10173): Hola! 0
+[INFO] 18:45:42:045 log/(10170:10207): Abrir Archivo: consolas
+[INFO] 18:45:42:048 log/(10170:10207): Crear Archivo: consolas
+[ERROR] 18:45:46:560 log/(10170:10207): Un cliente se desconecto.
+[DEBUG] 18:47:18:942 log/(10292:10292): Servidor listo para recibir al cliente
+[DEBUG] 18:47:23:365 log/(10292:10295): Hola! 0
+[INFO] 18:47:30:842 log/(10292:10328): Abrir Archivo: consolas
+[INFO] 18:47:30:844 log/(10292:10328): Crear Archivo: consolas
+[ERROR] 18:50:57:168 log/(10292:10328): Un cliente se desconecto.
+[DEBUG] 18:51:09:624 log/(10508:10508): Servidor listo para recibir al cliente
+[DEBUG] 18:51:17:290 log/(10508:10516): Hola! 0
+[INFO] 18:51:28:588 log/(10508:10553): Abrir Archivo: consolas
+[ERROR] 18:55:01:821 log/(10508:10553): Un cliente se desconecto.
+[DEBUG] 18:55:24:051 log/(10611:10611): Servidor listo para recibir al cliente
+[DEBUG] 18:55:58:840 log/(10611:10614): Hola! 0
+[INFO] 18:56:08:466 log/(10611:10665): Abrir Archivo: consolas
+[ERROR] 18:57:26:537 log/(10611:10665): Un cliente se desconecto.
+[DEBUG] 18:57:30:158 log/(10714:10714): Servidor listo para recibir al cliente
+[DEBUG] 18:57:32:673 log/(10714:10717): Hola! 0
+[INFO] 18:57:39:250 log/(10714:10750): Abrir Archivo: consolas
+[ERROR] 18:58:53:058 log/(10714:10750): Un cliente se desconecto.
+[DEBUG] 18:58:56:703 log/(10830:10830): Servidor listo para recibir al cliente
+[DEBUG] 18:58:59:423 log/(10830:10833): Hola! 0
+[INFO] 18:59:06:853 log/(10830:10867): Abrir Archivo: consolas
+[ERROR] 18:59:08:455 log/(10830:10867): Un cliente se desconecto.
+[DEBUG] 19:12:21:892 log/(11543:11543): Servidor listo para recibir al cliente
+[DEBUG] 19:12:24:701 log/(11543:11546): Hola! 0
+[INFO] 19:12:32:709 log/(11543:11579): Abrir Archivo: consolas
+[ERROR] 19:47:59:184 log/(11543:11579): Un cliente se desconecto.
+[DEBUG] 19:48:02:752 log/(12591:12591): Servidor listo para recibir al cliente
+[DEBUG] 19:48:05:307 log/(12591:12594): Hola! 0
+[ERROR] 19:48:08:280 log/(12591:12625): Un cliente se desconecto.
+[DEBUG] 19:50:38:414 log/(13303:13303): Servidor listo para recibir al cliente
+[DEBUG] 19:50:47:354 log/(13303:13306): Hola! 0
+[INFO] 19:50:55:809 log/(13303:13340): Abrir Archivo: consolas
+[INFO] 19:50:55:811 log/(13303:13340): Crear Archivo: consolas
+[INFO] 19:50:56:347 log/(13303:13340): Truncar Archivo:  - Tamaño 102
+[DEBUG] 19:57:37:696 log/(13433:13433): Servidor listo para recibir al cliente
+[DEBUG] 19:57:40:263 log/(13433:13436): Hola! 0
+[INFO] 19:57:48:623 log/(13433:13470): Abrir Archivo: consolas
+[INFO] 19:57:49:162 log/(13433:13470): Truncar Archivo: f - Tamaño 1920229222
+[DEBUG] 20:00:34:450 log/(13626:13626): Servidor listo para recibir al cliente
+[DEBUG] 20:00:37:082 log/(13626:13629): Hola! 0
+[INFO] 20:00:44:779 log/(13626:13662): Abrir Archivo: consolas
+[INFO] 20:00:45:311 log/(13626:13662): Truncar Archivo: f - Tamaño 1920229222
+[DEBUG] 20:01:52:685 log/(13719:13719): Servidor listo para recibir al cliente
+[DEBUG] 20:01:55:345 log/(13719:13722): Hola! 0
+[INFO] 20:02:02:900 log/(13719:13754): Abrir Archivo: consolas
+[INFO] 20:02:03:432 log/(13719:13754): Truncar Archivo: c - Tamaño 909325105
+[DEBUG] 20:04:43:203 log/(14040:14040): Servidor listo para recibir al cliente
+[DEBUG] 20:04:45:629 log/(14040:14043): Hola! 0
+[INFO] 20:04:52:460 log/(14040:14077): Abrir Archivo: consolas
+[INFO] 20:04:52:995 log/(14040:14077): Truncar Archivo: c - Tamaño 13366
+[DEBUG] 20:14:13:919 log/(14178:14178): Servidor listo para recibir al cliente
+[DEBUG] 20:14:16:598 log/(14178:14181): Hola! 0
+[INFO] 20:14:24:743 log/(14178:14213): Abrir Archivo: consolas
+[INFO] 20:14:25:278 log/(14178:14213): Truncar Archivo: c - Tamaño 13366
+[DEBUG] 20:17:44:034 log/(14433:14433): Servidor listo para recibir al cliente
+[DEBUG] 20:20:51:018 log/(14992:14992): Servidor listo para recibir al cliente
+[DEBUG] 20:20:53:790 log/(14992:14995): Hola! 0
+[INFO] 20:21:02:858 log/(14992:15029): Abrir Archivo: consolas
+[INFO] 20:21:03:391 log/(14992:15029): Truncar Archivo: c - Tamaño 64
+[DEBUG] 20:22:42:884 log/(15150:15150): Servidor listo para recibir al cliente
+[DEBUG] 20:22:45:561 log/(15150:15153): Hola! 0
+[INFO] 20:22:57:191 log/(15150:15186): Abrir Archivo: consolas
+[ERROR] 20:22:57:895 log/(15150:15186): Un cliente se desconecto.
+[DEBUG] 20:23:47:588 log/(15233:15233): Servidor listo para recibir al cliente
+[DEBUG] 20:23:51:827 log/(15233:15236): Hola! 0
+[INFO] 20:23:59:216 log/(15233:15270): Abrir Archivo: consolas
+[INFO] 20:23:59:748 log/(15233:15270): Truncar Archivo: c - Tamaño 64
+[DEBUG] 20:25:11:595 log/(15324:15324): Servidor listo para recibir al cliente
+[DEBUG] 20:25:14:272 log/(15324:15327): Hola! 0
+[INFO] 20:25:20:179 log/(15324:15360): Abrir Archivo: consolas
+[INFO] 20:25:20:182 log/(15324:15360): Crear Archivo: consolas
+[INFO] 20:25:20:716 log/(15324:15360): Truncar Archivo: c - Tamaño 64
+[DEBUG] 20:26:56:658 log/(15468:15468): Servidor listo para recibir al cliente
+[DEBUG] 20:27:01:719 log/(15468:15471): Hola! 0
+[INFO] 20:27:24:338 log/(15468:15504): Abrir Archivo: consolas
+[INFO] 20:27:24:873 log/(15468:15504): Truncar Archivo: consolas - Tamaño 64
+[DEBUG] 20:28:39:372 log/(15574:15574): Servidor listo para recibir al cliente
+[DEBUG] 20:28:42:322 log/(15574:15577): Hola! 0
+[INFO] 20:28:50:375 log/(15574:15609): Abrir Archivo: consolas
+[DEBUG] 20:29:08:139 log/(15652:15652): Servidor listo para recibir al cliente
+[DEBUG] 20:29:17:300 log/(15711:15711): Servidor listo para recibir al cliente
+[DEBUG] 20:29:26:927 log/(15770:15770): Servidor listo para recibir al cliente
+[DEBUG] 20:51:57:203 log/(2176:2176): Servidor listo para recibir al cliente
+[DEBUG] 20:52:05:481 log/(2176:2179): Hola! 0
+[INFO] 20:52:12:636 log/(2176:2219): Abrir Archivo: consolas
+[INFO] 20:52:12:639 log/(2176:2219): Crear Archivo: consolas
+[INFO] 20:52:13:180 log/(2176:2219): Truncar Archivo: consolas - Tamaño 64
+[DEBUG] 20:54:26:075 log/(2302:2302): Servidor listo para recibir al cliente
+[DEBUG] 20:54:28:969 log/(2302:2305): Hola! 0
+[INFO] 20:54:36:596 log/(2302:2339): Abrir Archivo: consolas
+[INFO] 20:54:37:126 log/(2302:2339): Truncar Archivo: consolas - Tamaño 64
+[DEBUG] 20:58:08:994 log/(2509:2509): Servidor listo para recibir al cliente
+[DEBUG] 20:58:11:647 log/(2509:2512): Hola! 0
+[INFO] 20:58:18:536 log/(2509:2544): Abrir Archivo: consolas
+[INFO] 20:58:19:067 log/(2509:2544): Truncar Archivo: consolas - Tamaño 64
+[DEBUG] 21:00:34:828 log/(2644:2644): Servidor listo para recibir al cliente
+[DEBUG] 21:00:37:388 log/(2644:2647): Hola! 0
+[INFO] 21:00:43:718 log/(2644:2681): Abrir Archivo: consolas
+[INFO] 21:00:44:250 log/(2644:2681): Truncar Archivo: consolas - Tamaño 64
+[DEBUG] 21:04:46:738 log/(2814:2814): Servidor listo para recibir al cliente
+[DEBUG] 21:04:49:138 log/(2814:2817): Hola! 0
+[INFO] 21:04:56:292 log/(2814:2851): Abrir Archivo: consolas
+[INFO] 21:04:56:826 log/(2814:2851): Truncar Archivo: consolas - Tamaño 64
+[DEBUG] 21:26:06:276 log/(3602:3602): Servidor listo para recibir al cliente
+[DEBUG] 21:26:09:917 log/(3602:3605): Hola! 0
+[INFO] 21:26:40:866 log/(3602:3604): Acceso SWAP: 0
+[INFO] 21:26:43:383 log/(3602:3604): Acceso SWAP: 1
+[INFO] 21:26:45:892 log/(3602:3604): Acceso SWAP: 2
+[INFO] 21:26:48:403 log/(3602:3604): Acceso SWAP: 3
+[INFO] 21:26:54:427 log/(3602:3604): Acceso SWAP: 0
+[INFO] 21:26:54:429 log/(3602:3604): Acceso SWAP: 4
+[INFO] 21:26:56:940 log/(3602:3604): Acceso SWAP: 1
+[INFO] 21:26:56:941 log/(3602:3604): Acceso SWAP: 5
+[INFO] 21:26:59:450 log/(3602:3604): Acceso SWAP: 2
+[INFO] 21:26:59:451 log/(3602:3604): Acceso SWAP: 6
+[INFO] 21:27:01:961 log/(3602:3604): Acceso SWAP: 3
+[INFO] 21:27:01:961 log/(3602:3604): Acceso SWAP: 7
+[INFO] 21:27:43:465 log/(3602:3604): Acceso SWAP: 4
+[INFO] 21:27:43:468 log/(3602:3604): Acceso SWAP: 8
+[INFO] 21:27:45:471 log/(3602:3604): Acceso SWAP: 5
+[INFO] 21:27:45:472 log/(3602:3604): Acceso SWAP: 12
+[INFO] 21:27:47:477 log/(3602:3604): Acceso SWAP: 6
+[INFO] 21:27:47:478 log/(3602:3604): Acceso SWAP: 16
+[INFO] 21:27:49:482 log/(3602:3604): Acceso SWAP: 7
+[INFO] 21:27:49:483 log/(3602:3604): Acceso SWAP: 20
+[INFO] 21:27:51:989 log/(3602:3604): Acceso SWAP: 8
+[INFO] 21:27:51:989 log/(3602:3604): Acceso SWAP: 9
+[INFO] 21:27:54:495 log/(3602:3604): Acceso SWAP: 12
+[INFO] 21:27:54:495 log/(3602:3604): Acceso SWAP: 13
+[INFO] 21:27:57:004 log/(3602:3604): Acceso SWAP: 16
+[INFO] 21:27:57:006 log/(3602:3604): Acceso SWAP: 17
+[INFO] 21:27:59:511 log/(3602:3604): Acceso SWAP: 20
+[INFO] 21:27:59:512 log/(3602:3604): Acceso SWAP: 21
+[INFO] 21:28:02:020 log/(3602:3604): Acceso SWAP: 9
+[INFO] 21:28:02:020 log/(3602:3604): Acceso SWAP: 10
+[INFO] 21:28:04:527 log/(3602:3604): Acceso SWAP: 13
+[INFO] 21:28:04:528 log/(3602:3604): Acceso SWAP: 14
+[INFO] 21:28:07:034 log/(3602:3604): Acceso SWAP: 17
+[INFO] 21:28:07:035 log/(3602:3604): Acceso SWAP: 18
+[INFO] 21:28:09:543 log/(3602:3604): Acceso SWAP: 21
+[INFO] 21:28:09:543 log/(3602:3604): Acceso SWAP: 22
+[INFO] 21:28:12:049 log/(3602:3604): Acceso SWAP: 10
+[INFO] 21:28:12:050 log/(3602:3604): Acceso SWAP: 11
+[INFO] 21:28:14:556 log/(3602:3604): Acceso SWAP: 14
+[INFO] 21:28:14:557 log/(3602:3604): Acceso SWAP: 15
+[INFO] 21:28:17:064 log/(3602:3604): Acceso SWAP: 18
+[INFO] 21:28:17:065 log/(3602:3604): Acceso SWAP: 19
+[INFO] 21:28:19:572 log/(3602:3604): Acceso SWAP: 22
+[INFO] 21:28:19:573 log/(3602:3604): Acceso SWAP: 23
+[INFO] 21:29:10:468 log/(3602:3604): Acceso SWAP: 11
+[INFO] 21:29:10:469 log/(3602:3604): Acceso SWAP: 24
+[INFO] 21:29:12:979 log/(3602:3604): Acceso SWAP: 15
+[INFO] 21:29:12:980 log/(3602:3604): Acceso SWAP: 25
+[INFO] 21:29:31:990 log/(3602:3604): Acceso SWAP: 19
+[INFO] 21:29:31:991 log/(3602:3604): Acceso SWAP: 26
+[INFO] 21:29:34:500 log/(3602:3604): Acceso SWAP: 23
+[INFO] 21:29:34:501 log/(3602:3604): Acceso SWAP: 27
+[INFO] 21:29:39:519 log/(3602:3604): Acceso SWAP: 24
+[INFO] 21:29:39:519 log/(3602:3604): Acceso SWAP: 28
+[INFO] 21:29:42:028 log/(3602:3604): Acceso SWAP: 25
+[INFO] 21:29:42:029 log/(3602:3604): Acceso SWAP: 29
+[INFO] 21:29:44:538 log/(3602:3604): Acceso SWAP: 26
+[INFO] 21:29:44:539 log/(3602:3604): Acceso SWAP: 30
+[INFO] 21:29:47:047 log/(3602:3604): Acceso SWAP: 27
+[INFO] 21:29:47:048 log/(3602:3604): Acceso SWAP: 31
+[INFO] 21:29:52:064 log/(3602:3604): Acceso SWAP: 28
+[INFO] 21:29:52:065 log/(3602:3604): Acceso SWAP: 32
+[INFO] 21:29:54:575 log/(3602:3604): Acceso SWAP: 29
+[INFO] 21:29:54:576 log/(3602:3604): Acceso SWAP: 33
+[INFO] 21:29:57:085 log/(3602:3604): Acceso SWAP: 30
+[INFO] 21:29:57:086 log/(3602:3604): Acceso SWAP: 34
+[INFO] 21:29:59:595 log/(3602:3604): Acceso SWAP: 31
+[INFO] 21:29:59:596 log/(3602:3604): Acceso SWAP: 35
+[INFO] 21:30:04:613 log/(3602:3604): Acceso SWAP: 32
+[INFO] 21:30:04:614 log/(3602:3604): Acceso SWAP: 36
+[INFO] 21:30:07:123 log/(3602:3604): Acceso SWAP: 33
+[INFO] 21:30:07:124 log/(3602:3604): Acceso SWAP: 37
+[INFO] 21:30:09:633 log/(3602:3604): Acceso SWAP: 34
+[INFO] 21:30:09:634 log/(3602:3604): Acceso SWAP: 38
+[INFO] 21:30:12:142 log/(3602:3604): Acceso SWAP: 35
+[INFO] 21:30:12:143 log/(3602:3604): Acceso SWAP: 39
+[ERROR] 21:36:13:735 log/(3602:3640): Un cliente se desconecto.
+[DEBUG] 21:36:19:245 log/(3763:3763): Servidor listo para recibir al cliente
+[DEBUG] 21:36:22:090 log/(3763:3766): Hola! 0
+[INFO] 21:36:33:933 log/(3763:3765): Acceso SWAP: 0
+[INFO] 21:36:36:452 log/(3763:3765): Acceso SWAP: 1
+[INFO] 21:36:38:963 log/(3763:3765): Acceso SWAP: 2
+[INFO] 21:36:41:473 log/(3763:3765): Acceso SWAP: 3
+[ERROR] 21:36:47:187 log/(3763:3765): Un cliente se desconecto.
+[DEBUG] 21:38:31:087 log/(4030:4030): Servidor listo para recibir al cliente
+[DEBUG] 21:38:37:320 log/(4030:4033): Hola! 0
+[INFO] 21:38:54:317 log/(4030:4032): Acceso SWAP: 0
+[INFO] 21:38:56:856 log/(4030:4032): Acceso SWAP: 1
+[INFO] 21:38:59:365 log/(4030:4032): Acceso SWAP: 2
+[INFO] 21:39:01:876 log/(4030:4032): Acceso SWAP: 3
+[ERROR] 21:39:07:639 log/(4030:4032): Un cliente se desconecto.
+[DEBUG] 21:43:03:766 log/(4252:4252): Servidor listo para recibir al cliente
+[DEBUG] 21:43:07:901 log/(4252:4255): Hola! 0
+[INFO] 21:43:15:550 log/(4252:4254): Acceso SWAP: 0
+[INFO] 21:43:18:067 log/(4252:4254): Acceso SWAP: 1
+[INFO] 21:43:20:577 log/(4252:4254): Acceso SWAP: 2
+[INFO] 21:43:23:087 log/(4252:4254): Acceso SWAP: 3
+[ERROR] 21:43:28:784 log/(4252:4254): Un cliente se desconecto.
+[DEBUG] 22:04:08:726 log/(5291:5291): Servidor listo para recibir al cliente
+[DEBUG] 22:04:15:656 log/(5291:5294): Hola! 0
+[INFO] 22:04:23:348 log/(5291:5293): Acceso SWAP: 0
+[INFO] 22:04:25:869 log/(5291:5293): Acceso SWAP: 1
+[INFO] 22:04:28:380 log/(5291:5293): Acceso SWAP: 2
+[INFO] 22:04:30:890 log/(5291:5293): Acceso SWAP: 3
+[INFO] 22:04:36:914 log/(5291:5293): Acceso SWAP: 0
+[INFO] 22:04:36:917 log/(5291:5293): Acceso SWAP: 4
+[INFO] 22:04:39:427 log/(5291:5293): Acceso SWAP: 1
+[INFO] 22:04:39:429 log/(5291:5293): Acceso SWAP: 5
+[INFO] 22:04:41:939 log/(5291:5293): Acceso SWAP: 2
+[INFO] 22:04:41:941 log/(5291:5293): Acceso SWAP: 6
+[INFO] 22:04:44:451 log/(5291:5293): Acceso SWAP: 3
+[INFO] 22:04:44:453 log/(5291:5293): Acceso SWAP: 7
+[INFO] 22:05:18:992 log/(5291:5293): Acceso SWAP: 4
+[INFO] 22:05:18:993 log/(5291:5293): Acceso SWAP: 8
+[INFO] 22:05:20:997 log/(5291:5293): Acceso SWAP: 5
+[INFO] 22:05:20:999 log/(5291:5293): Acceso SWAP: 12
+[INFO] 22:05:23:004 log/(5291:5293): Acceso SWAP: 6
+[INFO] 22:05:23:006 log/(5291:5293): Acceso SWAP: 16
+[INFO] 22:05:25:010 log/(5291:5293): Acceso SWAP: 7
+[INFO] 22:05:25:011 log/(5291:5293): Acceso SWAP: 20
+[INFO] 22:05:27:517 log/(5291:5293): Acceso SWAP: 8
+[INFO] 22:05:27:518 log/(5291:5293): Acceso SWAP: 9
+[INFO] 22:05:30:023 log/(5291:5293): Acceso SWAP: 12
+[INFO] 22:05:30:025 log/(5291:5293): Acceso SWAP: 13
+[INFO] 22:05:32:530 log/(5291:5293): Acceso SWAP: 16
+[INFO] 22:05:32:532 log/(5291:5293): Acceso SWAP: 17
+[INFO] 22:05:35:037 log/(5291:5293): Acceso SWAP: 20
+[INFO] 22:05:35:039 log/(5291:5293): Acceso SWAP: 21
+[INFO] 22:05:37:545 log/(5291:5293): Acceso SWAP: 9
+[INFO] 22:05:37:546 log/(5291:5293): Acceso SWAP: 10
+[INFO] 22:05:40:051 log/(5291:5293): Acceso SWAP: 13
+[INFO] 22:05:40:052 log/(5291:5293): Acceso SWAP: 14
+[INFO] 22:05:42:558 log/(5291:5293): Acceso SWAP: 17
+[INFO] 22:05:42:559 log/(5291:5293): Acceso SWAP: 18
+[INFO] 22:05:45:065 log/(5291:5293): Acceso SWAP: 21
+[INFO] 22:05:45:066 log/(5291:5293): Acceso SWAP: 22
+[INFO] 22:05:47:573 log/(5291:5293): Acceso SWAP: 10
+[INFO] 22:05:47:575 log/(5291:5293): Acceso SWAP: 11
+[INFO] 22:05:50:080 log/(5291:5293): Acceso SWAP: 14
+[INFO] 22:05:50:082 log/(5291:5293): Acceso SWAP: 15
+[INFO] 22:05:52:587 log/(5291:5293): Acceso SWAP: 18
+[INFO] 22:05:52:588 log/(5291:5293): Acceso SWAP: 19
+[INFO] 22:05:55:093 log/(5291:5293): Acceso SWAP: 22
+[INFO] 22:05:55:094 log/(5291:5293): Acceso SWAP: 23
+[INFO] 22:17:06:788 log/(5291:5293): Acceso SWAP: 11
+[INFO] 22:17:06:789 log/(5291:5293): Acceso SWAP: 24
+[INFO] 22:17:09:298 log/(5291:5293): Acceso SWAP: 15
+[INFO] 22:17:09:302 log/(5291:5293): Acceso SWAP: 25
+[INFO] 22:17:11:813 log/(5291:5293): Acceso SWAP: 19
+[INFO] 22:17:11:815 log/(5291:5293): Acceso SWAP: 26
+[INFO] 22:17:14:325 log/(5291:5293): Acceso SWAP: 23
+[INFO] 22:17:14:326 log/(5291:5293): Acceso SWAP: 27
+[INFO] 22:17:19:344 log/(5291:5293): Acceso SWAP: 24
+[INFO] 22:17:19:346 log/(5291:5293): Acceso SWAP: 28
+[INFO] 22:17:21:856 log/(5291:5293): Acceso SWAP: 25
+[INFO] 22:17:21:858 log/(5291:5293): Acceso SWAP: 29
+[INFO] 22:17:24:368 log/(5291:5293): Acceso SWAP: 26
+[INFO] 22:17:24:370 log/(5291:5293): Acceso SWAP: 30
+[INFO] 22:17:26:881 log/(5291:5293): Acceso SWAP: 27
+[INFO] 22:17:26:883 log/(5291:5293): Acceso SWAP: 31
+[INFO] 22:17:31:900 log/(5291:5293): Acceso SWAP: 28
+[INFO] 22:17:31:902 log/(5291:5293): Acceso SWAP: 32
+[INFO] 22:17:34:413 log/(5291:5293): Acceso SWAP: 29
+[INFO] 22:17:34:414 log/(5291:5293): Acceso SWAP: 33
+[INFO] 22:17:36:925 log/(5291:5293): Acceso SWAP: 30
+[INFO] 22:17:36:927 log/(5291:5293): Acceso SWAP: 34
+[INFO] 22:17:39:436 log/(5291:5293): Acceso SWAP: 31
+[INFO] 22:17:39:437 log/(5291:5293): Acceso SWAP: 35
+[INFO] 22:17:44:455 log/(5291:5293): Acceso SWAP: 32
+[INFO] 22:17:44:457 log/(5291:5293): Acceso SWAP: 36
+[INFO] 22:17:46:967 log/(5291:5293): Acceso SWAP: 33
+[INFO] 22:17:46:968 log/(5291:5293): Acceso SWAP: 37
+[INFO] 22:17:49:479 log/(5291:5293): Acceso SWAP: 34
+[INFO] 22:17:49:481 log/(5291:5293): Acceso SWAP: 38
+[INFO] 22:17:51:991 log/(5291:5293): Acceso SWAP: 35
+[INFO] 22:17:51:993 log/(5291:5293): Acceso SWAP: 39
+[ERROR] 22:29:52:512 log/(5291:5331): Un cliente se desconecto.
+[DEBUG] 22:29:56:406 log/(5596:5596): Servidor listo para recibir al cliente
+[DEBUG] 22:29:59:020 log/(5596:5599): Hola! 0
+[INFO] 22:30:11:410 log/(5596:5598): Acceso SWAP: 0
+[INFO] 22:30:13:931 log/(5596:5598): Acceso SWAP: 1
+[ERROR] 22:30:15:288 log/(5596:5632): Un cliente se desconecto.
+[DEBUG] 22:34:11:796 log/(5902:5902): Servidor listo para recibir al cliente
+[DEBUG] 22:34:14:684 log/(5902:5905): Hola! 0
+[INFO] 22:34:23:264 log/(5902:5904): Acceso SWAP: 0
+[DEBUG] 22:34:23:272 log/(5902:5904): PORCION EN BYTES DE MEMORIA: 
+0x00000000: 00 00 62 6c 6f 71 75 65  73 53 77 61 70 00 00 43  |..bloquesSwap..C|
+[INFO] 22:34:25:788 log/(5902:5904): Acceso SWAP: 1
+[DEBUG] 22:34:25:789 log/(5902:5904): PORCION EN BYTES DE MEMORIA: 
+0x00000000: 00 00 62 6c 6f 71 75 65  73 53 77 61 70 00 00 43  |..bloquesSwap..C|
+[INFO] 22:34:28:297 log/(5902:5904): Acceso SWAP: 2
+[DEBUG] 22:34:28:298 log/(5902:5904): PORCION EN BYTES DE MEMORIA: 
+0x00000000: 00 00 62 6c 6f 71 75 65  73 53 77 61 70 00 00 43  |..bloquesSwap..C|
+[INFO] 22:34:30:806 log/(5902:5904): Acceso SWAP: 3
+[DEBUG] 22:34:30:807 log/(5902:5904): PORCION EN BYTES DE MEMORIA: 
+0x00000000: 00 00 62 6c 6f 71 75 65  73 53 77 61 70 00 00 43  |..bloquesSwap..C|
+[DEBUG] 22:34:36:828 log/(5902:5904): 
+0x00000000: 01 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+[INFO] 22:34:36:829 log/(5902:5904): Acceso SWAP: 0
+[INFO] 22:34:36:832 log/(5902:5904): Acceso SWAP: 4
+[DEBUG] 22:34:36:832 log/(5902:5904): PORCION EN BYTES DE MEMORIA: 
+0x00000000: 00 00 62 6c 6f 71 75 65  73 53 77 61 70 00 00 43  |..bloquesSwap..C|
+[DEBUG] 22:34:39:341 log/(5902:5904): 
+0x00000000: 01 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+[INFO] 22:34:39:342 log/(5902:5904): Acceso SWAP: 1
+[INFO] 22:34:39:343 log/(5902:5904): Acceso SWAP: 5
+[DEBUG] 22:34:39:344 log/(5902:5904): PORCION EN BYTES DE MEMORIA: 
+0x00000000: 00 00 62 6c 6f 71 75 65  73 53 77 61 70 00 00 43  |..bloquesSwap..C|
+[DEBUG] 22:34:41:854 log/(5902:5904): 
+0x00000000: 01 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+[INFO] 22:34:41:854 log/(5902:5904): Acceso SWAP: 2
+[INFO] 22:34:41:855 log/(5902:5904): Acceso SWAP: 6
+[DEBUG] 22:34:41:856 log/(5902:5904): PORCION EN BYTES DE MEMORIA: 
+0x00000000: 00 00 62 6c 6f 71 75 65  73 53 77 61 70 00 00 43  |..bloquesSwap..C|
+[DEBUG] 22:34:44:364 log/(5902:5904): 
+0x00000000: 01 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+[INFO] 22:34:44:365 log/(5902:5904): Acceso SWAP: 3
+[INFO] 22:34:44:366 log/(5902:5904): Acceso SWAP: 7
+[DEBUG] 22:34:44:367 log/(5902:5904): PORCION EN BYTES DE MEMORIA: 
+0x00000000: 00 00 62 6c 6f 71 75 65  73 53 77 61 70 00 00 43  |..bloquesSwap..C|
+[DEBUG] 22:34:57:016 log/(5902:5904): 
+0x00000000: 02 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+[INFO] 22:34:57:019 log/(5902:5904): Acceso SWAP: 4
+[INFO] 22:34:57:021 log/(5902:5904): Acceso SWAP: 8
+[DEBUG] 22:34:57:021 log/(5902:5904): PORCION EN BYTES DE MEMORIA: 
+0x00000000: 00 00 62 6c 6f 71 75 65  73 53 77 61 70 00 00 43  |..bloquesSwap..C|
+[DEBUG] 22:34:59:531 log/(5902:5904): 
+0x00000000: 02 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+[INFO] 22:34:59:531 log/(5902:5904): Acceso SWAP: 5
+[INFO] 22:34:59:533 log/(5902:5904): Acceso SWAP: 9
+[DEBUG] 22:34:59:533 log/(5902:5904): PORCION EN BYTES DE MEMORIA: 
+0x00000000: 00 00 62 6c 6f 71 75 65  73 53 77 61 70 00 00 43  |..bloquesSwap..C|
+[DEBUG] 22:35:02:046 log/(5902:5904): 
+0x00000000: 02 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+[INFO] 22:35:02:047 log/(5902:5904): Acceso SWAP: 6
+[INFO] 22:35:02:049 log/(5902:5904): Acceso SWAP: 10
+[DEBUG] 22:35:02:050 log/(5902:5904): PORCION EN BYTES DE MEMORIA: 
+0x00000000: 00 00 62 6c 6f 71 75 65  73 53 77 61 70 00 00 43  |..bloquesSwap..C|
+[DEBUG] 22:35:04:560 log/(5902:5904): 
+0x00000000: 02 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+[INFO] 22:35:04:560 log/(5902:5904): Acceso SWAP: 7
+[INFO] 22:35:04:562 log/(5902:5904): Acceso SWAP: 11
+[DEBUG] 22:35:04:563 log/(5902:5904): PORCION EN BYTES DE MEMORIA: 
+0x00000000: 00 00 62 6c 6f 71 75 65  73 53 77 61 70 00 00 43  |..bloquesSwap..C|
+[DEBUG] 22:35:12:305 log/(5902:5904): 
+0x00000000: 14 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+[INFO] 22:35:12:305 log/(5902:5904): Acceso SWAP: 8
+[INFO] 22:35:12:306 log/(5902:5904): Acceso SWAP: 12
+[DEBUG] 22:35:12:307 log/(5902:5904): PORCION EN BYTES DE MEMORIA: 
+0x00000000: 00 00 62 6c 6f 71 75 65  73 53 77 61 70 00 00 43  |..bloquesSwap..C|
+[DEBUG] 22:35:14:815 log/(5902:5904): 
+0x00000000: 14 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+[INFO] 22:35:14:815 log/(5902:5904): Acceso SWAP: 9
+[INFO] 22:35:14:817 log/(5902:5904): Acceso SWAP: 13
+[DEBUG] 22:35:14:817 log/(5902:5904): PORCION EN BYTES DE MEMORIA: 
+0x00000000: 00 00 62 6c 6f 71 75 65  73 53 77 61 70 00 00 43  |..bloquesSwap..C|
+[DEBUG] 22:35:17:326 log/(5902:5904): 
+0x00000000: 14 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+[INFO] 22:35:17:326 log/(5902:5904): Acceso SWAP: 10
+[INFO] 22:35:17:328 log/(5902:5904): Acceso SWAP: 14
+[DEBUG] 22:35:17:329 log/(5902:5904): PORCION EN BYTES DE MEMORIA: 
+0x00000000: 00 00 62 6c 6f 71 75 65  73 53 77 61 70 00 00 43  |..bloquesSwap..C|
+[DEBUG] 22:35:19:838 log/(5902:5904): 
+0x00000000: 14 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+[INFO] 22:35:19:838 log/(5902:5904): Acceso SWAP: 11
+[INFO] 22:35:19:840 log/(5902:5904): Acceso SWAP: 15
+[DEBUG] 22:35:19:841 log/(5902:5904): PORCION EN BYTES DE MEMORIA: 
+0x00000000: 00 00 62 6c 6f 71 75 65  73 53 77 61 70 00 00 43  |..bloquesSwap..C|
+[ERROR] 22:38:11:526 log/(5902:5937): Un cliente se desconecto.
+[DEBUG] 22:38:15:629 log/(6092:6092): Servidor listo para recibir al cliente
+[DEBUG] 22:38:18:007 log/(6092:6095): Hola! 0
+[INFO] 22:38:26:105 log/(6092:6094): Acceso SWAP: 0
+[INFO] 22:38:28:624 log/(6092:6094): Acceso SWAP: 1
+[INFO] 22:38:31:133 log/(6092:6094): Acceso SWAP: 2
+[INFO] 22:38:33:641 log/(6092:6094): Acceso SWAP: 3
+[INFO] 22:38:39:666 log/(6092:6094): Acceso SWAP: 0
+[INFO] 22:38:39:669 log/(6092:6094): Acceso SWAP: 4
+[INFO] 22:38:42:178 log/(6092:6094): Acceso SWAP: 1
+[INFO] 22:38:42:180 log/(6092:6094): Acceso SWAP: 5
+[INFO] 22:38:44:688 log/(6092:6094): Acceso SWAP: 2
+[INFO] 22:38:44:689 log/(6092:6094): Acceso SWAP: 6
+[INFO] 22:38:47:197 log/(6092:6094): Acceso SWAP: 3
+[INFO] 22:38:47:198 log/(6092:6094): Acceso SWAP: 7
+[ERROR] 22:38:53:196 log/(6092:6128): Un cliente se desconecto.
+[DEBUG] 22:39:14:557 log/(6173:6173): Servidor listo para recibir al cliente
+[DEBUG] 22:39:23:680 log/(6173:6176): Hola! 0
+[INFO] 22:39:32:119 log/(6173:6175): Acceso SWAP: 0
+[INFO] 22:39:34:635 log/(6173:6175): Acceso SWAP: 1
+[INFO] 22:39:37:143 log/(6173:6175): Acceso SWAP: 2
+[INFO] 22:39:39:652 log/(6173:6175): Acceso SWAP: 3
+[INFO] 22:39:45:677 log/(6173:6175): Acceso SWAP: 0
+[INFO] 22:39:45:679 log/(6173:6175): Acceso SWAP: 4
+[INFO] 22:39:48:189 log/(6173:6175): Acceso SWAP: 1
+[INFO] 22:39:48:190 log/(6173:6175): Acceso SWAP: 5
+[INFO] 22:39:50:699 log/(6173:6175): Acceso SWAP: 2
+[INFO] 22:39:50:700 log/(6173:6175): Acceso SWAP: 6
+[INFO] 22:39:53:209 log/(6173:6175): Acceso SWAP: 3
+[INFO] 22:39:53:211 log/(6173:6175): Acceso SWAP: 7
+[INFO] 22:53:56:156 log/(6173:6175): Acceso SWAP: 4
+[INFO] 22:53:56:158 log/(6173:6175): Acceso SWAP: 8
+[INFO] 22:53:58:667 log/(6173:6175): Acceso SWAP: 5
+[INFO] 22:53:58:670 log/(6173:6175): Acceso SWAP: 9
+[INFO] 22:54:01:186 log/(6173:6175): Acceso SWAP: 6
+[INFO] 22:54:01:189 log/(6173:6175): Acceso SWAP: 10
+[INFO] 22:54:03:698 log/(6173:6175): Acceso SWAP: 7
+[INFO] 22:54:03:700 log/(6173:6175): Acceso SWAP: 11
+[INFO] 22:54:09:717 log/(6173:6175): Acceso SWAP: 8
+[INFO] 22:54:09:719 log/(6173:6175): Acceso SWAP: 12
+[INFO] 22:54:12:228 log/(6173:6175): Acceso SWAP: 9
+[INFO] 22:54:12:231 log/(6173:6175): Acceso SWAP: 13
+[INFO] 22:54:14:741 log/(6173:6175): Acceso SWAP: 10
+[INFO] 22:54:14:744 log/(6173:6175): Acceso SWAP: 14
+[INFO] 22:54:17:252 log/(6173:6175): Acceso SWAP: 11
+[INFO] 22:54:17:256 log/(6173:6175): Acceso SWAP: 15
+[INFO] 23:00:04:644 log/(6173:6175): Acceso SWAP: 12
+[INFO] 23:00:04:645 log/(6173:6175): Acceso SWAP: 16
+[INFO] 23:00:07:154 log/(6173:6175): Acceso SWAP: 13
+[INFO] 23:00:07:155 log/(6173:6175): Acceso SWAP: 17
+[INFO] 23:00:09:665 log/(6173:6175): Acceso SWAP: 14
+[INFO] 23:00:09:666 log/(6173:6175): Acceso SWAP: 18
+[INFO] 23:00:12:175 log/(6173:6175): Acceso SWAP: 15
+[INFO] 23:00:12:176 log/(6173:6175): Acceso SWAP: 19
+[INFO] 23:00:18:196 log/(6173:6175): Acceso SWAP: 16
+[INFO] 23:00:18:197 log/(6173:6175): Acceso SWAP: 20
+[INFO] 23:00:20:709 log/(6173:6175): Acceso SWAP: 17
+[INFO] 23:00:20:709 log/(6173:6175): Acceso SWAP: 21
+[INFO] 23:00:23:221 log/(6173:6175): Acceso SWAP: 18
+[INFO] 23:00:23:222 log/(6173:6175): Acceso SWAP: 22
+[INFO] 23:00:25:731 log/(6173:6175): Acceso SWAP: 19
+[INFO] 23:00:25:731 log/(6173:6175): Acceso SWAP: 23
+[ERROR] 23:04:14:300 log/(6173:6212): Un cliente se desconecto.

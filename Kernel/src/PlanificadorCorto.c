@@ -43,7 +43,9 @@ void* planificador_corto(){
 				PCB* proceso= queue_pop(colaCorto);
 				pthread_mutex_unlock(&mutexColaCorto);
 
-				cambiar_estado(proceso,EXEC);
+				if(proceso->estado!=EXEC){
+					cambiar_estado(proceso,EXEC);
+				}
 
 				pthread_mutex_lock(&mutexEjecutando);
 				ejecutandoB = true;

@@ -36,10 +36,10 @@ void mov_in(uint32_t* registro, uint32_t* direccionFisica);
 void mov_out(uint32_t* direccionFisica,uint32_t* registro);
 void f_open(char* nombreArchivo, char* modoApertura);
 void f_close(char* nombreArchivo);
-void f_seek(char* nombreArchivo, uint32_t* posicion);
-void f_read(char* nombreArchivo, uint32_t* direccionFisica);
-void f_write(char* nombreArchivo, uint32_t* direccionFisica);
-void f_truncate(char* nombreArchivo, uint32_t* newSize);
+void f_seek(char* nombreArchivo, uint32_t posicion);
+void f_read(char* nombreArchivo, uint32_t direccionFisica);
+void f_write(char* nombreArchivo, uint32_t direccionFisica);
+void f_truncate(char* nombreArchivo, uint32_t newSize);
 void exit_i();
 
 //CICLO

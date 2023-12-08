@@ -22,6 +22,8 @@ int main(void)
 	sem_init(&planiCorto,0,0);
 	sem_init(&desalojo_signal,0,0);
 	sem_init(&paginaCargada,0,0);
+	sem_init(&sem_archivoCreado,0,0);
+	sem_init(&sem_truncado,0,0);
 	pthread_mutex_init(&mutexColaCorto,NULL);
 	pthread_mutex_init(&mutexColaLargo,NULL);
 	pthread_mutex_init(&mutexProcesos,NULL);
@@ -173,7 +175,26 @@ void wait_recurso(PCB* proceso,char* recurso){
 
 
 }
+void ordenar_adelante(PCB* proceso){
+	char* mensajeCola = string_from_format("Cola Ready %s: ",AlgoritmoPlanificacion);
+	pthread_mutex_lock(&mutexColaCorto);
+	if(!queue_is_empty(colaCorto)){
+		//List_iterate seria una buena solucion.
+		PCB* temp = (PCB*)list_replace(colaCorto->elements,0,proceso);
+		for(int i = 1;list_size(colaCorto->elements)<i;i++){
+			if(temp!=NULL){
+				temp = (PCB*)list_replace(colaCorto->elements,i,temp);
+			}
+		}
 
+	}else{
+		queue_push(colaCorto,proceso);
+	}
+	iterar_lista(&mensajeCola);
+	pthread_mutex_unlock(&mutexColaCorto);
+	escritura_log(mensajeCola);
+	free(mensajeCola);
+}
 void signal_recurso(PCB* proceso,char* recurso){
 	if(dictionary_has_key(diccionarioRecursos,recurso) && !list_is_empty(proceso->recursos)){
 		bool buscar_recurso(void* element){
@@ -186,26 +207,8 @@ void signal_recurso(PCB* proceso,char* recurso){
 			t_list* elements = (t_list*)dictionary_get(diccionarioRecursos,recurso);
 			int* instancias = (int*)list_get(elements,0);
 			*instancias += 1;
+			ordenar_adelante(proceso); //Pone el proceso adelante de la colaCOrto
 
-			char* mensajeCola = string_from_format("Cola Ready %s: ",AlgoritmoPlanificacion);
-			pthread_mutex_lock(&mutexColaCorto);
-			if(!queue_is_empty(colaCorto)){
-				//List_iterate seria una buena solucion.
-				PCB* temp = (PCB*)list_replace(colaCorto->elements,0,proceso);
-				for(int i = 1;list_size(colaCorto->elements)<i;i++){
-					if(temp!=NULL){
-						temp = (PCB*)list_replace(colaCorto->elements,i,temp);
-					}
-				}
-
-			}else{
-				queue_push(colaCorto,proceso);
-			}
-			iterar_lista(&mensajeCola);
-			pthread_mutex_unlock(&mutexColaCorto);
-
-			escritura_log(mensajeCola);
-			free(mensajeCola);
  /*---------------------------------*/
 			t_queue* colaEspera = (t_queue*)list_get(elements,1);
 			if(!queue_is_empty(colaEspera)){
@@ -351,11 +354,17 @@ void procesar_mensaje(t_list* mensaje){
 				sem_post(&planiCorto);
 			break;
 		case F_OPEN:
-			escritura_log(string_from_format("PID: %d - Abrir Archivo: %s", proceso->pid,(char*)list_get(mensaje,2)));
 			int modoApertura;
+			char* archivo = (char*)list_get(mensaje,2);
 			if(!strcasecmp((char*)list_get(mensaje,3),"W"))modoApertura=ESCRITURA;
 			else modoApertura=LECTURA;
-			f_open(proceso,(char*)list_get(mensaje,2),modoApertura);
+			bool bloqueado = f_open(proceso,archivo,modoApertura);
+			if(!bloqueado){
+				escritura_log(string_from_format("PID: %d - Abrir Archivo: %s", proceso->pid,(char*)list_get(mensaje,2)));
+				ordenar_adelante(proceso); //Pone el proceso adelante de la colaCorto
+			}
+			sem_post(&planiCorto);
+
 			/*
 			t_list* parameters = list_create();
 			list_add(parameters, proceso);
@@ -378,12 +387,19 @@ void procesar_mensaje(t_list* mensaje){
 
 			break;
 		case F_READ:
+
 			escritura_log(string_from_format("PID: %d - Leer Archivo: %s - Puntero: %d", proceso->pid,(char*)list_get(mensaje,2),*(uint32_t*)list_get(mensaje,3)));
 
 			break;
 		case F_TRUNCATE:
-			escritura_log(string_from_format("PID: %d - Archivo: %s - Tamaño %d", proceso->pid,(char*)list_get(mensaje,2),*(uint32_t*)list_get(mensaje,3)));
-
+			char* archivoATruncar = (char*)list_get(mensaje,2);
+			uint32_t size = (uint32_t)strtol((char*)list_get(mensaje,3),NULL,10);
+			t_list* truncado = list_create();
+			list_add(truncado,proceso);
+			list_add(truncado,archivoATruncar);
+			list_add(truncado,list_get(mensaje,3));
+			hilo_funcion(truncado,(void*)f_truncate); //Solucion lista semaforos por proceso
+		//	debug(string_from_format("TRUNCATE: PID: %d - Archivo: %s - Tamaño %d", proceso->pid,(char*)list_get(mensaje,2),*(uint32_t*)list_get(mensaje,3)));
 			break;
 		case EXIT:
 			error_show("Motivo desconocido");
@@ -393,8 +409,13 @@ void procesar_mensaje(t_list* mensaje){
 		sem_post(&paginaCargada);
 	}
 	if(!strcasecmp(msg,"tamaño")){
-		escritura_log(string_from_format("Archivo abierto: %s - Tamaño: %d",(char*)list_get(mensaje,1),*(uint32_t*)list_get(mensaje,2)));
-			//sem_post(&paginaCargada);
+		char* archivo = (char*)list_get(mensaje,1);
+		uint32_t tamaño = *(uint32_t*)list_get(mensaje,2);
+		debug(string_from_format("Archivo abierto: %s - Tamaño: %d",archivo,tamaño));
+		registro_tag* regTag = crear_reg_tag(archivo);
+		dictionary_put(tag,archivo,regTag);
+		free(archivo);
+		sem_post(&sem_archivoCreado);
 		}
 	free(msg);
 }

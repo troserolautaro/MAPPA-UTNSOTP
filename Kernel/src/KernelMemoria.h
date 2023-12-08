@@ -6,17 +6,8 @@
 #include"Generales.h"
 extern t_dictionary * tag;
 //MANEJO DE MEMORIA
-void cargar_pagina(uint32_t pid, uint32_t pagina);
-void page_fault(t_list * parametros);
 
-//MANEJO DE ARCHIVO
-void f_open(PCB* proceso,char * archivo,uint32_t modoApertura);
-void f_close(PCB* proceso,char * archivo);
-void f_seek(PCB* proceso, char * archivo, uint32_t puntero);
-void f_truncate(PCB* proceso, char * archivo,uint32_t tamaño);
-void f_read(PCB* proceso, char * archivo,uint32_t direccionFisica);
-void f_write(PCB* proceso, char * archivo,uint32_t direccionFisica);
-extern sem_t paginaCargada;
+extern sem_t paginaCargada,sem_archivoCreado,sem_truncado;
 typedef enum{
 	ESCRITURA,
 	LECTURA,
@@ -39,5 +30,16 @@ typedef struct {
 	int puntero;
 	int modoApertura;//posible enum
 }registro_tap;//Tabla de Archivos por Proceso
+void cargar_pagina(uint32_t pid, uint32_t pagina);
+void page_fault(t_list * parametros);
 
+
+//MANEJO DE ARCHIVO
+bool f_open(PCB* proceso,char * archivo,uint32_t modoApertura);
+void f_close(PCB* proceso,char * archivo);
+void f_seek(PCB* proceso, char * archivo, uint32_t puntero);
+void f_truncate(t_list* parameters);
+void f_read(PCB* proceso, char * archivo,uint32_t direccionFisica);
+void f_write(PCB* proceso, char * archivo,uint32_t direccionFisica);
+registro_tag* crear_reg_tag(char* archivo);
 #endif /* KERNELMEMORIA_H_ */

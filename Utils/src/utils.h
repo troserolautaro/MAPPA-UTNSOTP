@@ -12,11 +12,13 @@
 #include<commons/collections/queue.h>
 #include<commons/string.h>
 #include<commons/error.h>
+#include<commons/memory.h>
 #include<string.h>
 #include<assert.h>
 #include<signal.h>
 #include<pthread.h>
 #include <semaphore.h>
+
 //Acordarse de inicializarlos
 extern t_log* logger;
 extern pthread_mutex_t mutexLog,mutexConfig;
