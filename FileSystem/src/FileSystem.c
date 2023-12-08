@@ -101,43 +101,6 @@ void iniciar_fat(){
 	fclose(archivoFAT);
 
 }
-char* devolver_path(char* archivo){
-	char* path=string_new();
-	string_append(&path,pathFCB);
-	string_append(&path, "/");
-	string_append(&path,archivo);
-	string_append(&path,"fcb");
-	return path;
-}
-
-bool existencia_archivo(char* archivo){
-	FILE * fcb = fopen(archivo,"r");
-	if (fcb != NULL)return true;
-	return false;
-}
-
-uint32_t abrir_archivo(char* archivo){
-	if(existencia_archivo(archivo)){
-	t_config* configArchivofcb = config_create(archivo);
-	uint32_t tamaño =(uint32_t) config_get_int_value(configArchivofcb,"TAMAÑO_ARCHIVO");
-	return tamaño;
-	}
-	return -1;
-}
-
-
-bool crear_archivo(char* nombreArchivo){
-	//abre el archivo en forma w para crearlo y lo cierra
-	FILE * nuevofcb = fopen(nombreArchivo,"w");
-	fclose(nuevofcb);
-	//lo abre como config para cargarle los datos principales
-	t_config * nuevoArchivo= iniciar_config(nombreArchivo);
-	config_set_value(nuevoArchivo, "NOMBRE_ARCHIVO", nombreArchivo);
-	config_set_value(nuevoArchivo, "TAMAÑO_ARCHIVO", string_itoa(0));
-	config_save(nuevoArchivo);
-	config_destroy(nuevoArchivo);
-	return true;
-}
 
 //si devuelve null no hay anteultimo elemento
 registroFAT_t* get_anteultimo_bloque_archivo(uint32_t bloqueInicial){
@@ -219,9 +182,50 @@ void liberar_bloques_FAT(t_config* archivo, uint32_t cantidad){
 	}
 }
 
-void truncar_archivo(char*nombreArchivo, uint32_t tamaño){ //situacionDeseada : ampliar o reducir tamanio
-	t_config* archivo =config_create(nombreArchivo);
-	uint32_t tamañoActual =(uint32_t) config_get_int_value(archivo,"TAMAÑO_ARCHIVO");
+char* devolver_path(char* archivo){
+	char* path=string_new();
+	string_append(&path,pathFCB);
+	string_append(&path, "/");
+	string_append(&path,archivo);
+	string_append(&path,"fcb");
+	return path;
+}
+
+bool existencia_archivo(char* archivo){
+	FILE * fcb = fopen(archivo,"r");
+	if (fcb != NULL)return true;
+	return false;
+}
+
+uint32_t abrir_archivo(char* path){
+	if(existencia_archivo(path)){
+	t_config* configArchivofcb = config_create(path);
+	uint32_t tamaño =(uint32_t) config_get_int_value(configArchivofcb,"TAMANIO_ARCHIVO");
+	config_destroy(configArchivofcb);
+	return tamaño;
+	}
+	return -1;
+}
+
+
+bool crear_archivo(char* nombreArchivo){
+	char* path=devolver_path(nombreArchivo);
+	//abre el archivo en forma w para crearlo y lo cierra
+	FILE * nuevofcb = fopen(path,"w");
+	fclose(nuevofcb);
+	//lo abre como config para cargarle los datos principales
+	t_config * nuevoArchivo= iniciar_config(path);
+	config_set_value(nuevoArchivo, "NOMBRE_ARCHIVO", nombreArchivo);
+	config_set_value(nuevoArchivo, "TAMANIO_ARCHIVO", string_itoa(0));
+	config_save(nuevoArchivo);
+	config_destroy(nuevoArchivo);
+	free(path);
+	return true;
+}
+
+void truncar_archivo(char*path, uint32_t tamaño){ //situacionDeseada : ampliar o reducir tamanio
+	t_config* archivo =config_create(path);
+	uint32_t tamañoActual =(uint32_t) config_get_int_value(archivo,"TAMANIO_ARCHIVO");
 	if(tamaño > tamañoActual){
 		uint32_t cantidad=tamaño-tamañoActual;
 		asignar_bloques_FAT(archivo,cantidad);
@@ -231,13 +235,34 @@ void truncar_archivo(char*nombreArchivo, uint32_t tamaño){ //situacionDeseada :
 		liberar_bloques_FAT(archivo,cantidad);
 	}
 }
-
-void leer_archivo(char*nombreArchivo, uint32_t puntero){
+int obtener_bloque(char*path, uint32_t puntero){
+	t_config* configArchivofcb = config_create(path);
+	uint32_t bloqueInicial =(uint32_t) config_get_int_value(configArchivofcb,"BLOQUE_INICIAL");
+	uint32_t siguiente=tablaFAT[bloqueInicial];
+	for(int i=0;i<puntero){
+		tablaFat[i];
+	}
+	config_destroy(configArchivofcb);
+}
+void leer_archivo(char*nombreArchivo,uint32_t direccionFisica, uint32_t puntero){
 	//comunicacion con memoria
+	t_paquete * paquete = crear_paquete();
+	agregar_a_paquete(paquete,"f_read",sizeof("f_read"));
+	agregar_a_paquete(paquete,direccionFisica,sizeof(uint32_t));
+	obtener_bloque(puntero);
+	//agrega los datos, envia
+	//agregar_a_paquete(paquete,(char*)list_get(mensaje,1),strlen((char*)list_get(mensaje,1))+1);
+	enviar_paquete(paquete,conexionMemoria);
+	eliminar_paquete(paquete);
 }
 
-void escribir_archivo(char*nombreArchivo, uint32_t puntero){
+void escribir_archivo(char*nombreArchivo,uint32_t direccionFisica, uint32_t puntero){
 	//comunicacion con memoria
+	t_paquete * paquete = crear_paquete();
+	agregar_a_paquete(paquete,"f_write",sizeof("f_write"));
+	//agregar_a_paquete(paquete,(char*)list_get(mensaje,1),strlen((char*)list_get(mensaje,1))+1);
+	enviar_paquete(paquete,conexionMemoria);
+	eliminar_paquete(paquete);
 }
 
 /*-----------------------*/
@@ -312,7 +337,7 @@ void procesar_mensaje(t_list* mensaje){
 		uint32_t tamaño =abrir_archivo(path);
 		if(tamaño==-1){
 			escritura_log(string_from_format("Crear Archivo: %s",(char*)list_get(mensaje,1)));
-			if(crear_archivo(path)){
+			if(crear_archivo((char*)list_get(mensaje,1))){
 				tamaño =abrir_archivo(path);
 			}
 		}
@@ -334,6 +359,7 @@ void procesar_mensaje(t_list* mensaje){
 		eliminar_paquete(paquete);
 	}
 	if(!strcasecmp(msg,"f_read")){
+
 		//leer_archivo();
 	}
 	if(!strcasecmp(msg,"f_write")){
