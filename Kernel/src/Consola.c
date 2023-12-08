@@ -11,10 +11,10 @@ char* lectura_consola(){
 }
 
 int validacion_contenido_consola(char* comando){
-	if(!strcasecmp(comando, "iniciar_proceso\0"))return INICIAR_PROCESO;
-	if(!strcasecmp(comando, "finalizar_proceso\0"))return FINALIZAR_PROCESO;
-	if(!strcasecmp(comando, "iniciar_planificacion\0"))return INICIAR_PLANIFICACION;
-	if(!strcasecmp(comando, "detener_planificacion\0"))return DETENER_PLANIFICACION;
+	if(!strcasecmp(comando, "iniciar_proceso\0") || !strcasecmp(comando, "create\0") )return INICIAR_PROCESO;
+	if(!strcasecmp(comando, "finalizar_proceso\0") || !strcasecmp(comando, "kill\0") )return FINALIZAR_PROCESO;
+	if(!strcasecmp(comando, "iniciar_planificacion\0") ||!strcasecmp(comando, "start\0") )return INICIAR_PLANIFICACION;
+	if(!strcasecmp(comando, "detener_planificacion\0") || !strcasecmp(comando, "stop\0"))return DETENER_PLANIFICACION;
 	if(!strcasecmp(comando, "multiprogramacion\0"))return MULTIPROGRAMACION;
 	if(!strcasecmp(comando, "proceso_estado\0"))return PROCESO_ESTADO;
 	if(!strcasecmp(comando,"Exit\0"))return EXIT;
@@ -49,6 +49,8 @@ void iniciar_proceso(char* path, int size, int prioridad){
 		proceso->registros->DX = 0;
 		proceso->pc=0;
 		proceso->pid = PIDGLOBAL; //Modificar en caso de que sea necesario
+		proceso->tablaArchivos = dictionary_create(); //Modificar en caso de que sea necesario
+
 		//añade el proceso a la lista de procesos y a la cola del planificador a largo plazo
 
 		//envia archivo a cargar en memoria para este proceso a el modulo de memoria
@@ -68,7 +70,7 @@ void iniciar_proceso(char* path, int size, int prioridad){
 
 }
 
-
+//FALTA LIBERAR TABLA DE ARCHIVOS
 void finalizar_proceso(int pid){
 	//POSIBLE MUTEX;
 	pthread_mutex_lock(&mutexProcesos);

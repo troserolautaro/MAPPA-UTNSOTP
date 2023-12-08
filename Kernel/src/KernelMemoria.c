@@ -6,26 +6,26 @@ sem_t  semEscritura;
 
 t_queue * colaLocks;
 t_dictionary * tag,*t_dictionarytap;
-lock* crear_lock(int tipoDeLock){
-	lock * lock = malloc(sizeof(lock));
+lock_t* crear_lock(uint32_t tipoDeLock){
+	lock_t * lock = malloc(sizeof(lock_t));
 	lock->participantes=list_create();
 	lock->tipoDeLock = tipoDeLock;
 	return lock;
 }
-void agregar_participante(lock* lock, PCB* participante){
+void agregar_participante(lock_t* lock, PCB* participante){
 	list_add(lock->participantes,participante);
 }
-void sacar_participante(lock* lock, PCB* participante){
+void sacar_participante(lock_t* lock, PCB* participante){
 	list_remove_element(lock->participantes,participante);
 }
 void destructor_participantes(PCB* proceso){
 	proceso_destroy(proceso);
 }
-void destruir_lock(lock* lock){
+void destruir_lock(lock_t* lock){
 	list_destroy_and_destroy_elements(lock->participantes,(void*)destructor_participantes);
 	free(lock);
 }
-registro_tap* crear_reg_tap(int modoApertura){
+registro_tap* crear_reg_tap(uint32_t modoApertura){
 	registro_tap* registroTap = malloc(sizeof(registro_tap));
 	registroTap->puntero = -1;
 	registroTap->modoApertura = modoApertura;
@@ -44,7 +44,7 @@ registro_tag* crear_reg_tag(char* archivo){
 	registroTag->colaLocks = queue_create();//semaforo si es necesario
 	return registroTag;
 }
-void agregar_a_colaLock(lock* lockAEncolar,registro_tag* registroTag){
+void agregar_a_colaLock(lock_t* lockAEncolar,registro_tag* registroTag){
 	queue_push(registroTag->colaLocks,lockAEncolar);
 }
 void destruir_registro_tag(registro_tag* registroTag){
@@ -80,8 +80,8 @@ registro_tap* get_reg_tap(t_dictionary* tablaArchivos, char* archivo){
 	}
 	return NULL;
 }
-void agregar_lock_activo(registro_tag* regTag,int modoApertura){
-	lock* lockTemp = crear_lock(modoApertura);
+void agregar_lock_activo(registro_tag* regTag,uint32_t modoApertura){
+	lock_t* lockTemp = crear_lock(modoApertura);
 	destruir_lock(regTag->lockActivo);
 	regTag->lockActivo = lockTemp;
 }
@@ -105,18 +105,28 @@ void agregar_lock_activo(registro_tag* regTag,int modoApertura){
 	registro_tap* registroTap=get_reg_tap(pid,);
 	return registroTap;
 }*/
-void agregar_reg_tap(PCB* proceso, char* archivo, int modoApertura){
+void agregar_reg_tap(PCB* proceso, char* archivo, uint32_t modoApertura){
 	registro_tap* regTap = crear_reg_tap(modoApertura);
 	dictionary_put(proceso->tablaArchivos,archivo,regTap);
 }
-void f_open(PCB* proceso,char * archivo,int modoApertura){
-	//NUEVA LOGICA LUEGO DE RELEER EL ENUNCIADO DE VARIAS VECES
+void f_open(PCB* proceso,char * archivo,uint32_t modoApertura){
+	//parte fisica del fopen
+	if(!dictionary_has_key(tag,archivo)){
+	t_paquete * paquete = crear_paquete();
+	agregar_a_paquete(paquete,"f_open",sizeof("f_open"));
+	//agregar_a_paquete(paquete,&(proceso->pid),sizeof(uint32_t));
+	agregar_a_paquete(paquete,archivo,strlen(archivo)+1);
+	enviar_paquete(paquete,conexionFileSystem);
+	eliminar_paquete(paquete);
+	}
+	//posible semaforo aca esperando respuesta de fs
+	//parte logica del fopen
 	registro_tag* regTag=get_reg_tag(archivo);
 //	registro_tap* regTap=get_reg_tap((proceso.),archivo);
 
 	switch(modoApertura){
 		case ESCRITURA:
-			lock * lockEscritura = crear_lock(modoApertura);
+			lock_t * lockEscritura = crear_lock(modoApertura);
 			agregar_participante(lockEscritura,proceso);
 			//Crear LOCK exclusivo por lectura, es decir nuevo lock con un solo participante
 			if(regTag->lockActivo->tipoDeLock == NOASIGNADO){
@@ -133,7 +143,7 @@ void f_open(PCB* proceso,char * archivo,int modoApertura){
 
 		case LECTURA:
 			if(regTag->lockActivo->tipoDeLock == ESCRITURA){
-				lock* lockLectura = crear_lock(modoApertura);
+				lock_t* lockLectura = crear_lock(modoApertura);
 				agregar_participante(lockLectura,proceso);
 				bloquear_proceso(proceso,archivo);
 				agregar_a_colaLock(lockLectura,regTag);
@@ -158,6 +168,7 @@ void f_open(PCB* proceso,char * archivo,int modoApertura){
 
 	}
 
+//F CLOSE
 void borrar_reg_tap(t_dictionary* tablaArchivos, char* regABorrar){
 	dictionary_remove_and_destroy(tablaArchivos,regABorrar,(void*)destruir_registro_tap);
 }
@@ -166,7 +177,7 @@ void borrar_reg_tap(t_dictionary* tablaArchivos, char* regABorrar){
 void f_close(PCB* proceso,char * archivo){
 	registro_tag* regTag=get_reg_tag(archivo);
 	borrar_reg_tap(proceso->tablaArchivos,archivo);
-	lock* lockActivo = regTag->lockActivo;
+	lock_t* lockActivo = regTag->lockActivo;
 	sacar_participante(lockActivo,proceso);
 	if(list_is_empty(lockActivo->participantes)){
 		//Si la cola de locks no esta vacia agarro el lock que espero mas tiempo y lo pongo como principal
@@ -177,7 +188,7 @@ void f_close(PCB* proceso,char * archivo){
 		//Si el nuevo lock no es de escritura saco todos los posibles
 		if(lockActivo->tipoDeLock != ESCRITURA){
 			while(!queue_is_empty(regTag->colaLocks) && !escritura){
-				lock* lockTemp = queue_peek(regTag->colaLocks);
+				lock_t* lockTemp = queue_peek(regTag->colaLocks);
 				if(lockTemp->tipoDeLock == ESCRITURA){
 					escritura = true;
 				}else{

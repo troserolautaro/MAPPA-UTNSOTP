@@ -2,7 +2,7 @@
 
 #define valor_EOF UINT32_MAX  //Este valor representa al EOF (End of File)
 
-t_dictionary* tablaFCB;
+//t_dictionary* tablaFCB;
 void* bloques;//como espacio contiguo de memoria
 uint32_t* tablaFAT;
 bool * tablaSWAP;//como espacio contiguo de memoria
@@ -31,7 +31,7 @@ void iniciar_swap(){
 
 }
 int main(void) {
-	tablaFCB = dictionary_create();
+	//tablaFCB = dictionary_create();
 	logger = iniciar_logger("./log.log");
 	t_config* config=iniciar_config("./FileSystem.config");
 
@@ -101,14 +101,24 @@ void iniciar_fat(){
 	fclose(archivoFAT);
 
 }
+char* devolver_path(char* archivo){
+	char* path=string_new();
+	string_append(&path,pathFCB);
+	string_append(&path, "/");
+	string_append(&path,archivo);
+	string_append(&path,"fcb");
+	return path;
+}
 
 bool existencia_archivo(char* archivo){
-	  return dictionary_has_key(tablaFCB,archivo);
+	FILE * fcb = fopen(archivo,"r");
+	if (fcb != NULL)return true;
+	return false;
 }
 
 uint32_t abrir_archivo(char* archivo){
 	if(existencia_archivo(archivo)){
-	t_config* configArchivofcb = dictionary_get(tablaFCB,archivo);
+	t_config* configArchivofcb = config_create(archivo);
 	uint32_t tamaño =(uint32_t) config_get_int_value(configArchivofcb,"TAMAÑO_ARCHIVO");
 	return tamaño;
 	}
@@ -117,19 +127,14 @@ uint32_t abrir_archivo(char* archivo){
 
 
 bool crear_archivo(char* nombreArchivo){
-	//hace la conversion de la direccion
-	char * path=string_new();
-	string_append(&path,pathFCB);
-	string_append(&path, "/");
-	string_append(&path,nombreArchivo);
 	//abre el archivo en forma w para crearlo y lo cierra
-	FILE * nuevofcb = fopen(strcat(path,".fcb"),"w");
+	FILE * nuevofcb = fopen(nombreArchivo,"w");
 	fclose(nuevofcb);
 	//lo abre como config para cargarle los datos principales
-	t_config * nuevoArchivo= iniciar_config(path);
+	t_config * nuevoArchivo= iniciar_config(nombreArchivo);
 	config_set_value(nuevoArchivo, "NOMBRE_ARCHIVO", nombreArchivo);
-	config_set_value(nuevoArchivo, "TAMANIO_ARCHIVO", string_itoa(0));
-	//dictionary_put(tablaFCB,nombreArchivo,nuevoArchivo);
+	config_set_value(nuevoArchivo, "TAMAÑO_ARCHIVO", string_itoa(0));
+	config_save(nuevoArchivo);
 	config_destroy(nuevoArchivo);
 	return true;
 }
@@ -215,9 +220,8 @@ void liberar_bloques_FAT(t_config* archivo, uint32_t cantidad){
 }
 
 void truncar_archivo(char*nombreArchivo, uint32_t tamaño){ //situacionDeseada : ampliar o reducir tamanio
-	t_config* archivo = dictionary_get(tablaFCB,nombreArchivo);
+	t_config* archivo =config_create(nombreArchivo);
 	uint32_t tamañoActual =(uint32_t) config_get_int_value(archivo,"TAMAÑO_ARCHIVO");
-	config_set_value(archivo, "TAMANIO_ARCHIVO", (void*)&tamaño);
 	if(tamaño > tamañoActual){
 		uint32_t cantidad=tamaño-tamañoActual;
 		asignar_bloques_FAT(archivo,cantidad);
@@ -302,33 +306,37 @@ void procesar_mensaje(t_list* mensaje){
 	string_to_lower(msg);
 	int conexion = *(int*) (list_get(mensaje,list_size(mensaje)-1));
 	//peticiones del kernel
-	if(!strcasecmp(msg,"abrir archivo")){
-		int tamaño =abrir_archivo((char*)list_get(mensaje,1));
+	if(!strcasecmp(msg,"f_open")){
+		char* path=devolver_path((char*)list_get(mensaje,1));
+		escritura_log(string_from_format("Abrir Archivo: %s",(char*)list_get(mensaje,1)));
+		uint32_t tamaño =abrir_archivo(path);
+		if(tamaño==-1){
+			escritura_log(string_from_format("Crear Archivo: %s",(char*)list_get(mensaje,1)));
+			if(crear_archivo(path)){
+				tamaño =abrir_archivo(path);
+			}
+		}
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"tamaño",sizeof("tamaño"));
-		agregar_a_paquete(paquete,&tamaño,sizeof(int));
+		agregar_a_paquete(paquete,(char*)list_get(mensaje,1),strlen((char*)list_get(mensaje,1))+1);
+		agregar_a_paquete(paquete,&tamaño,sizeof(uint32_t));
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
 	}
-
-	if(!strcasecmp(msg,"crear archivo")){
+	if(!strcasecmp(msg,"f_truncate")){
+		char* path=devolver_path((char*)list_get(mensaje,1));
+		escritura_log(string_from_format("Truncar Archivo: %s - Tamaño %d",(char*)list_get(mensaje,1),*(uint32_t*)list_get(mensaje,2)));
+		truncar_archivo(path,*(uint32_t*)list_get(mensaje,2));
 		t_paquete * paquete = crear_paquete();
-
-		if(crear_archivo(((char*)list_get(mensaje,1)))){
-			agregar_a_paquete(paquete,"archivo creado",sizeof("archivo creado"));
-			enviar_paquete(paquete,conexion);
-			eliminar_paquete(paquete);
-		}
-		else{
-			agregar_a_paquete(paquete,"archivo no creado",sizeof("archivo no creado"));
-			enviar_paquete(paquete,conexion);
-			eliminar_paquete(paquete);
-		}
+		agregar_a_paquete(paquete,"f_truncate",sizeof("f_truncate"));
+		agregar_a_paquete(paquete,(char*)list_get(mensaje,1),strlen((char*)list_get(mensaje,1))+1);
+		enviar_paquete(paquete,conexion);
+		eliminar_paquete(paquete);
 	}
-	if(!strcasecmp(msg,"leer archivo")){
+	if(!strcasecmp(msg,"f_read")){
 		//leer_archivo();
 	}
-	if(!strcasecmp(msg,"escribir archivo")){
+	if(!strcasecmp(msg,"f_write")){
 		//escribir_archivo();
 	}
 	//peticiones de memoria

@@ -10,7 +10,7 @@ void cargar_pagina(uint32_t pid, uint32_t pagina);
 void page_fault(t_list * parametros);
 
 //MANEJO DE ARCHIVO
-void f_open(PCB* proceso,char * archivo,int modoApertura);
+void f_open(PCB* proceso,char * archivo,uint32_t modoApertura);
 void f_close(PCB* proceso,char * archivo);
 void f_seek(PCB* proceso, char * archivo, uint32_t puntero);
 void f_truncate(PCB* proceso, char * archivo,uint32_t tamaño);
@@ -24,14 +24,14 @@ typedef enum{
 }modoApertura;
 
 typedef struct {
-	int tipoDeLock;
+	uint32_t tipoDeLock;
 	t_list * participantes;//son los procesos involucrados
-}lock;
+}lock_t;
 
 typedef struct {
 	char* nombreArchivo;//descriptor de archivo
 	int aperturas;
-	lock* lockActivo;
+	lock_t* lockActivo;
 	t_queue* colaLocks;
 }registro_tag;//Tabla Archivos Global
 

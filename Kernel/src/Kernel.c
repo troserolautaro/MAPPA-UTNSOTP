@@ -351,21 +351,38 @@ void procesar_mensaje(t_list* mensaje){
 				sem_post(&planiCorto);
 			break;
 		case F_OPEN:
-
+			escritura_log(string_from_format("PID: %d - Abrir Archivo: %s", proceso->pid,(char*)list_get(mensaje,2)));
+			int modoApertura;
+			if(!strcasecmp((char*)list_get(mensaje,3),"W"))modoApertura=ESCRITURA;
+			else modoApertura=LECTURA;
+			f_open(proceso,(char*)list_get(mensaje,2),modoApertura);
+			/*
+			t_list* parameters = list_create();
+			list_add(parameters, proceso);
+			list_add(parameters,list_get(mensaje,2));//nombre archivo
+			list_add(parameters,list_get(mensaje,3));//modo apertura
+			hilo_funcion(parameters,(void*)f_open);
+			//sem_post(&planiCorto);
+			 */
 			break;
 		case F_CLOSE:
-
+			escritura_log(string_from_format("PID: %d - Cerrar Archivo: %s", proceso->pid,(char*)list_get(mensaje,2)));
+			f_close(proceso,(char*)list_get(mensaje,2));
+			break;
+		case F_SEEK:
+			escritura_log(string_from_format("PID: %d -  Actualizar puntero Archivo: %s - Puntero: %d" , proceso->pid,(char*)list_get(mensaje,2),*(uint32_t*)list_get(mensaje,3)));
+			f_seek(proceso,(char*)list_get(mensaje,2),*(uint32_t*)list_get(mensaje,3));
 			break;
 		case F_WRITE:
+			escritura_log(string_from_format("PID: %d - Escribir Archivo: %s - Puntero: %d", proceso->pid,(char*)list_get(mensaje,2),*(uint32_t*)list_get(mensaje,3)));
 
 			break;
 		case F_READ:
+			escritura_log(string_from_format("PID: %d - Leer Archivo: %s - Puntero: %d", proceso->pid,(char*)list_get(mensaje,2),*(uint32_t*)list_get(mensaje,3)));
 
 			break;
 		case F_TRUNCATE:
-
-			break;
-		case F_SEEK:
+			escritura_log(string_from_format("PID: %d - Archivo: %s - Tamaño %d", proceso->pid,(char*)list_get(mensaje,2),*(uint32_t*)list_get(mensaje,3)));
 
 			break;
 		case EXIT:
@@ -375,6 +392,10 @@ void procesar_mensaje(t_list* mensaje){
 	if(!strcasecmp(msg,"paginaCargada")){
 		sem_post(&paginaCargada);
 	}
+	if(!strcasecmp(msg,"tamaño")){
+		escritura_log(string_from_format("Archivo abierto: %s - Tamaño: %d",(char*)list_get(mensaje,1),*(uint32_t*)list_get(mensaje,2)));
+			//sem_post(&paginaCargada);
+		}
 	free(msg);
 }
 
