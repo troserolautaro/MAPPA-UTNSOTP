@@ -5,7 +5,6 @@
 //t_dictionary* tablaFCB;
 void* bloques;//se usa solo para los bloques de swap
 void* bufferMemoria;
-uint32_t* tablaFAT;
 bool * tablaSWAP;//como espacio contiguo de memoria
 pthread_t hiloRecibirCliente;
 int serverFilesystem;
@@ -98,9 +97,10 @@ void iniciar_fat(){
 			log_error(logger,"Error al abrir archivo");
 			//return 1;
 		}else{
-			int valor = 0;
+			uint32_t libre = 0;
 			for(int i = 0; i< cantBloquesFAT;i++){ //Recordar que la posicion 0 de la FAT es la cantBloquesSwap*tamañobloque
-				fwrite(&valor,sizeof(uint32_t),1,archivoFAT);
+				fseek(archivoFAT,i*sizeof(uint32_t),SEEK_SET);
+				fwrite(&libre,sizeof(uint32_t),1,archivoFAT);
 			}
 		}
 	}
@@ -109,48 +109,60 @@ void iniciar_fat(){
 }
 
 //si devuelve null no hay anteultimo elemento
-registroFAT_t* get_anteultimo_bloque_archivo(uint32_t bloqueInicial){
-	registroFAT_t* anteUltimoBloque=tablaFAT[bloqueInicial];
-	bool esAnteultimoBLoque=(anteUltimoBloque->proximoBloque == UINT32_MAX );
+uint32_t* get_anteultimo_bloque_archivo(uint32_t bloqueInicial){
+	FILE *archivoFAT = fopen(pathFAT, "rb");
+	uint32_t anteUltimoBloque=bloqueInicial;
+	uint32_t ultimoBloque;
+	fseek(archivoFAT,anteUltimoBloque*sizeof(uint32_t),SEEK_SET);
+	fread(&ultimoBloque,sizeof(uint32_t),1,archivoFAT);
+	bool esAnteultimoBLoque=(ultimoBloque == UINT32_MAX );
 	if(esAnteultimoBLoque)return NULL;
     while (!esAnteultimoBLoque ) {
-    	if(anteUltimoBloque->proximoBloque != UINT32_MAX){
-    		anteUltimoBloque=tablaFAT[(anteUltimoBloque->proximoBloque)];
-    	}else{
-    		esAnteultimoBLoque=true;
-    	}
+    	anteUltimoBloque=ultimoBloque;
+    	fseek(archivoFAT,anteUltimoBloque*sizeof(uint32_t),SEEK_SET);
+		fread(&ultimoBloque,sizeof(uint32_t),1,archivoFAT);
+		bool esAnteultimoBLoque=(ultimoBloque == UINT32_MAX );
     }
 	return anteUltimoBloque;
 }
-registroFAT_t* get_ultimo_bloque_archivo(uint32_t bloqueInicial){
-	registroFAT_t* ultimoBloque=tablaFAT[bloqueInicial];
-    while (ultimoBloque->proximoBloque != UINT32_MAX) {
-    	ultimoBloque=tablaFAT[(ultimoBloque->proximoBloque)];
+
+uint32_t get_ultimo_bloque_archivo(uint32_t bloqueInicial){
+	FILE *archivoFAT = fopen(pathFAT, "rb");
+	fseek(archivoFAT,bloqueInicial*sizeof(uint32_t),SEEK_SET);
+	uint32_t ultimoBloque;
+	fread(&ultimoBloque,sizeof(uint32_t),1,archivoFAT);
+    while (ultimoBloque != UINT32_MAX) {
+    	fseek(archivoFAT,ultimoBloque*sizeof(uint32_t),SEEK_SET);
+    	fread(&ultimoBloque,sizeof(uint32_t),1,archivoFAT);
     }
 	return ultimoBloque;
 }
 
 void asignar_bloques_FAT(t_config* archivo, uint32_t cantidad){
 	bool tieneBloqueInicial=config_has_property(archivo,"BLOQUE_INICIAL");
-	int numBloqueInicial;
-	registroFAT_t* ultimoBloque=malloc(sizeof(registroFAT_t));
+	uint32_t bloqueInicial,ultimoBloque,bloqueActual,finArch;
+	finArch=UINT32_MAX;
 	if(tieneBloqueInicial){
-		numBloqueInicial=config_get_int_value(archivo,"BLOQUE_INICIAL");
-		ultimoBloque =get_ultimo_bloque_archivo(numBloqueInicial);
+		bloqueInicial=(uint32_t)config_get_int_value(archivo,"BLOQUE_INICIAL");
+		ultimoBloque =get_ultimo_bloque_archivo(bloqueInicial);
 	}
-	for(int i=0; i<cantBloquesFAT && cantidad>0;i++){
-		if(tablaFAT[i]==0){
+	FILE *archivoFAT = fopen(pathFAT, "rb+");
+	for(int i=1; i<cantBloquesFAT && cantidad>0;i++){
+		fseek(archivoFAT,i*sizeof(uint32_t),SEEK_SET);
+    	fread(&bloqueActual,sizeof(uint32_t),1,archivoFAT);
+		if(bloqueActual==0){
 			if(!tieneBloqueInicial ){
 				config_set_value(archivo,"BLOQUE_INICIAL",string_itoa(i));
-				numBloqueInicial=i;
+				bloqueInicial=i;
+				ultimoBloque=i;
 				tieneBloqueInicial=true;
-				ultimoBloque =tablaFAT[i];
 			}
-			else if(cantidad>1){
-				(ultimoBloque->proximoBloque)=i;
+			if(cantidad>1){
+				fwrite(&bloqueActual,sizeof(uint32_t),1,archivoFAT);
+				ultimoBloque=bloqueActual;
 			}
 			else{//cantidad==1 asigno fin del archivo
-				tablaFAT[i]=UINT32_MAX;
+				fwrite(&finArch,sizeof(uint32_t),1,archivoFAT);
 			}
 			cantidad--;
 		}
@@ -164,16 +176,14 @@ void liberar_bloques_FAT(t_config* archivo, uint32_t cantidad){
 	bool tieneBloqueInicial=config_has_property(archivo,"BLOQUE_INICIAL");
 	bool tieneAnteUltimoBloque=false;
 	bool error=false;
-	int numBloqueInicial;
-	registroFAT_t* ultimoBloque=malloc(sizeof(registroFAT_t));
-	registroFAT_t* anteultimoBloque=malloc(sizeof(registroFAT_t));
+	uint32_t numBloqueInicial,ultimoBloque, anteultimoBloque,finArch,libre;
+	finArch=UINT32_MAX;
+	libre=0;
+	FILE *archivoFAT = fopen(pathFAT, "rb+");
 	if(tieneBloqueInicial){
 		numBloqueInicial=config_get_int_value(archivo,"BLOQUE_INICIAL");
 		ultimoBloque =get_ultimo_bloque_archivo(numBloqueInicial);
 		anteultimoBloque =get_anteultimo_bloque_archivo(numBloqueInicial);
-		if(anteultimoBloque==NULL){
-			tieneAnteUltimoBloque=false;
-		}
 	}
 	while(cantidad>0 || !error){
 		if(!tieneBloqueInicial ){
@@ -181,8 +191,11 @@ void liberar_bloques_FAT(t_config* archivo, uint32_t cantidad){
 		}
 		else{
 			anteultimoBloque =get_anteultimo_bloque_archivo(numBloqueInicial);
-			(ultimoBloque->proximoBloque)=0;//LIBERO EL ULTIMO BLOQUE
-			(anteultimoBloque->proximoBloque)=UINT32_MAX;// AL ANTE ULTIMO BLOQUE LI DIGO QUE ES EL ULTIMO
+			ultimoBloque =get_ultimo_bloque_archivo(numBloqueInicial);
+			fseek(archivoFAT,ultimoBloque*sizeof(uint32_t),SEEK_SET);
+			fwrite(&libre,sizeof(uint32_t),1,archivoFAT);
+			fseek(archivoFAT,anteultimoBloque*sizeof(uint32_t),SEEK_SET);
+			fwrite(&finArch,sizeof(uint32_t),1,archivoFAT);
 		}
 		cantidad--;
 	}
@@ -242,12 +255,14 @@ void truncar_archivo(char*path, uint32_t tamaño){ //situacionDeseada : ampliar 
 	}
 }
 uint32_t obtener_bloque(t_config *config, uint32_t puntero){
-	uint32_t bloqueInicial =(uint32_t) config_get_int_value(config,"BLOQUE_INICIAL");
+	uint32_t bloque =(uint32_t) config_get_int_value(config,"BLOQUE_INICIAL");
+	FILE *archivoFAT = fopen(pathFAT, "rb+");
 	while(puntero>0){
-		bloqueInicial=tablaFAT[bloqueInicial];
+		fseek(archivoFAT,bloque*sizeof(uint32_t),SEEK_SET);
+		fread(&bloque,sizeof(uint32_t),1,archivoFAT);
 		puntero--;
 	}
-	return bloqueInicial;
+	return bloque;
 }
 void leer_archivo(char*path,uint32_t direccionFisica, uint32_t puntero,int conexion){
 	//comunicacion con memoria
@@ -264,7 +279,7 @@ void leer_archivo(char*path,uint32_t direccionFisica, uint32_t puntero,int conex
 		fseek(archivoBloques,punteroFisico,SEEK_SET);
 		fread(&valorBloque,tamBloque,1,archivoBloques);
 		agregar_a_paquete(paquete,"f_read",sizeof("f_read"));
-		agregar_a_paquete(paquete,direccionFisica,sizeof(uint32_t));
+		agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
 		agregar_a_paquete(paquete,valorBloque,tamBloque);
 		enviar_paquete(paquete,conexionMemoria);
 		sem_wait(&validRead_s);

@@ -22,10 +22,4 @@ bool existencia_archivo(char* archivo);
 void iniciar_bloques();
 void iniciar_fat();
 
-//estructura auxiliar de bloques
-typedef struct{
-	uint32_t proximoBloque;
-	//t_list* bloques;//solo se usa en el bloque inicial al estilo de asignacion de bloques indexada
-}registroFAT_t;
-
 #endif /* CPU_H_ */
