@@ -243,7 +243,7 @@ void escribir_archivo(char*nombreArchivo, uint32_t puntero){
 void iniciar_proceso(){
 	//RESERVAR BLOQUES DE SWAP
 	for (int i = 0; i < cantBloques; ++i) {
-	memcpy((void*)((char*)bloques + i),"\0",sizeof(uint32_t));
+		memcpy((void*)((char*)bloques + i),"\0",sizeof(uint32_t));
 	}
 
 }
@@ -279,7 +279,7 @@ void reservar_SWAP(uint32_t pid, uint32_t cantBloques){
 	eliminar_paquete(paquete);
 
 }
-void* obtener_pagina_swap(uint32_t pid, uint32_t posSWAP){
+void* obtener_pagina_swap(uint32_t posSWAP){
 	FILE* archivoBloques = fopen(pathBloques,"rb");
 	escritura_log(string_from_format("Acceso SWAP: %d", (posSWAP/tamBloque)));
 	void * datos = malloc(tamBloque);
@@ -287,6 +287,13 @@ void* obtener_pagina_swap(uint32_t pid, uint32_t posSWAP){
 	fread(datos,tamBloque,1,archivoBloques);
 	fclose(archivoBloques);
 	return datos;
+}
+void escribir_pagina_swap(uint32_t posSWAP, void* datos){
+	FILE* archivoBloques = fopen(pathBloques,"ab");
+	escritura_log(string_from_format("Acceso SWAP: %d", (posSWAP/tamBloque)));
+	fseek(archivoBloques,posSWAP,SEEK_SET);
+	fwrite(datos,tamBloque,1,archivoBloques);
+	fclose(archivoBloques);
 }
 void procesar_mensaje(t_list* mensaje){
 	char* msg = string_new();
@@ -338,7 +345,7 @@ void procesar_mensaje(t_list* mensaje){
 		uint32_t pid = *(uint32_t*) list_get(mensaje,1);
 		uint32_t posSwap = *(uint32_t*) list_get(mensaje,2);
 		uint32_t pagina = *(uint32_t*) list_get(mensaje,3);
-		void * datos = obtener_pagina_swap(pid,posSwap);
+		void * datos = obtener_pagina_swap(posSwap);
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"paginaSWAP",sizeof("paginaSWAP"));
 		agregar_a_paquete(paquete,&pid,sizeof(uint32_t));
@@ -348,5 +355,12 @@ void procesar_mensaje(t_list* mensaje){
 		eliminar_paquete(paquete);
 		free(datos);
 	}
-
+	if(!strcasecmp(msg,"escribirSwap")){
+		escribir_pagina_swap(*(uint32_t*)list_get(mensaje,1), list_get(mensaje,2));
+		t_paquete* paquete = crear_paquete();
+		agregar_a_paquete(paquete,"escribirSwap",sizeof("escribirSwap"));
+		enviar_paquete(paquete,conexion);
+		eliminar_paquete(paquete);
+	}
+	free(msg);
 }

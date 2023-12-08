@@ -5,13 +5,15 @@ t_list* tablaMarcos;//indice=marco
 t_dictionary* tablaProcesos;//clave pid
 typedef pagina_t* (*AlgoritmoRemplazoFuncion)();
 AlgoritmoRemplazoFuncion algoritmoRemplazo;
-void* espacioContiguoMemoria;
+
+void* espacioContiguoMemoria; //Simulador de ram => Almacenar una cantidad bytes
+
 char* algoritmoReemplazo;
 int tamPagina,tamMemoria,cantMarcos,retardoRespuesta;
 int conexionFS;
 int marcoFIFO;
 pthread_mutex_t mutex_memoria;
-sem_t sem_bloquesSwap, sem_paginaSwap;
+sem_t sem_bloquesSwap, sem_paginaSwap, sem_escribirSwap;
 
 //INICIAR  MEMORIA DE USUARIO
 marco_t* crear_marco(int i){
@@ -116,9 +118,12 @@ uint32_t get_dato(uint32_t direccion) {
 //ACCESO A ESPACIO DE USUARIO ESCRITURA
 void set_dato(uint32_t direccion, uint32_t valor) {
 	pthread_mutex_lock(&mutex_memoria);
-	//escribir direccion
 	memcpy((void*)((char*)espacioContiguoMemoria + direccion),(void*)&valor,sizeof(uint32_t));
 	pthread_mutex_unlock(&mutex_memoria);
+	//MARCO MODIFICADO
+	pagina_global_t* paginaGlobal = (list_get(tablapaginasGlobales,direccion/tamPagina));
+	pagina_t* pagina = pagina_get(paginaGlobal->pid,paginaGlobal->pagina);
+	pagina->m = 1;
 }
 
 //PAGE FAULT
@@ -145,6 +150,14 @@ int marcos_libres(){
 }
 bool marco_libre(marco_t * marco){return (marco->libre);}
 
+void* descargar_pagina_swap(int base){
+	void * datos = malloc(tamPagina);
+	for(int i = 0; i < tamPagina/sizeof(uint32_t);i++){
+		*((uint32_t*)((char*)datos + i * sizeof(uint32_t))) = get_dato((base)+(i*sizeof(uint32_t)));
+		//escritura_log(string_from_format("PID: %d - Accion: Leer - Direccion fisica: %d",pid,(int)(marco->base+i*sizeof(uint32_t))));
+	}
+	return datos;
+}
 void page_fault(uint32_t pid,uint32_t numPagina){
 	pagina_t* pagina=pagina_get(pid,numPagina);
 	uint32_t posSWAP=(pagina->posSWAP);
@@ -153,12 +166,22 @@ void page_fault(uint32_t pid,uint32_t numPagina){
 	char * mensaje = string_new();
 	if((marcos_libres())==0){
 		pagina_t* paginaVictima=algoritmoRemplazo();
-		if(paginaVictima->m==0){
-			marcoLibre = list_get(tablaMarcos,paginaVictima->marco);
-			paginaVictima->p = 0;
-			string_append_with_format(&mensaje,"REEMPLAZO - Marco: %d - ",paginaVictima->marco);
-			victima = true;
+		marcoLibre = list_get(tablaMarcos,paginaVictima->marco);
+		if(paginaVictima->m!=0){
+			void* datos = descargar_pagina_swap(marcoLibre->base);
+			//Guardar en bloques SWAP y luego continuar
+			t_paquete* paquete = crear_paquete();
+			agregar_a_paquete(paquete,"escribirSwap",sizeof("escribirSwap"));
+			agregar_a_paquete(paquete,&paginaVictima->posSWAP,sizeof(uint32_t));
+			agregar_a_paquete(paquete,datos,tamPagina);
+			enviar_paquete(paquete,conexionFS);
+			eliminar_paquete(paquete);
+			sem_wait(&sem_escribirSwap);
 		}
+		paginaVictima->p = 0;
+		paginaVictima->m = 0;
+		string_append_with_format(&mensaje,"REEMPLAZO - Marco: %d - ",paginaVictima->marco);
+		victima = true;
 	}else{
 		marcoLibre = list_find(tablaMarcos,(void*)marco_libre);
 	}
@@ -168,6 +191,7 @@ void page_fault(uint32_t pid,uint32_t numPagina){
 	pagina_global_t* paginaGlobal = (pagina_global_t*) list_get(tablapaginasGlobales,pagina->marco);
 	if (victima){
 		string_append_with_format(&mensaje,"Page Out: %d-%d - Page In: %d-%d",paginaGlobal->pid,paginaGlobal->pagina,pid,numPagina);
+		escritura_log(mensaje);
 	}
 	free(mensaje);
 	paginaGlobal->pid = pid;
@@ -195,7 +219,7 @@ void asignar_swap(t_list* args){
 //FIFO
 pagina_t* FIFO(){
 	pagina_global_t* paginaVictima=(pagina_global_t*)list_get(tablapaginasGlobales,marcoFIFO);
-	if(marcoFIFO == cantMarcos){
+	if(marcoFIFO == cantMarcos-1){
 		marcoFIFO = 0;
 	}else{
 		marcoFIFO++;
@@ -229,6 +253,7 @@ void iniciar_memoria_usuario(){
 	cargar_tabla_marcos_y_pglobales();
 }
 void cargar_pagina_swap(uint32_t pid, uint32_t numPagina, void* datos){
+	//Carga un bloque entero en base a uint32_t
 	marco_t* marco = (marco_t*) list_get(tablaMarcos,devolver_num_marco(pid,numPagina));
 	for(int i = 0; i < tamPagina/sizeof(uint32_t);i++){
 		set_dato((marco->base)+(i*sizeof(uint32_t)),*((uint32_t*)((char*)datos + i * sizeof(uint32_t))));
@@ -237,3 +262,4 @@ void cargar_pagina_swap(uint32_t pid, uint32_t numPagina, void* datos){
 	free(datos);
 	sem_post(&sem_paginaSwap);
 }
+

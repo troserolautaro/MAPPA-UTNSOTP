@@ -14,9 +14,7 @@ int main() {
 	logger = iniciar_logger("./log.log");
 	config = iniciar_config("./Memoria.config");
 
-	char* ipFyleSystem,
-		* puertoEscucha,
-		* puertoFyleSystem;
+	char * puertoEscucha;
 
 
 	//Semaforos
@@ -25,9 +23,8 @@ int main() {
 	sem_init(&sem_conexion,0,0);
 	sem_init(&sem_bloquesSwap,0,0);
 	sem_init(&sem_paginaSwap,0,0);
+	sem_init(&sem_escribirSwap,0,0);
 	//CONFIGURACION DE MEMORIA
-	ipFyleSystem = config_get_string_value(config,"IP_FILESYSTEM");
-	puertoFyleSystem = config_get_string_value(config,"PUERTO_FYLESYSTEM");
 	puertoEscucha = config_get_string_value(config,"PUERTO_ESCUCHA");
 	tamMemoria = config_get_int_value(config,"TAM_MEMORIA");
 	tamPagina = config_get_int_value(config,"TAM_PAGINA");
@@ -37,6 +34,7 @@ int main() {
 	iniciar_memoria_usuario();
 	//INICIAR SERVIDOR
 	serverMemoria = iniciar_servidor(puertoEscucha);
+	free(puertoEscucha);
 	archivosCargados=dictionary_create();
 	//printf("%ld \n %ld", (long)getpid(), (long)getppid());
 
@@ -80,13 +78,14 @@ void procesar_mensaje(t_list* mensaje){
 		//valida si es una direccion fisica valida
 		if(direccionFisica<tamMemoria){
 		error=false;
-		escritura_log(string_from_format("PID: %d - Accion: LEER - Direccion fisica: %d",*(uint32_t*)list_get(mensaje,3),direccionFisica));
+		escritura_log(string_from_format("PID: %d - Accion: LEER - Direccion fisica: %d",*(uint32_t*)list_get(mensaje,2),direccionFisica));
 		dato=get_dato(*(uint32_t*)list_get(mensaje,1));
 		}
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"mov_in",sizeof("mov_in"));
 		agregar_a_paquete(paquete,&error,sizeof(bool));
-		agregar_a_paquete(paquete,&dato,sizeof(int));
+		agregar_a_paquete(paquete,&dato,sizeof(uint32_t));
+		usleep(retardoRespuesta*1000);
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
 	}
@@ -101,6 +100,7 @@ void procesar_mensaje(t_list* mensaje){
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"mov_out",sizeof("mov_out"));
 		agregar_a_paquete(paquete,&error,sizeof(bool));
+		usleep(retardoRespuesta*1000);
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
 	}
@@ -194,7 +194,9 @@ void procesar_mensaje(t_list* mensaje){
 			agregar_a_paquete(paquete,"marco",sizeof("marco"));
 			agregar_a_paquete(paquete,&pageFault,sizeof(bool));
 			agregar_a_paquete(paquete,&marco,sizeof(uint32_t));
+			usleep(retardoRespuesta*1000);
 			enviar_paquete(paquete,conexion);
+			eliminar_paquete(paquete);
 		}
 	}
 	if(!strcasecmp(msg,"bloquesSwap")){
@@ -205,6 +207,9 @@ void procesar_mensaje(t_list* mensaje){
 		uint32_t numPagina =  *(uint32_t*)list_get(mensaje,2);
 		void * datos = list_get(mensaje,3);
 		cargar_pagina_swap(pid,numPagina,datos);
+	}
+	if(!strcasecmp(msg,"escribirSwap")){
+		sem_post(&sem_escribirSwap);
 	}
 	free(msg);
 }

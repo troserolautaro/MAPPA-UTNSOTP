@@ -25,10 +25,10 @@ void destruir_lock(lock* lock){
 	list_destroy_and_destroy_elements(lock->participantes,(void*)destructor_participantes);
 	free(lock);
 }
-registro_tap* crear_reg_tap(char* archivo){
+registro_tap* crear_reg_tap(int modoApertura){
 	registro_tap* registroTap = malloc(sizeof(registro_tap));
 	registroTap->puntero = -1;
-	registroTap->modoApertura = NOASIGNADO;
+	registroTap->modoApertura = modoApertura;
 	return registroTap;
 }
 
@@ -80,7 +80,11 @@ registro_tap* get_reg_tap(t_dictionary* tablaArchivos, char* archivo){
 	}
 	return NULL;
 }
-
+void agregar_lock_activo(registro_tag* regTag,int modoApertura){
+	lock* lockTemp = crear_lock(modoApertura);
+	destruir_lock(regTag->lockActivo);
+	regTag->lockActivo = lockTemp;
+}
 /*t_dictionary * get_tap(int pid){
 	t_dictionary * tap;
 	if(dictionary_has_key(diccionarioDeDiccionariosLocales,string_itoa(pid))){
@@ -101,7 +105,10 @@ registro_tap* get_reg_tap(t_dictionary* tablaArchivos, char* archivo){
 	registro_tap* registroTap=get_reg_tap(pid,);
 	return registroTap;
 }*/
-
+void agregar_reg_tap(PCB* proceso, char* archivo, int modoApertura){
+	registro_tap* regTap = crear_reg_tap(modoApertura);
+	dictionary_put(proceso->tablaArchivos,archivo,regTap);
+}
 void f_open(PCB* proceso,char * archivo,int modoApertura){
 	//NUEVA LOGICA LUEGO DE RELEER EL ENUNCIADO DE VARIAS VECES
 	registro_tag* regTag=get_reg_tag(archivo);
@@ -116,7 +123,7 @@ void f_open(PCB* proceso,char * archivo,int modoApertura){
 				//No bloquear y darle el archivo
 				destruir_lock(regTag->lockActivo);
 				regTag->lockActivo = lockEscritura;
-
+				agregar_reg_tap(proceso,archivo,modoApertura);
 			}else{
 				//Bloquear y agregar a la COLA LOCK
 				bloquear_proceso(proceso,archivo);
@@ -137,12 +144,13 @@ void f_open(PCB* proceso,char * archivo,int modoApertura){
 			if(regTag->lockActivo->tipoDeLock == LECTURA){
 				//Agregar como participante al LOCK
 				agregar_participante(regTag->lockActivo,proceso);
+				agregar_reg_tap(proceso,archivo,modoApertura);
 			}
 			if(regTag->lockActivo->tipoDeLock == NOASIGNADO){
 				//Crear lock con un solo participante
 				agregar_lock_activo(regTag,modoApertura);
 				agregar_participante(regTag->lockActivo,proceso);
-
+				agregar_reg_tap(proceso,archivo,modoApertura);
 
 			}
 			break;
@@ -153,11 +161,7 @@ void f_open(PCB* proceso,char * archivo,int modoApertura){
 void borrar_reg_tap(t_dictionary* tablaArchivos, char* regABorrar){
 	dictionary_remove_and_destroy(tablaArchivos,regABorrar,(void*)destruir_registro_tap);
 }
-void agregar_lock_activo(registro_tag* regTag,int modoApertura){
-	lock* lockTemp = crear_lock(modoApertura);
-	destruir_lock(regTag->lockActivo);
-	regTag->lockActivo = lockTemp;
-}
+
 
 void f_close(PCB* proceso,char * archivo){
 	registro_tag* regTag=get_reg_tag(archivo);

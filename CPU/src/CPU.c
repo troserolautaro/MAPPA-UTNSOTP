@@ -205,6 +205,7 @@ void mov_in(uint32_t* registro, uint32_t* direccionLogica) {
 		eliminar_paquete(paquete);
 		escritura_log(string_from_format("PID: %d - Accion: Leer - Direccion Fisica: %d - Valor: %d", proceso->pid,direccionFisica, *registro));
 		sem_wait(&memoria_s);
+		*registro = valor;
 		if(error){
 		//mostrar error
 		}
@@ -534,7 +535,7 @@ void procesar_mensaje(t_list* mensaje){
 	}
 	if(!strcasecmp(msg,"mov_in")){
 			error=*(bool*)list_get(mensaje,1);
-			valor=strtol(list_get(mensaje,2),NULL,10);
+			valor= *(uint32_t*)list_get(mensaje,2);
 			sem_post(&memoria_s);
 		}
 	if(!strcasecmp(msg,"mov_out")){
