@@ -32,6 +32,6 @@ t_list* cargar_instrucciones(char** file){
 				free(lineaDeCodigo);
 			}
 			fclose(fileInstrucciones);
-			printf("\n tamaño de lista %d \n", list_size(listaInstrucciones));
+			printf("\n tamanio de lista %d \n", list_size(listaInstrucciones));
 			return listaInstrucciones;
 }

@@ -431,12 +431,12 @@ void procesar_mensaje(t_list* mensaje){
 	if(!strcasecmp(msg,"paginaCargada")){
 		sem_post(&paginaCargada);
 	}
-	if(!strcasecmp(msg,"tamaño")){
+	if(!strcasecmp(msg,"tamanio")){
 		char* archivo = (char*)list_get(mensaje,1);
-		uint32_t tamaño = *(uint32_t*)list_get(mensaje,2);
-		debug(string_from_format("Archivo abierto: %s - Tamaño: %d",archivo,tamaño));
+		uint32_t tamanio = *(uint32_t*)list_get(mensaje,2);
+		debug(string_from_format("Archivo abierto: %s - Tamaño: %d",archivo,tamanio));
 		registro_tag* regTag = crear_reg_tag(archivo);
-		(regTag->tamaño)=tamaño;
+		(regTag->tamanio)=tamanio;
 		dictionary_put(tag,archivo,regTag);
 		free(archivo);
 		sem_post(&sem_archivoCreado);

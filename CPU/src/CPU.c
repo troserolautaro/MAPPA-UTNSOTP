@@ -79,7 +79,7 @@ int main() {
 	if ((resultado = pthread_create(&hiloMemoria,NULL,manejar_cliente,(void*)&conexionMemoria))!=0){
 		printf("Error al crear hilo. resultado %d",resultado);
 	}
-	cargar_tamaño_pagina();
+	cargar_tamanio_pagina();
 	sem_wait(&tamPagina_s);
 	//Hilos proceso
 	bloquear= false;
@@ -92,7 +92,7 @@ int main() {
 	pthread_join(hiloKernelInterrupt,NULL);
 	return EXIT_SUCCESS;
 }
-void cargar_tamaño_pagina(){
+void cargar_tamanio_pagina(){
 	t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"tamanioPagina",sizeof("tamanioPagina"));
 	enviar_paquete(paquete,conexionMemoria);

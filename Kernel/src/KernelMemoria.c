@@ -229,25 +229,25 @@ void f_seek(PCB* proceso, char * archivo,uint32_t puntero){
 
 void f_truncate(t_list* parameters){
 /*
- * Esta función solicitará al módulo File System que actualice el tamaño del archivo al nuevo tamaño pasado por parámetro
+ * Esta función solicitará al módulo File System que actualice el tamanio del archivo al nuevo tamanio pasado por parámetro
  *  y bloqueará al proceso hasta que el File System informe de la finalización de la operación.
  */
 
 	PCB* proceso = list_get(parameters,0);
 	char* archivo = list_get(parameters,1);
-	uint32_t tamaño = (uint32_t)strtol((char*)list_get(parameters,2),NULL,10);
+	uint32_t tamanio = (uint32_t)strtol((char*)list_get(parameters,2),NULL,10);
 	bloquear_proceso(proceso,archivo);
 	sem_post(&planiCorto);
 	t_paquete * paquete = crear_paquete();
 	agregar_a_paquete(paquete,"f_truncate",sizeof("f_truncate"));
 	//agregar_a_paquete(paquete,&(proceso->pid),sizeof(uint32_t));
 	agregar_a_paquete(paquete,archivo,strlen(archivo)+1);
-	agregar_a_paquete(paquete,&tamaño,sizeof(uint32_t));
+	agregar_a_paquete(paquete,&tamanio,sizeof(uint32_t));
 	enviar_paquete(paquete,conexionFileSystem);
 	eliminar_paquete(paquete);
 	sem_wait(&sem_truncado);
 	registro_tag* regTag=get_reg_tag(archivo);
-	(regTag->tamaño)=tamaño;
+	(regTag->tamanio)=tamanio;
 	push_colaCorto(proceso);
 	sem_post(&planiCorto);
 	//semaforo de filesystem
@@ -264,8 +264,8 @@ void f_read(t_list* parameters){
 	uint32_t direccionFisica = (uint32_t)strtol((char*)list_get(parameters,2),NULL,10);
 	registro_tag* regTag=get_reg_tag(archivo);
 	registro_tap* regTap=get_reg_tap((proceso->tablaArchivos), archivo);
-	escritura_log(string_from_format("PID: %d - LEer Archivo: %s - Puntero: %d - Dirección Memoria: %d - Tamaño: %d ", proceso->pid,archivo,(regTap->puntero),direccionFisica,(regTag->tamaño)));
-	if((regTag->tamaño)>0){
+	escritura_log(string_from_format("PID: %d - LEer Archivo: %s - Puntero: %d - Dirección Memoria: %d - Tamaño: %d ", proceso->pid,archivo,(regTap->puntero),direccionFisica,(regTag->tamanio)));
+	if((regTag->tamanio)>0){
 		//if(regTap->modoApertura==LECTURA){
 			bloquear_proceso(proceso,archivo);
 			sem_post(&planiCorto);
@@ -303,8 +303,8 @@ void f_write(t_list* parameters){
 	uint32_t direccionFisica = (uint32_t)strtol((char*)list_get(parameters,2),NULL,10);
 	registro_tag* regTag=get_reg_tag(archivo);
 	registro_tap* regTap=get_reg_tap(proceso->tablaArchivos, archivo);
-	escritura_log(string_from_format("PID: %d - Escribir Archivo: %s - Puntero: %d - Dirección Memoria: %d - Tamaño: %d ", proceso->pid,archivo,(regTap->puntero),direccionFisica,(regTag->tamaño)));
-	if((regTag->tamaño)>0){
+	escritura_log(string_from_format("PID: %d - Escribir Archivo: %s - Puntero: %d - Dirección Memoria: %d - Tamaño: %d ", proceso->pid,archivo,(regTap->puntero),direccionFisica,(regTag->tamanio)));
+	if((regTag->tamanio)>0){
 		if(regTap->modoApertura==ESCRITURA){
 			bloquear_proceso(proceso,archivo);
 			sem_post(&planiCorto);

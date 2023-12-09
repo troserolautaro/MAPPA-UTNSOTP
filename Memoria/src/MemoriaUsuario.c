@@ -55,9 +55,9 @@ void cargar_tabla_marcos_y_pglobales(){
 }
 
 //CREAR PROCESO
-void crear_proceso(uint32_t pid,char* nombre, uint32_t tamaño){
+void crear_proceso(uint32_t pid,char* nombre, uint32_t tamanio){
 	//reservar paginas
-	int cantPaginasProceso=ceil(tamaño/tamPagina);
+	int cantPaginasProceso=ceil(tamanio/tamPagina);
 	t_list* tablaPaginacion=list_create();
 	for(int i=0;i<cantPaginasProceso;i++){
 		pagina_t * nuevaPagina = crear_pagina();
@@ -66,7 +66,7 @@ void crear_proceso(uint32_t pid,char* nombre, uint32_t tamaño){
 	}
 	//if(list_size(tablaPaginacion) != cantPaginasProceso ) debug("No hay cantidad paginas cargadas necesarias");
 	dictionary_put(tablaProcesos,string_itoa(pid),tablaPaginacion);
-	escritura_log(string_from_format("Creacion Tabla Paginas PID: %d - Tamaño: %d",pid,tamaño));
+	escritura_log(string_from_format("Creacion Tabla Paginas PID: %d - Tamaño: %d",pid,tamanio));
 	//reservar swap con fs
 	t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"reservarSWAP",sizeof("reservarSWAP"));

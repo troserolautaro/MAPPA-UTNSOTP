@@ -21,7 +21,7 @@ int serverDispatch,serverInterrupt;
 int clienteKernel;
 void iterator(char* value);
 //MEMORIA
-void cargar_tamaño_pagina();
+void cargar_tamanio_pagina();
 uint32_t mmu(uint32_t* direccionLogica);
 void obtener_marco(uint32_t numPagina);
 //INSTRUCCIONES

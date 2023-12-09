@@ -24,7 +24,7 @@ typedef struct {
 	int aperturas;
 	lock_t* lockActivo;
 	t_queue* colaLocks;
-	uint32_t tamaño;
+	uint32_t tamanio;
 
 }registro_tag;//Tabla Archivos Global
 
