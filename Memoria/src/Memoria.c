@@ -206,6 +206,9 @@ void procesar_mensaje(t_list* mensaje){
 	if(!strcasecmp(msg,"f_write")){
 			enviar_datos_bloque(*(uint32_t*)list_get(mensaje,1));
 		}
+	if(!strcasecmp(msg,"f_read")){
+		recibir_datos_bloque( *(uint32_t*)list_get(mensaje,1), (void*)list_get(mensaje,1));
+	}
 	if(!strcasecmp(msg,"paginaSwap")){
 		uint32_t pid = *(uint32_t*)list_get(mensaje,1);
 		uint32_t numPagina =  *(uint32_t*)list_get(mensaje,2);

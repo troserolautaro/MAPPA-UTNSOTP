@@ -272,21 +272,25 @@ void leer_archivo(char*path,uint32_t direccionFisica, uint32_t puntero,int conex
 	uint32_t bloque;
 	t_config *configArchivo=config_create(path);
 	t_paquete * paquete = crear_paquete();
-
+	void* valorBloque=(void *)malloc(tamBloque);
+	uint32_t punteroFisico;
 	int tamaño=config_get_int_value(configArchivo,"TAMANIO_ARCHIVO");
-	if( tamaño>=puntero){
-		uint32_t bloque=obtener_bloque(configArchivo,puntero);
-		uint32_t punteroFisico=cantBloquesSWAP+bloque;
-		void* valorBloque=malloc(tamBloque);
-		FILE *archivoBloques = fopen(pathBloques, "rb+");
+	if( tamaño/tamBloque>=puntero){
+		bloque=obtener_bloque(configArchivo,puntero);
+		debug(string_from_format("bloque %d",bloque));
+		uint32_t punteroFisico=(cantBloquesSWAP+bloque)*tamBloque;
+		FILE *archivoBloques = fopen(pathBloques, "rb");
 		fseek(archivoBloques,punteroFisico,SEEK_SET);
-		fread(&valorBloque,tamBloque,1,archivoBloques);
+		fread(valorBloque,tamBloque,1,archivoBloques);
+		fclose(archivoBloques);
+		//debug(string_from_format("bloque %d",valorBloque));
 		agregar_a_paquete(paquete,"f_read",sizeof("f_read"));
 		agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
 		agregar_a_paquete(paquete,valorBloque,tamBloque);
 		enviar_paquete(paquete,conexionMemoria);
+		eliminar_paquete(paquete);
 		sem_wait(&validRead_s);
-		t_paquete * paquete = crear_paquete();
+		paquete = crear_paquete();
 		agregar_a_paquete(paquete,"valid_read",sizeof("valid_read"));
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
@@ -294,9 +298,8 @@ void leer_archivo(char*path,uint32_t direccionFisica, uint32_t puntero,int conex
 	else{
 		agregar_a_paquete(paquete,"invalid_read",sizeof("invalid_read"));
 		enviar_paquete(paquete,conexion);
+		eliminar_paquete(paquete);
 	}
-
-	eliminar_paquete(paquete);
 	config_destroy(configArchivo);
 
 

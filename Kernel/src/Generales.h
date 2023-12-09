@@ -26,6 +26,7 @@ extern t_dictionary *diccionarioRecursos;
 char* estado_enum(uint32_t estado);
 void  cambiar_estado(PCB* proceso, int estado);
 void push_colaCorto(PCB* proceso);
+void planificador_largo_salida(PCB* proceso, char* razon);
 void iterar_lista(char** mensaje);
 void bloquear_proceso(PCB* proceso,char* motivo);
 

@@ -441,6 +441,10 @@ void procesar_mensaje(t_list* mensaje){
 		debug("se leyo el archivo");
 		sem_post(&sem_read);
 	}
+	if(!strcasecmp(msg,"valid_read")){
+			debug("se leyo bien");
+			sem_post(&sem_read);
+		}
 	if(!strcasecmp(msg,"valid_write")){
 		debug("se escribio el archivo");
 		sem_post(&sem_write);

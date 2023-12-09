@@ -257,24 +257,28 @@ void f_read(t_list* parameters){
 	registro_tag* regTag=get_reg_tag(archivo);
 	registro_tap* regTap=get_reg_tap((proceso->tablaArchivos), archivo);
 	escritura_log(string_from_format("PID: %d - LEer Archivo: %s - Puntero: %d - Dirección Memoria: %d - Tamaño: %d ", proceso->pid,archivo,(regTap->puntero),direccionFisica,(regTag->tamaño)));
-	if(regTap->modoApertura==LECTURA){
-		bloquear_proceso(proceso,archivo);
-		sem_post(&planiCorto);
-		t_paquete * paquete = crear_paquete();
-		agregar_a_paquete(paquete,"f_read",sizeof("f_read"));
-		agregar_a_paquete(paquete,&(proceso->pid),sizeof(uint32_t));
-		agregar_a_paquete(paquete,archivo,sizeof(char));
-		agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
-		agregar_a_paquete(paquete,&(regTap->puntero),sizeof(uint32_t));
-		enviar_paquete(paquete,conexionFileSystem);
-		eliminar_paquete(paquete);
-		free(archivo);
-		sem_wait(&sem_read);
-		push_colaCorto(proceso);
-		sem_post(&planiCorto);
-	}
-	else{
-		debug("no entro ");
+	if((regTag->tamaño)>0){
+		//if(regTap->modoApertura==LECTURA){
+			bloquear_proceso(proceso,archivo);
+			sem_post(&planiCorto);
+			t_paquete * paquete = crear_paquete();
+			agregar_a_paquete(paquete,"f_read",sizeof("f_read"));
+			//agregar_a_paquete(paquete,&(proceso->pid),sizeof(uint32_t));
+			agregar_a_paquete(paquete,archivo,strlen(archivo)+1);
+			agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
+			agregar_a_paquete(paquete,&(regTap->puntero),sizeof(uint32_t));
+			enviar_paquete(paquete,conexionFileSystem);
+			eliminar_paquete(paquete);
+			free(archivo);
+			sem_wait(&sem_read);
+			push_colaCorto(proceso);
+			sem_post(&planiCorto);
+		//}
+		//else{
+		//	debug("no entro ");
+		//}
+	}else{
+		planificador_largo_salida(proceso,"INVALID_READ");
 	}
 }
 
@@ -292,25 +296,30 @@ void f_write(t_list* parameters){
 	registro_tag* regTag=get_reg_tag(archivo);
 	registro_tap* regTap=get_reg_tap(proceso->tablaArchivos, archivo);
 	escritura_log(string_from_format("PID: %d - Escribir Archivo: %s - Puntero: %d - Dirección Memoria: %d - Tamaño: %d ", proceso->pid,archivo,(regTap->puntero),direccionFisica,(regTag->tamaño)));
-	if(regTap->modoApertura==ESCRITURA){
-		bloquear_proceso(proceso,archivo);
-		sem_post(&planiCorto);
-		t_paquete * paquete = crear_paquete();
-		agregar_a_paquete(paquete,"f_write",sizeof("f_write"));
-		//agregar_a_paquete(paquete,&(proceso->pid),sizeof(uint32_t));
-		agregar_a_paquete(paquete,archivo,strlen(archivo)+1);
-		agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
-		agregar_a_paquete(paquete,&(regTap->puntero),sizeof(uint32_t));
-		enviar_paquete(paquete,conexionFileSystem);
-		eliminar_paquete(paquete);
-		free(archivo);
-		sem_wait(&sem_write);
-		push_colaCorto(proceso);
-		sem_post(&planiCorto);
+	if((regTag->tamaño)>0){
+		if(regTap->modoApertura==ESCRITURA){
+			bloquear_proceso(proceso,archivo);
+			sem_post(&planiCorto);
+			t_paquete * paquete = crear_paquete();
+			agregar_a_paquete(paquete,"f_write",sizeof("f_write"));
+			//agregar_a_paquete(paquete,&(proceso->pid),sizeof(uint32_t));
+			agregar_a_paquete(paquete,archivo,strlen(archivo)+1);
+			agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
+			agregar_a_paquete(paquete,&(regTap->puntero),sizeof(uint32_t));
+			enviar_paquete(paquete,conexionFileSystem);
+			eliminar_paquete(paquete);
+			free(archivo);
+			sem_wait(&sem_write);
+			push_colaCorto(proceso);
+			sem_post(&planiCorto);
+		}
+		else{
+				debug("no entro");
+			}
 	}
 	else{
-			debug("no entro ");
-		}
+		planificador_largo_salida(proceso,"INVALID_WRITE");
+	}
 }
 //PAGE FAULT
 void cargar_pagina(uint32_t pid, uint32_t pagina){

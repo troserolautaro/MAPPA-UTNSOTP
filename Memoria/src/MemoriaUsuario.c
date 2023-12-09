@@ -282,5 +282,9 @@ void recibir_datos_bloque(uint32_t direccionFisica, void* datos){
 		//escritura_log(string_from_format("PID: %d - Accion: ESCRIBIR - Direccion fisica: %d",pid,(int)(direccionFisica+i*sizeof(uint32_t))));
 	}
 	free(datos);
-	sem_post(&sem_escribirBloque);
+	t_paquete* paquete = crear_paquete();
+	agregar_a_paquete(paquete,"valid_read",sizeof("valid_read"));
+	//agregar_a_paquete(paquete,&paginaVictima->posSWAP,sizeof(uint32_t));
+	enviar_paquete(paquete,conexionFS);
+	eliminar_paquete(paquete);
 }
