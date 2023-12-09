@@ -13,7 +13,7 @@ int tamPagina,tamMemoria,cantMarcos,retardoRespuesta;
 int conexionFS;
 int marcoFIFO;
 pthread_mutex_t mutex_memoria;
-sem_t sem_bloquesSwap, sem_paginaSwap, sem_escribirSwap;
+sem_t sem_bloquesSwap, sem_paginaSwap, sem_escribirSwap,sem_escribirBloque;
 
 //INICIAR  MEMORIA DE USUARIO
 marco_t* crear_marco(int i){
@@ -265,3 +265,22 @@ void cargar_pagina_swap(uint32_t pid, uint32_t numPagina, void* datos){
 	sem_post(&sem_paginaSwap);
 }
 
+
+void enviar_datos_bloque(uint32_t direccionFisica){
+	void* datos =descargar_pagina_swap(direccionFisica);//me sirve para fat
+	t_paquete* paquete = crear_paquete();
+	agregar_a_paquete(paquete,"datos_memoria",sizeof("datos_memoria"));
+	//agregar_a_paquete(paquete,&paginaVictima->posSWAP,sizeof(uint32_t));
+	agregar_a_paquete(paquete,datos,tamPagina);
+	enviar_paquete(paquete,conexionFS);
+	eliminar_paquete(paquete);
+}
+void recibir_datos_bloque(uint32_t direccionFisica, void* datos){
+	//Carga un bloque entero en base a uint32_t
+	for(int i = 0; i < tamPagina/sizeof(uint32_t);i++){
+		set_dato(direccionFisica+(i*sizeof(uint32_t)),*((uint32_t*)((char*)datos + i * sizeof(uint32_t))));
+		//escritura_log(string_from_format("PID: %d - Accion: ESCRIBIR - Direccion fisica: %d",pid,(int)(direccionFisica+i*sizeof(uint32_t))));
+	}
+	free(datos);
+	sem_post(&sem_escribirBloque);
+}

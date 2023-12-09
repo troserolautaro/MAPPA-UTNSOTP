@@ -1,9 +1,7 @@
 //MANEJO DE FILE SYSTEM
 #include "KernelMemoria.h"
 sem_t paginaCargada;
-sem_t  semLectura;
-sem_t  semEscritura;
-sem_t sem_archivoCreado,sem_truncado;
+sem_t sem_archivoCreado,sem_truncado,sem_read,sem_write;
 
 t_queue * colaLocks;
 t_dictionary * tag,*t_dictionarytap;
@@ -217,7 +215,7 @@ void f_close(PCB* proceso,char * archivo){
 void f_seek(PCB* proceso, char * archivo,uint32_t puntero){
 	registro_tap *registroTap = get_reg_tap(proceso->tablaArchivos,archivo);
 	if(registroTap!=NULL){
-	registroTap->puntero=puntero;
+	(registroTap->puntero)=puntero;
 	}
 }
 
@@ -241,26 +239,47 @@ void f_truncate(t_list* parameters){
 	eliminar_paquete(paquete);
 	free(archivo);
 	sem_wait(&sem_truncado);
+	registro_tag* regTag=get_reg_tag(archivo);
+	(regTag->tamaño)=tamaño;
+	push_colaCorto(proceso);
+	sem_post(&planiCorto);
 	//semaforo de filesystem
 }
 
-void f_read(PCB* proceso, char * archivo,uint32_t direccionFisica){
+void f_read(t_list* parameters){
 /*
  * Para esta función se solicita al módulo File System que lea desde el puntero del archivo pasado por parámetro y
  *  lo grabe en la dirección física de memoria recibida por parámetro. El proceso que llamó a F_READ, deberá permanecer
  *  en estado bloqueado hasta que el módulo File System informe de la finalización de la operación.
  * */
-	t_paquete * paquete = crear_paquete();
-	agregar_a_paquete(paquete,"f_read",sizeof("f_read"));
-	agregar_a_paquete(paquete,&(proceso->pid),sizeof(uint32_t));
-	agregar_a_paquete(paquete,archivo,sizeof(char));
-	agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
-	enviar_paquete(paquete,conexionFileSystem);
-	eliminar_paquete(paquete);
-	//semaforo de filesystem
+	PCB* proceso = list_get(parameters,0);
+	char * archivo= list_get(parameters,1);
+	uint32_t direccionFisica = (uint32_t)strtol((char*)list_get(parameters,2),NULL,10);
+	registro_tag* regTag=get_reg_tag(archivo);
+	registro_tap* regTap=get_reg_tap((proceso->tablaArchivos), archivo);
+	escritura_log(string_from_format("PID: %d - LEer Archivo: %s - Puntero: %d - Dirección Memoria: %d - Tamaño: %d ", proceso->pid,archivo,(regTap->puntero),direccionFisica,(regTag->tamaño)));
+	if(regTap->modoApertura==LECTURA){
+		bloquear_proceso(proceso,archivo);
+		sem_post(&planiCorto);
+		t_paquete * paquete = crear_paquete();
+		agregar_a_paquete(paquete,"f_read",sizeof("f_read"));
+		agregar_a_paquete(paquete,&(proceso->pid),sizeof(uint32_t));
+		agregar_a_paquete(paquete,archivo,sizeof(char));
+		agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
+		agregar_a_paquete(paquete,&(regTap->puntero),sizeof(uint32_t));
+		enviar_paquete(paquete,conexionFileSystem);
+		eliminar_paquete(paquete);
+		free(archivo);
+		sem_wait(&sem_read);
+		push_colaCorto(proceso);
+		sem_post(&planiCorto);
+	}
+	else{
+		debug("no entro ");
+	}
 }
 
-void f_write(PCB* proceso, char * archivo,uint32_t direccionFisica){
+void f_write(t_list* parameters){
 /*
  * Esta función, en caso de que el proceso haya solicitado un lock de escritura, solicitará al módulo File System
  * que escriba en el archivo desde la dirección física de memoria recibida por parámetro. El proceso que llamó a
@@ -268,15 +287,31 @@ void f_write(PCB* proceso, char * archivo,uint32_t direccionFisica){
  *  la operación. En caso de que el proceso haya solicitado un lock de lectura, se deberá cancelar la operación y
  *   enviar el proceso a EXIT con motivo de INVALID_WRITE.
  * */
-	t_paquete * paquete = crear_paquete();
-	agregar_a_paquete(paquete,"f_write",sizeof("f_write"));
-	agregar_a_paquete(paquete,&(proceso->pid),sizeof(uint32_t));
-	agregar_a_paquete(paquete,archivo,sizeof(char));
-	agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
-	enviar_paquete(paquete,conexionFileSystem);
-	eliminar_paquete(paquete);
-	//semaforo de filesystem
-
+	PCB* proceso = list_get(parameters,0);
+	char * archivo= list_get(parameters,1);
+	uint32_t direccionFisica = (uint32_t)strtol((char*)list_get(parameters,2),NULL,10);
+	registro_tag* regTag=get_reg_tag(archivo);
+	registro_tap* regTap=get_reg_tap(proceso->tablaArchivos, archivo);
+	escritura_log(string_from_format("PID: %d - Escribir Archivo: %s - Puntero: %d - Dirección Memoria: %d - Tamaño: %d ", proceso->pid,archivo,(regTap->puntero),direccionFisica,(regTag->tamaño)));
+	if(regTap->modoApertura==ESCRITURA){
+		bloquear_proceso(proceso,archivo);
+		sem_post(&planiCorto);
+		t_paquete * paquete = crear_paquete();
+		agregar_a_paquete(paquete,"f_write",sizeof("f_write"));
+		//agregar_a_paquete(paquete,&(proceso->pid),sizeof(uint32_t));
+		agregar_a_paquete(paquete,archivo,strlen(archivo)+1);
+		agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
+		agregar_a_paquete(paquete,&(regTap->puntero),sizeof(uint32_t));
+		enviar_paquete(paquete,conexionFileSystem);
+		eliminar_paquete(paquete);
+		free(archivo);
+		sem_wait(&sem_write);
+		push_colaCorto(proceso);
+		sem_post(&planiCorto);
+	}
+	else{
+			debug("no entro ");
+		}
 }
 //PAGE FAULT
 void cargar_pagina(uint32_t pid, uint32_t pagina){

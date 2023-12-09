@@ -24,6 +24,8 @@ int main(void)
 	sem_init(&paginaCargada,0,0);
 	sem_init(&sem_archivoCreado,0,0);
 	sem_init(&sem_truncado,0,0);
+	sem_init(&sem_write,0,0);
+	sem_init(&sem_read,0,0);
 	pthread_mutex_init(&mutexColaCorto,NULL);
 	pthread_mutex_init(&mutexColaLargo,NULL);
 	pthread_mutex_init(&mutexProcesos,NULL);
@@ -290,7 +292,9 @@ void procesar_mensaje(t_list* mensaje){
 		int motivo = motivo_desalojo((char*)list_get(mensaje,1));
 		int posInicio = (*(int*)(list_get(mensaje,list_size(mensaje)-2)));
 		uint32_t pid = (*(uint32_t*)list_get(mensaje,posInicio))-1;
-
+		uint32_t direccionFisica,puntero;
+		char* archivo=string_new();
+		t_list* params;
 		pthread_mutex_lock(&mutexEjecutando);
 		ejecutandoB = false;
 		pthread_mutex_unlock(&mutexEjecutando);
@@ -379,27 +383,38 @@ void procesar_mensaje(t_list* mensaje){
 			f_close(proceso,(char*)list_get(mensaje,2));
 			break;
 		case F_SEEK:
-			escritura_log(string_from_format("PID: %d -  Actualizar puntero Archivo: %s - Puntero: %d" , proceso->pid,(char*)list_get(mensaje,2),*(uint32_t*)list_get(mensaje,3)));
-			f_seek(proceso,(char*)list_get(mensaje,2),*(uint32_t*)list_get(mensaje,3));
+			puntero=strtol((char*)list_get(mensaje,3),NULL,10);
+			escritura_log(string_from_format("PID: %d -  Actualizar puntero Archivo: %s - Puntero: %d" , proceso->pid,(char*)list_get(mensaje,2),puntero));
+			f_seek(proceso,(char*)list_get(mensaje,2),puntero);
+			ordenar_adelante(proceso); //Pone el proceso adelante de la colaCorto
+			sem_post(&planiCorto);
+
 			break;
 		case F_WRITE:
-			escritura_log(string_from_format("PID: %d - Escribir Archivo: %s - Puntero: %d", proceso->pid,(char*)list_get(mensaje,2),*(uint32_t*)list_get(mensaje,3)));
-
+			archivo = (char*)list_get(mensaje,2);
+			params = list_create();
+			list_add(params,proceso);
+			list_add(params,archivo);
+			list_add(params,list_get(mensaje,3));
+			hilo_funcion(params,(void*)f_write);
 			break;
 		case F_READ:
-
-			escritura_log(string_from_format("PID: %d - Leer Archivo: %s - Puntero: %d", proceso->pid,(char*)list_get(mensaje,2),*(uint32_t*)list_get(mensaje,3)));
-
+			archivo = (char*)list_get(mensaje,2);
+			params = list_create();
+			list_add(params,proceso);
+			list_add(params,archivo);
+			list_add(params,list_get(mensaje,3));
+			hilo_funcion(params,(void*)f_read);
 			break;
 		case F_TRUNCATE:
-			char* archivoATruncar = (char*)list_get(mensaje,2);
+			 archivo = (char*)list_get(mensaje,2);
 			uint32_t size = (uint32_t)strtol((char*)list_get(mensaje,3),NULL,10);
-			t_list* truncado = list_create();
-			list_add(truncado,proceso);
-			list_add(truncado,archivoATruncar);
-			list_add(truncado,list_get(mensaje,3));
-			hilo_funcion(truncado,(void*)f_truncate); //Solucion lista semaforos por proceso
-		//	debug(string_from_format("TRUNCATE: PID: %d - Archivo: %s - Tamaño %d", proceso->pid,(char*)list_get(mensaje,2),*(uint32_t*)list_get(mensaje,3)));
+			escritura_log(string_from_format("PID: %d - Archivo: %s - Tamaño %d", proceso->pid,(char*)list_get(mensaje,2),size));
+			params = list_create();
+			list_add(params,proceso);
+			list_add(params,archivo);
+			list_add(params,list_get(mensaje,3));
+			hilo_funcion(params,(void*)f_truncate); //Solucion lista semaforos por proceso
 			break;
 		case EXIT:
 			error_show("Motivo desconocido");
@@ -413,10 +428,23 @@ void procesar_mensaje(t_list* mensaje){
 		uint32_t tamaño = *(uint32_t*)list_get(mensaje,2);
 		debug(string_from_format("Archivo abierto: %s - Tamaño: %d",archivo,tamaño));
 		registro_tag* regTag = crear_reg_tag(archivo);
+		(regTag->tamaño)=tamaño;
 		dictionary_put(tag,archivo,regTag);
 		free(archivo);
 		sem_post(&sem_archivoCreado);
 		}
+	if(!strcasecmp(msg,"f_truncate")){
+			debug("se trunco el archivo");
+			sem_post(&sem_truncado);
+		}
+	if(!strcasecmp(msg,"f_read")){
+		debug("se leyo el archivo");
+		sem_post(&sem_read);
+	}
+	if(!strcasecmp(msg,"valid_write")){
+		debug("se escribio el archivo");
+		sem_post(&sem_write);
+	}
 	free(msg);
 }
 

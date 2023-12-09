@@ -278,12 +278,11 @@ void f_read(char* nombreArchivo, uint32_t direccionLogica) {
 		t_list * mensaje = list_create();
 		list_add(mensaje,"f_read");
 		list_add(mensaje,nombreArchivo);
-		list_add(mensaje,&direccionFisica);
+		list_add(mensaje,string_itoa(direccionFisica));
 
 		contexto_ejecucion(mensaje);
-		pthread_mutex_lock(&mutexBloquear);
-		bloquear=true;
-		pthread_mutex_unlock(&mutexBloquear);
+		bloquear_proceso();
+
 
 		list_destroy(mensaje);
 	}
@@ -299,12 +298,11 @@ void f_write(char* nombreArchivo, uint32_t direccionLogica) {
 		t_list * mensaje = list_create();
 		list_add(mensaje,"f_write");
 		list_add(mensaje,nombreArchivo);
-		list_add(mensaje,&direccionFisica);
+		list_add(mensaje,string_itoa(direccionFisica));
 		contexto_ejecucion(mensaje);
 
-		pthread_mutex_lock(&mutexBloquear);
-		bloquear=true;
-		pthread_mutex_unlock(&mutexBloquear);
+		bloquear_proceso();
+
 
 		list_destroy(mensaje);
 	}

@@ -34,7 +34,7 @@ extern int conexionFS,tamMemoria,tamPagina,cantMarcos,retardoRespuesta;
 extern int marcoFIFO;
 extern t_list* tablapaginasGlobales;
 extern pagina_t* (*algoritmoRemplazo)();
-extern sem_t sem_bloquesSwap, sem_paginaSwap, sem_escribirSwap;
+extern sem_t sem_bloquesSwap, sem_paginaSwap, sem_escribirSwap,sem_escribirBloque;
 void iniciar_memoria_usuario();
 void crear_proceso(uint32_t pid,char* nombre, uint32_t tamaño);
 void finalizar_proceso(uint32_t pid);
@@ -47,7 +47,8 @@ uint32_t devolver_num_marco(uint32_t pid, uint32_t numPagina);
 pagina_t* fifo();
 pagina_t* lru();
 void cargar_pagina_swap(uint32_t pid, uint32_t numPagina, void* datos);
-
+void enviar_datos_bloque(uint32_t direccionFisica);
+void recibir_datos_bloque(uint32_t direccionFisica,void* datos);
 
 
 #endif /* MEMORIAUSUARIO_H_ */

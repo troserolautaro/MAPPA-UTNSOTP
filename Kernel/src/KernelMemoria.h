@@ -7,7 +7,7 @@
 extern t_dictionary * tag;
 //MANEJO DE MEMORIA
 
-extern sem_t paginaCargada,sem_archivoCreado,sem_truncado;
+extern sem_t paginaCargada,sem_archivoCreado,sem_truncado,sem_read,sem_write;
 typedef enum{
 	ESCRITURA,
 	LECTURA,
@@ -24,10 +24,12 @@ typedef struct {
 	int aperturas;
 	lock_t* lockActivo;
 	t_queue* colaLocks;
+	uint32_t tamaño;
+
 }registro_tag;//Tabla Archivos Global
 
 typedef struct {
-	int puntero;
+	uint32_t puntero;
 	int modoApertura;//posible enum
 }registro_tap;//Tabla de Archivos por Proceso
 void cargar_pagina(uint32_t pid, uint32_t pagina);
@@ -39,7 +41,7 @@ bool f_open(PCB* proceso,char * archivo,uint32_t modoApertura);
 void f_close(PCB* proceso,char * archivo);
 void f_seek(PCB* proceso, char * archivo, uint32_t puntero);
 void f_truncate(t_list* parameters);
-void f_read(PCB* proceso, char * archivo,uint32_t direccionFisica);
-void f_write(PCB* proceso, char * archivo,uint32_t direccionFisica);
+void f_read(t_list* parameters);
+void f_write(t_list* parameters);
 registro_tag* crear_reg_tag(char* archivo);
 #endif /* KERNELMEMORIA_H_ */
