@@ -21,7 +21,9 @@ void destructor_participantes(PCB* proceso){
 	proceso_destroy(proceso);
 }
 void destruir_lock(lock_t* lock){
-	list_destroy_and_destroy_elements(lock->participantes,(void*)destructor_participantes);
+	list_clean(lock->participantes);
+	list_destroy(lock->participantes);
+	//list_destroy_and_destroy_elements(lock->participantes,(void*)destructor_participantes);
 	free(lock);
 }
 registro_tap* crear_reg_tap(uint32_t modoApertura){
@@ -184,21 +186,27 @@ void f_close(PCB* proceso,char * archivo){
 	if(list_is_empty(lockActivo->participantes)){
 		//Si la cola de locks no esta vacia agarro el lock que espero mas tiempo y lo pongo como principal
 		if(!queue_is_empty(regTag->colaLocks)){
-			bool escritura = false;
+
 			destruir_lock(lockActivo);
-			lockActivo = queue_pop(regTag->colaLocks);;
+			lockActivo = queue_pop(regTag->colaLocks);
+			agregar_reg_tap(list_get(lockActivo->participantes,0),archivo,lockActivo->tipoDeLock);
 		//Si el nuevo lock no es de escritura saco todos los posibles
 		if(lockActivo->tipoDeLock != ESCRITURA){
+			bool escritura = false;
 			while(!queue_is_empty(regTag->colaLocks) && !escritura){
 				lock_t* lockTemp = queue_peek(regTag->colaLocks);
 				if(lockTemp->tipoDeLock == ESCRITURA){
 					escritura = true;
 				}else{
 					agregar_participante(lockActivo,list_get(lockTemp->participantes,0));
+					agregar_reg_tap(list_get(lockTemp->participantes,0),archivo,lockActivo->tipoDeLock);
+					push_colaCorto(list_remove(lockTemp->participantes,0));
 					queue_pop(regTag->colaLocks);
 					destruir_lock(lockTemp);
 				}
 			}
+		}else{
+			push_colaCorto(list_get(lockActivo->participantes,0));
 		}
 
 		}else{

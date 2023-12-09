@@ -387,6 +387,8 @@ void procesar_mensaje(t_list* mensaje){
 		case F_CLOSE:
 			escritura_log(string_from_format("PID: %d - Cerrar Archivo: %s", proceso->pid,(char*)list_get(mensaje,2)));
 			f_close(proceso,(char*)list_get(mensaje,2));
+			ordenar_adelante(proceso); //Pone el proceso adelante de la colaCorto
+			sem_post(&planiCorto);
 			break;
 		case F_SEEK:
 			puntero=strtol((char*)list_get(mensaje,3),NULL,10);
