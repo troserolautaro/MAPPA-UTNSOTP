@@ -237,7 +237,6 @@ void f_truncate(t_list* parameters){
 	agregar_a_paquete(paquete,&tamaño,sizeof(uint32_t));
 	enviar_paquete(paquete,conexionFileSystem);
 	eliminar_paquete(paquete);
-	free(archivo);
 	sem_wait(&sem_truncado);
 	registro_tag* regTag=get_reg_tag(archivo);
 	(regTag->tamaño)=tamaño;

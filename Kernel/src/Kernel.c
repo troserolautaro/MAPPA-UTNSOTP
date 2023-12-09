@@ -407,7 +407,7 @@ void procesar_mensaje(t_list* mensaje){
 			hilo_funcion(params,(void*)f_read);
 			break;
 		case F_TRUNCATE:
-			 archivo = (char*)list_get(mensaje,2);
+			archivo = (char*)list_get(mensaje,2);
 			uint32_t size = (uint32_t)strtol((char*)list_get(mensaje,3),NULL,10);
 			escritura_log(string_from_format("PID: %d - Archivo: %s - Tamaño %d", proceso->pid,(char*)list_get(mensaje,2),size));
 			params = list_create();

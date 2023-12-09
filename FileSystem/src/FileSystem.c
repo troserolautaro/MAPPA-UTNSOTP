@@ -3,7 +3,7 @@
 #define valor_EOF UINT32_MAX  //Este valor representa al EOF (End of File)
 
 //t_dictionary* tablaFCB;
-void* bloques;//se usa solo para los bloques de swap
+//void* bloques Noes necesario ya se reserva el swap, mirar el codigo ya hecho!
 void* bufferMemoria;
 bool * tablaSWAP;//como espacio contiguo de memoria
 pthread_t hiloRecibirCliente;
@@ -179,33 +179,35 @@ uint32_t get_ultimo_bloque_archivo(uint32_t bloqueInicial){
 
 void asignar_bloques_FAT(t_config* archivo, uint32_t cantidad){
 	bool tieneBloqueInicial=config_has_property(archivo,"BLOQUE_INICIAL");
-	uint32_t bloqueInicial,ultimoBloque,bloqueActual,finArch;
-	finArch=UINT32_MAX;
+	uint32_t ultimoBloque,bloqueActual, bloqueInicial, finArch = valor_EOF;
 	if(tieneBloqueInicial){
 		bloqueInicial=(uint32_t)config_get_int_value(archivo,"BLOQUE_INICIAL");
 		ultimoBloque =get_ultimo_bloque_archivo(bloqueInicial);
 	}
 	FILE *archivoFAT = fopen(pathFAT, "rb+");
-	for(int i=1; i<cantBloquesFAT && cantidad>0;i++){
-		fseek(archivoFAT,i*sizeof(uint32_t),SEEK_SET);
+	for(uint32_t i=1; i<cantBloquesFAT && cantidad>0;i++){
+		fseek(archivoFAT,(i*sizeof(uint32_t)),SEEK_SET);
     	fread(&bloqueActual,sizeof(uint32_t),1,archivoFAT);
 		if(bloqueActual==0){
-			if(!tieneBloqueInicial ){
+			if(!tieneBloqueInicial){
 				config_set_value(archivo,"BLOQUE_INICIAL",string_itoa(i));
-				bloqueInicial=i;
-				ultimoBloque=i;
-				tieneBloqueInicial=true;
-			}
-			if(cantidad>1){
-				fwrite(&bloqueActual,sizeof(uint32_t),1,archivoFAT);
-				ultimoBloque=bloqueActual;
-			}
-			else{//cantidad==1 asigno fin del archivo
+				fseek(archivoFAT,(i*sizeof(uint32_t)),SEEK_SET);
 				fwrite(&finArch,sizeof(uint32_t),1,archivoFAT);
+				tieneBloqueInicial = true;
+			}else{
+				fseek(archivoFAT,(i*sizeof(uint32_t)),SEEK_SET);
+				fwrite(&finArch,sizeof(uint32_t),1,archivoFAT);
+				fseek(archivoFAT, ultimoBloque*sizeof(uint32_t),SEEK_SET);
+				fwrite(&i,sizeof(uint32_t),1,archivoFAT);
 			}
+			ultimoBloque = i;
 			cantidad--;
 		}
+
+
 	}
+	fclose(archivoFAT);
+
 }
 
 //la idea seria que vaya desenlazando los bloques y removiendolos en la lista del bloque inicial
@@ -331,9 +333,6 @@ void escribir_archivo(char*path, uint32_t puntero,int conexion){
 
 void iniciar_proceso(){
 	//RESERVAR BLOQUES DE SWAP
-	for (int i = 0; i < cantBloques; ++i) {
-		memcpy((void*)((char*)bloques + i),"\0",sizeof(uint32_t));
-	}
 
 }
 
@@ -378,8 +377,7 @@ void* obtener_pagina_swap(uint32_t posSWAP){
 	return datos;
 }
 void escribir_pagina_swap(uint32_t posSWAP, void* datos){
-
-	FILE* archivoBloques = fopen(pathBloques,"ab");
+	FILE* archivoBloques = fopen(pathBloques,"rb+");
 	escritura_log(string_from_format("Acceso SWAP: %d", (posSWAP/tamBloque)));
 	fseek(archivoBloques,posSWAP,SEEK_SET);
 	fwrite(datos,tamBloque,1,archivoBloques);
