@@ -160,31 +160,31 @@ void * recibir_conexiones(void * server){
 				int* cliente_fd_copy = (int*)malloc(sizeof(int));
 				*cliente_fd_copy = cliente_fd;
 				switch(modulo){
-					case KERNEL:
+					case KERNEL:;
 						pthread_t hiloKernel;
 						 if ((resultado=pthread_create(&hiloKernel,NULL,manejar_cliente,( void *)cliente_fd_copy))!=0)
 							printf("Error al crear hilo. resultado %d",resultado);
 
 					break;
-					case CPUDispatch:
+					case CPUDispatch:;
 						pthread_t hiloCPUDispatch;
 						if ((resultado=pthread_create(&hiloCPUDispatch,NULL,manejar_cliente,( void *) cliente_fd_copy))!=0)
 							printf("Error al crear hilo. resultado %d",resultado);
 
 					break;
-					case CPUInterrupt:
+					case CPUInterrupt:;
 						pthread_t hiloCPUInterrupt;
 						if ((resultado=pthread_create(&hiloCPUInterrupt,NULL,manejar_cliente,( void *) cliente_fd_copy))!=0)
 												printf("Error al crear hilo. resultado %d",resultado);
 
 					break;
-					case MEMORIA:
+					case MEMORIA:;
 						pthread_t hiloMemoria;
 						if ((resultado=pthread_create(&hiloMemoria,NULL,manejar_cliente,( void *) cliente_fd_copy))!=0)
 												printf("Error al crear hilo. resultado %d",resultado);
 
 					break;
-					case FILESYSTEM:
+					case FILESYSTEM:;
 						pthread_t hiloFileSystem;
 						if ((resultado=pthread_create(&hiloFileSystem,NULL,manejar_cliente,( void *) cliente_fd_copy))!=0)
 												printf("Error al crear hilo. resultado %d",resultado);
