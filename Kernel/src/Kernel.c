@@ -181,11 +181,11 @@ void ordenar_adelante(PCB* proceso){
 	char* mensajeCola = string_from_format("Cola Ready %s: ",AlgoritmoPlanificacion);
 	pthread_mutex_lock(&mutexColaCorto);
 	if(!queue_is_empty(colaCorto)){
-t_list * listaNueva=list_create();
-list_add(listaNueva,proceso);
-list_add_all(listaNueva,colaCorto->elements);
-list_destroy(colaCorto->elements);
-colaCorto->elements=listaNueva;
+		t_list * listaNueva=list_create();
+		list_add(listaNueva,proceso);
+		list_add_all(listaNueva,colaCorto->elements);
+		list_destroy(colaCorto->elements);
+		colaCorto->elements=listaNueva;
 /*
 		//List_iterate seria una buena solucion.
 		PCB* temp = (PCB*)list_replace(colaCorto->elements,0,proceso);

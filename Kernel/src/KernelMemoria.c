@@ -180,16 +180,16 @@ void borrar_reg_tap(t_dictionary* tablaArchivos, char* regABorrar){
 
 void f_close(PCB* proceso,char * archivo){
 	registro_tag* regTag=get_reg_tag(archivo);
-	borrar_reg_tap(proceso->tablaArchivos,archivo);
 	lock_t* lockActivo = regTag->lockActivo;
 	sacar_participante(lockActivo,proceso);
+	borrar_reg_tap(proceso->tablaArchivos,archivo);
 	if(list_is_empty(lockActivo->participantes)){
 		//Si la cola de locks no esta vacia agarro el lock que espero mas tiempo y lo pongo como principal
 		if(!queue_is_empty(regTag->colaLocks)){
-
 			destruir_lock(lockActivo);
 			lockActivo = queue_pop(regTag->colaLocks);
 			agregar_reg_tap(list_get(lockActivo->participantes,0),archivo,lockActivo->tipoDeLock);
+			push_colaCorto(list_get(lockActivo->participantes,0));
 		//Si el nuevo lock no es de escritura saco todos los posibles
 		if(lockActivo->tipoDeLock != ESCRITURA){
 			bool escritura = false;
@@ -205,10 +205,8 @@ void f_close(PCB* proceso,char * archivo){
 					destruir_lock(lockTemp);
 				}
 			}
-		}else{
-			push_colaCorto(list_get(lockActivo->participantes,0));
 		}
-
+		regTag->lockActivo = lockActivo;
 		}else{
 			//Si la cola de locks esta vacio creo un lock temporal para asignarlo a la TAG
 			agregar_lock_activo(regTag,NOASIGNADO);

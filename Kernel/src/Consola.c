@@ -126,7 +126,6 @@ void proceso_estado(){
 	free(blocked);
 	free(terminated);
 	free(estados);
-	free(proceso);
 
 	}
 }

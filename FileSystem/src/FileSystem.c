@@ -272,7 +272,7 @@ void leer_archivo(char*path,uint32_t direccionFisica, uint32_t puntero,int conex
 	uint32_t bloque;
 	t_config *configArchivo=config_create(path);
 	t_paquete * paquete = crear_paquete();
-	void* valorBloque=(void *)malloc(tamBloque);
+	void* valorBloque=malloc(tamBloque);
 	uint32_t punteroFisico;
 	int tamanio=config_get_int_value(configArchivo,"TAMANIO_ARCHIVO");
 	if( tamanio/tamBloque>=puntero){
@@ -284,6 +284,7 @@ void leer_archivo(char*path,uint32_t direccionFisica, uint32_t puntero,int conex
 		fread(valorBloque,tamBloque,1,archivoBloques);
 		fclose(archivoBloques);
 		//debug(string_from_format("bloque %d",valorBloque));
+		mem_hexdump(valorBloque,tamBloque); // REVISAR CUANDO LOS MENSAJES SE ESCRIBAN BIEN
 		agregar_a_paquete(paquete,"f_read",sizeof("f_read"));
 		agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
 		agregar_a_paquete(paquete,valorBloque,tamBloque);
