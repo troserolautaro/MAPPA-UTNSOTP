@@ -15,6 +15,7 @@ int main(void)
 
 	/*INICIALIZAR LISTAS */
 	procesos=list_create();
+	mutexProceso = list_create();
 	colaLargo=queue_create();
 	colaCorto=queue_create();
 	//Inicializar_semaforos
@@ -310,7 +311,10 @@ void procesar_mensaje(t_list* mensaje){
 		PCB* proceso = (PCB*)list_get(procesos,pid);
 		pthread_mutex_unlock(&mutexProcesos);
 
+		pthread_mutex_t * mutex = list_get(mutexProceso,proceso->pid-1);
+		pthread_mutex_lock(mutex);
 		deserializar_proceso(proceso,mensaje,posInicio);
+
 
 		switch(motivo){
 
@@ -428,7 +432,9 @@ void procesar_mensaje(t_list* mensaje){
 		case EXIT:
 			error_show("Motivo desconocido");
 		}
+		pthread_mutex_unlock(mutex);
 	}
+
 	if(!strcasecmp(msg,"paginaCargada")){
 		sem_post(&paginaCargada);
 	}

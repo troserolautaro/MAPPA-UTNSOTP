@@ -4,7 +4,7 @@ uint32_t PIDGLOBAL;
 bool detenida=false;
 t_queue* colaLargo;
 t_queue* colaCorto;
-t_list* procesos;
+t_list* procesos,*mutexProceso;
 t_log* logger;
 t_config* config;
 int conexionCPUDispatch, conexionCPUInterrupt,conexionMemoria,conexionFileSystem,pidGlobal;

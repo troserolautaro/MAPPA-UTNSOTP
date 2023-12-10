@@ -51,7 +51,9 @@ void iniciar_proceso(char* path, int size, int prioridad){
 		proceso->pc=0;
 		proceso->pid = PIDGLOBAL; //Modificar en caso de que sea necesario
 		proceso->tablaArchivos = dictionary_create(); //Modificar en caso de que sea necesario
-
+		pthread_mutex_t *mutex = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t));
+		pthread_mutex_init(mutex,NULL);
+		list_add(mutexProceso,(void*)mutex);
 		//añade el proceso a la lista de procesos y a la cola del planificador a largo plazo
 
 		//envia archivo a cargar en memoria para este proceso a el modulo de memoria
