@@ -36,6 +36,12 @@ int crear_conexion(char *ip, char* puerto, int cliente)
 
 	// Ahora que tenemos el socket, vamos a conectarlo
 	//continuando sobre cuando creamos el socket del cliente
+	int reuse = 1;
+	if (setsockopt(socket_cliente, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) == -1) {
+	    perror("setsockopt");
+	    // Handle error
+	}
+
 	connect(socket_cliente, server_info->ai_addr, server_info->ai_addrlen);
 
 

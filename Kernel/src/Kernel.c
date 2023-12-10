@@ -209,7 +209,7 @@ void signal_recurso(PCB* proceso,char* recurso){
 			return (!strcasecmp((char*)element,recurso)) ? true : false;
 		}
 		char* recurso = (char*)list_remove_by_condition(proceso->recursos,buscar_recurso);
-		debug(string_from_format("Signal: %s",recurso));
+		//debug(string_from_format("Signal: %s",recurso));
 		if(recurso!=NULL){
 
 			t_list* elements = (t_list*)dictionary_get(diccionarioRecursos,recurso);
@@ -288,6 +288,7 @@ void procesar_mensaje(t_list* mensaje){
 		pthread_mutex_unlock(&mutexColaLargo);
 
 		escritura_log(string_from_format("Se crea el proceso %d en NEW",proceso->pid));
+		sem_post(&procesoCargado);
 		if(!detenida){
 				sem_post(&planiLargo);
 		}
@@ -434,7 +435,7 @@ void procesar_mensaje(t_list* mensaje){
 	if(!strcasecmp(msg,"tamanio")){
 		char* archivo = (char*)list_get(mensaje,1);
 		uint32_t tamanio = *(uint32_t*)list_get(mensaje,2);
-		debug(string_from_format("Archivo abierto: %s - Tamaño: %d",archivo,tamanio));
+		//debug(string_from_format("Archivo abierto: %s - Tamaño: %d",archivo,tamanio));
 		registro_tag* regTag = crear_reg_tag(archivo);
 		(regTag->tamanio)=tamanio;
 		dictionary_put(tag,archivo,regTag);
@@ -442,19 +443,19 @@ void procesar_mensaje(t_list* mensaje){
 		sem_post(&sem_archivoCreado);
 		}
 	if(!strcasecmp(msg,"f_truncate")){
-			debug("se trunco el archivo");
+			//debug("se trunco el archivo");
 			sem_post(&sem_truncado);
 		}
 	if(!strcasecmp(msg,"f_read")){
-		debug("se leyo el archivo");
+		//debug("se leyo el archivo");
 		sem_post(&sem_read);
 	}
 	if(!strcasecmp(msg,"valid_read")){
-			debug("se leyo bien");
+			//debug("se leyo bien");
 			sem_post(&sem_read);
 		}
 	if(!strcasecmp(msg,"valid_write")){
-		debug("se escribio el archivo");
+		//debug("se escribio el archivo");
 		sem_post(&sem_write);
 	}
 	free(msg);

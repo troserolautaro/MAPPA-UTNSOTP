@@ -320,8 +320,8 @@ void f_write(t_list* parameters){
 			sem_post(&planiCorto);
 		}
 		else{
-				debug("no entro");
-			}
+			planificador_largo_salida(proceso,"INVALID_WRITE");
+		}
 	}
 	else{
 		planificador_largo_salida(proceso,"INVALID_WRITE");

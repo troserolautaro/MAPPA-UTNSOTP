@@ -1,18 +1,20 @@
 #include "MemoriaUsuario.h"
 
-t_list* tablapaginasGlobales;//indice=marco
-t_list* tablaMarcos;//indice=marco
-t_dictionary* tablaProcesos;//clave pid
+t_list* tablapaginasGlobales;//indice=marco, mutexInversa
+t_list* tablaMarcos;//indice=marco,mutexTablaMarcos
+
+t_dictionary* tablaProcesos;//clave pid,mutexTablasPagina
+
 typedef pagina_t* (*AlgoritmoRemplazoFuncion)();
 AlgoritmoRemplazoFuncion algoritmoRemplazo;
 
-void* espacioContiguoMemoria; //Simulador de ram => Almacenar una cantidad bytes
+void* espacioContiguoMemoria; //mutexRAM
 
 char* algoritmoReemplazo;
 int tamPagina,tamMemoria,cantMarcos,retardoRespuesta;
 int conexionFS;
 int marcoFIFO;
-pthread_mutex_t mutex_memoria;
+pthread_mutex_t mutexMemoria,mutexTablasPagina, mutexTablaMarcos, mutexInversa;
 sem_t sem_bloquesSwap, sem_paginaSwap, sem_escribirSwap,sem_escribirBloque;
 
 //INICIAR  MEMORIA DE USUARIO
@@ -40,14 +42,20 @@ pagina_t* crear_pagina(){
 	return nuevaPagina;
 }
 pagina_t * pagina_get(uint32_t pid, uint32_t numPagina){
+	pthread_mutex_lock(&mutexTablasPagina);
 	t_list* tablaPaginacion =dictionary_get(tablaProcesos,string_itoa((int)pid));
-	return (pagina_t*)list_get(tablaPaginacion,numPagina);
+	pagina_t* paginaObtenida = (pagina_t*)list_get(tablaPaginacion,numPagina);
+	pthread_mutex_unlock(&mutexTablasPagina);
+	return paginaObtenida ;
 }
 
 void cargar_tabla_marcos_y_pglobales(){
-
+	pthread_mutex_lock(&mutexTablaMarcos);
 	tablaMarcos=list_create();
+	pthread_mutex_unlock(&mutexTablaMarcos);
+	pthread_mutex_lock(&mutexInversa);
 	tablapaginasGlobales=list_create();
+	pthread_mutex_unlock(&mutexInversa);
 	for(int i=0;i<cantMarcos;i++){
 		list_add(tablaMarcos,crear_marco(i));
 		list_add(tablapaginasGlobales,crear_pagina_global(i));
@@ -65,7 +73,9 @@ void crear_proceso(uint32_t pid,char* nombre, uint32_t tamanio){
 	//	debug(string_from_format("Pagina Nro : %d",i));
 	}
 	//if(list_size(tablaPaginacion) != cantPaginasProceso ) debug("No hay cantidad paginas cargadas necesarias");
+	pthread_mutex_lock(&mutexTablasPagina);
 	dictionary_put(tablaProcesos,string_itoa(pid),tablaPaginacion);
+	pthread_mutex_unlock(&mutexTablasPagina);
 	escritura_log(string_from_format("Creacion Tabla Paginas PID: %d - Tamaño: %d",pid,tamanio));
 	//reservar swap con fs
 	t_paquete* paquete=crear_paquete();
@@ -81,7 +91,9 @@ void crear_proceso(uint32_t pid,char* nombre, uint32_t tamanio){
 //FINALIZAR PROCESO
 void destruir_pagina(void* pagina){
 	pagina_t * pag=(pagina_t*) pagina;
+	pthread_mutex_lock(&mutexTablaMarcos);
 	marco_t* marcoALiberar= list_get(tablaMarcos,(pag->marco));
+	pthread_mutex_unlock(&mutexTablaMarcos);
 	marcoALiberar->libre=true;
 	free(pagina);
 }
@@ -93,7 +105,9 @@ void destruir_tabla_paginas(void* tablaPaginacion){
 	free(tablaPaginacion);
 }
 void finalizar_proceso(uint32_t pid){
+	pthread_mutex_lock(&mutexTablasPagina);
 	dictionary_remove_and_destroy(tablaProcesos,string_itoa(pid), destruir_tabla_paginas);
+	pthread_mutex_unlock(&mutexTablasPagina);
 }
 
 
@@ -107,22 +121,24 @@ uint32_t devolver_num_marco(uint32_t pid, uint32_t numPagina){
 //ACCESO A ESPACIO DE USUARIO LECTURA
 uint32_t get_dato(uint32_t direccion) {
 	uint32_t valor;
-	pthread_mutex_lock(&mutex_memoria);
+	pthread_mutex_lock(&mutexMemoria);
 	//leer direccion
 	memcpy(&valor,(uint32_t*)((char*)espacioContiguoMemoria + direccion),sizeof(uint32_t));
 //	memcpy(&valor,espacioContiguoMemoria[direccion], sizeof(uint32_t));
-	pthread_mutex_unlock(&mutex_memoria);
+	pthread_mutex_unlock(&mutexMemoria);
 	return valor;
 }
 
 //ACCESO A ESPACIO DE USUARIO ESCRITURA
 void set_dato(uint32_t direccion, uint32_t valor) {
-	debug(string_itoa(direccion));
-	pthread_mutex_lock(&mutex_memoria);
+	//debug(string_itoa(direccion));
+	pthread_mutex_lock(&mutexMemoria);
 	memcpy((void*)(((char*)espacioContiguoMemoria) + direccion),(void*)&valor,sizeof(uint32_t));
-	pthread_mutex_unlock(&mutex_memoria);
+	pthread_mutex_unlock(&mutexMemoria);
 	//MARCO MODIFICADO
+	pthread_mutex_lock(&mutexInversa);
 	pagina_global_t* paginaGlobal = (list_get(tablapaginasGlobales,direccion/tamPagina));
+	pthread_mutex_unlock(&mutexInversa);
 	pagina_t* pagina = pagina_get(paginaGlobal->pid,paginaGlobal->pagina);
 	pagina->m = 1;
 }
@@ -147,7 +163,10 @@ void* contar_marcosLibres(void* contador,void* marco ){
 }
 int marcos_libres(){
 	int contador=0;
-	return *((int*)list_fold (tablaMarcos,(void*)&contador,contar_marcosLibres));
+	pthread_mutex_lock(&mutexTablaMarcos);
+	int retorno = *((int*)list_fold (tablaMarcos,(void*)&contador,contar_marcosLibres));
+	pthread_mutex_unlock(&mutexTablaMarcos);
+	return retorno;
 }
 bool marco_libre(marco_t * marco){return (marco->libre);}
 
@@ -167,7 +186,9 @@ void page_fault(uint32_t pid,uint32_t numPagina){
 	char * mensaje = string_new();
 	if((marcos_libres())==0){
 		pagina_t* paginaVictima=algoritmoRemplazo();
+		pthread_mutex_lock(&mutexTablaMarcos);
 		marcoLibre = list_get(tablaMarcos,paginaVictima->marco);
+		pthread_mutex_unlock(&mutexTablaMarcos);
 		if(paginaVictima->m!=0){
 			void* datos = descargar_pagina_swap(marcoLibre->base);
 			debug(string_from_format("PORCION EN BYTES EN MEMORIA: %s",mem_hexstring(datos,tamPagina)));
@@ -185,12 +206,16 @@ void page_fault(uint32_t pid,uint32_t numPagina){
 		string_append_with_format(&mensaje,"REEMPLAZO - Marco: %d - ",paginaVictima->marco);
 		victima = true;
 	}else{
+		pthread_mutex_lock(&mutexTablaMarcos);
 		marcoLibre = list_find(tablaMarcos,(void*)marco_libre);
+		pthread_mutex_unlock(&mutexTablaMarcos);
 	}
 	marcoLibre->libre = false;
 	pagina->marco = marcoLibre->base / tamPagina;
 	pagina->p = 1;
+	pthread_mutex_lock(&mutexInversa);
 	pagina_global_t* paginaGlobal = (pagina_global_t*) list_get(tablapaginasGlobales,pagina->marco);
+	pthread_mutex_unlock(&mutexInversa);
 	if (victima){
 		string_append_with_format(&mensaje,"Page Out: %d-%d - Page In: %d-%d",paginaGlobal->pid,paginaGlobal->pagina,pid,numPagina);
 		escritura_log(mensaje);
@@ -220,7 +245,9 @@ void asignar_swap(t_list* args){
 //SELECCION DE VICTIMA
 //FIFO
 pagina_t* FIFO(){
+	pthread_mutex_lock(&mutexInversa);
 	pagina_global_t* paginaVictima=(pagina_global_t*)list_get(tablapaginasGlobales,marcoFIFO);
+	pthread_mutex_unlock(&mutexInversa);
 	if(marcoFIFO == cantMarcos-1){
 		marcoFIFO = 0;
 	}else{
@@ -238,11 +265,17 @@ void* pagina_mas_reciente(void* pagina1,void* pagina2){
 }
 
 pagina_t* LRU(){
+	pthread_mutex_lock(&mutexInversa);
 	pagina_global_t* paginaVictima=(pagina_global_t*)list_get_minimum(tablapaginasGlobales,pagina_mas_reciente);
+	pthread_mutex_unlock(&mutexInversa);
 	return (pagina_t* )pagina_get((paginaVictima->pid),(paginaVictima->pagina));
 }
 void iniciar_memoria_usuario(){
-	//algoritmo de remplazo
+	//algoritmo de remplazo pthread_mutex_t mutexMemoria,mutexTablasPagina, mutexTablaMarcos, mutexInversa,mutexRAM;
+	pthread_mutex_init(&mutexTablasPagina,NULL);
+	pthread_mutex_init(&mutexTablaMarcos,NULL);
+	pthread_mutex_init(&mutexInversa,NULL);
+	pthread_mutex_init(&mutexMemoria,NULL);
 	if(!strcasecmp(algoritmoReemplazo,"fifo")){
 		algoritmoRemplazo = FIFO;
 	}else{
@@ -251,12 +284,19 @@ void iniciar_memoria_usuario(){
 	espacioContiguoMemoria=malloc(tamMemoria);
 	cantMarcos=tamMemoria/tamPagina;
 	marcoFIFO=0;
+
+	pthread_mutex_lock(&mutexTablasPagina);
 	tablaProcesos=dictionary_create();
+	pthread_mutex_unlock(&mutexTablasPagina);
+
 	cargar_tabla_marcos_y_pglobales();
 }
 void cargar_pagina_swap(uint32_t pid, uint32_t numPagina, void* datos){
 	//Carga un bloque entero en base a uint32_t
+	pthread_mutex_lock(&mutexTablaMarcos);
 	marco_t* marco = (marco_t*) list_get(tablaMarcos,devolver_num_marco(pid,numPagina));
+	pthread_mutex_unlock(&mutexTablaMarcos);
+
 	for(int i = 0; i < tamPagina/sizeof(uint32_t);i++){
 		set_dato((marco->base)+(i*sizeof(uint32_t)),*((uint32_t*)((char*)datos + i * sizeof(uint32_t))));
 		escritura_log(string_from_format("PID: %d - Accion: ESCRIBIR - Direccion fisica: %d",pid,(int)(marco->base+i*sizeof(uint32_t))));

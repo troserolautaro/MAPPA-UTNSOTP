@@ -15,7 +15,7 @@ int cantBloques,cantBloquesSWAP, cantBloquesFAT;
 int tamBloque;
 int retardoAccesoBloque,retardoAccesoFAT;
 int tamanioFAT;  //Tamaño de los bloques FAT (lo defino en el main)
-pthread_mutex_t mutexLog;
+pthread_mutex_t mutexLog,mutexTablaSwap;
 int conexionMemoria;
 sem_t validRead_s;
 sem_t datosMemoria_s;
@@ -28,9 +28,12 @@ void conectar_a_memoria(){
 	eliminar_paquete(paquete);
 }
 void iniciar_swap(){
+	pthread_mutex_lock(&mutexTablaSwap);
 	for(int  i = 0; i<cantBloquesSWAP;i++){
+
 		tablaSWAP[i] = false;
 	}
+	pthread_mutex_unlock(&mutexTablaSwap);
 
 }
 int main(void) {
@@ -58,6 +61,7 @@ int main(void) {
 	conexionMemoria=crear_conexion(ipMemoria, puertoMemoria,FILESYSTEM);
 	sem_init(&validRead_s,0,0);
 	sem_init(&datosMemoria_s,0,0);
+	pthread_mutex_init(&mutexTablaSwap,NULL);
 	pthread_t hiloMemoria;
 	pthread_create(&hiloMemoria,NULL,manejar_cliente,&conexionMemoria);
 	serverFilesystem = iniciar_servidor(puertoEscucha);
@@ -265,6 +269,7 @@ uint32_t obtener_bloque(t_config *config, uint32_t puntero){
 		fread(&bloque,sizeof(uint32_t),1,archivoFAT);
 		puntero--;
 	}
+	fclose(archivoFAT);
 	return bloque;
 }
 void leer_archivo(char*path,uint32_t direccionFisica, uint32_t puntero,int conexion){
@@ -277,7 +282,7 @@ void leer_archivo(char*path,uint32_t direccionFisica, uint32_t puntero,int conex
 	int tamanio=config_get_int_value(configArchivo,"TAMANIO_ARCHIVO");
 	if( tamanio/tamBloque>=puntero){
 		bloque=obtener_bloque(configArchivo,puntero);
-		debug(string_from_format("bloque %d",bloque));
+		//debug(string_from_format("bloque %d",bloque));
 		uint32_t punteroFisico=(cantBloquesSWAP+bloque)*tamBloque;
 		FILE *archivoBloques = fopen(pathBloques, "rb");
 		fseek(archivoBloques,punteroFisico,SEEK_SET);
@@ -321,10 +326,11 @@ void escribir_archivo(char*path, uint32_t puntero,int conexion){
 	t_config *configArchivo=config_create(path);
 	uint32_t bloque=obtener_bloque(configArchivo,puntero);
 	uint32_t punteroFisico=cantBloquesSWAP+bloque;
+	mem_hexdump(bufferMemoria,tamBloque);
 	FILE *archivoBloques = fopen(pathBloques, "rb+");
-	fseek(archivoBloques,punteroFisico,SEEK_SET);
+	fseek(archivoBloques,punteroFisico*tamBloque,SEEK_SET);
 	fwrite(bufferMemoria,tamBloque,1,archivoBloques);
-	debug("envio paquete");
+	fclose(archivoBloques);
 	t_paquete * paquete = crear_paquete();
 	agregar_a_paquete(paquete,"valid_write",sizeof("valid_write"));
 	enviar_paquete(paquete,conexion);
@@ -351,6 +357,7 @@ void reservar_SWAP(uint32_t pid, uint32_t cantBloques){
 	agregar_a_paquete(paquete,"bloquesSwap",sizeof("bloquesSwap"));
 	agregar_a_paquete(paquete,&pid,sizeof(uint32_t));
 	agregar_a_paquete(paquete,&cantBloques,sizeof(uint32_t));
+	pthread_mutex_lock(&mutexTablaSwap);
 	while(i<cantBloquesSWAP && cantBloques>0){
 		if(!tablaSWAP[i]){
 			uint32_t posSWAP = i*tamBloque;
@@ -362,6 +369,7 @@ void reservar_SWAP(uint32_t pid, uint32_t cantBloques){
 		}
 		i++;
 	}
+	pthread_mutex_unlock(&mutexTablaSwap);
 	fclose(archivoBloques);
 	if (cantBloques>0){
 		error_show("Cantidad maxima de SWAP ocupada");
@@ -434,14 +442,14 @@ void procesar_mensaje(t_list* mensaje){
 		sem_post(&validRead_s);
 	}
 	if(!strcasecmp(msg,"f_write")){
-		debug(string_from_format(" Archivo: %s",(char*)list_get(mensaje,1)));
+		//debug(string_from_format(" Archivo: %s",(char*)list_get(mensaje,1)));
 		char* path=devolver_path((char*)list_get(mensaje,1));
 		solicitar_datos_memoria(path,*(uint32_t*)list_get(mensaje,2), *(uint32_t*)list_get(mensaje,2));
 		sem_wait(&datosMemoria_s);
 		escribir_archivo(path,*(uint32_t*)list_get(mensaje,3),conexion);
 	}
 	if(!strcasecmp(msg,"datos_memoria")){
-		bufferMemoria=(void*)list_get(mensaje,1);
+		bufferMemoria=list_get(mensaje,1);
 		sem_post(&datosMemoria_s);
 	}
 	//peticiones de memoria

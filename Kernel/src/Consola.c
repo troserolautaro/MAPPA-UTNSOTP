@@ -1,9 +1,10 @@
 #include"Consola.h"
-
+sem_t sem_readline,procesoCargado;
 char* lectura_consola(){
 	//Semaforo de espera mensaje
 	char* linea;
 //	pthread_mutex_lock(&mutexLog);
+	sem_wait(&sem_readline);
 	linea = readline("\n >>");
 	if (linea){ add_history(linea);}
 //	pthread_mutex_unlock(&mutexLog);
@@ -67,6 +68,7 @@ void iniciar_proceso(char* path, int size, int prioridad){
 		agregar_a_paquete(paqueteArchivo, &size, sizeof(int));
 		enviar_paquete(paqueteArchivo,conexionMemoria);
 		eliminar_paquete(paqueteArchivo);
+		sem_wait(&procesoCargado);
 
 }
 
@@ -133,6 +135,9 @@ void proceso_estado(){
 //pasar conexiones en el paramotro como array o struct
 void * manejar_consola( void* args ){
 	int idComando;
+	sem_init(&sem_readline,0,0);
+	sem_init(&procesoCargado,0,0);
+	sem_post(&sem_readline);
 	while(1){
 		char * lectura = string_new();
 		string_append(&lectura,lectura_consola());
@@ -175,12 +180,16 @@ void * manejar_consola( void* args ){
 					//enviar_mensaje("DETENER PLANIFICACION",conexionCPUDispatch);
 			break;
 			case MULTIPROGRAMACION:
-				char * mensaje = string_from_format("Grado Anterior: %d",gradoMultiprogramacion);
-				gradoMultiprogramacion=(int)strtol((parametros[1]), (char **)NULL, 10);
-				string_append_with_format(&mensaje," - Grado Actual: %d",gradoMultiprogramacion);
-				escritura_log(mensaje);
-				free(mensaje);
-				if(!detenida){sem_post(&planiLargo);}
+				int nuevoGrado = (int)strtol((parametros[1]), (char **)NULL, 10);
+				if(nuevoGrado>0){
+					char * mensaje = string_from_format("Grado Anterior: %d",gradoMultiprogramacion);
+					gradoMultiprogramacion=nuevoGrado;
+					string_append_with_format(&mensaje," - Grado Actual: %d",gradoMultiprogramacion);
+					escritura_log(mensaje);
+					free(mensaje);
+					if(!detenida){sem_post(&planiLargo);}
+				}
+
 			break;
 
 			case PROCESO_ESTADO:
@@ -195,6 +204,6 @@ void * manejar_consola( void* args ){
 			break;
 		}
 		string_array_destroy(parametros);
-
+		sem_post(&sem_readline);
 	}
 }

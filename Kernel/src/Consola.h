@@ -17,6 +17,7 @@ typedef enum{
 	EXIT=-1
 }consola;
 
+extern sem_t procesoCargado;
 char* lectura_consola();
 void * manejar_consola( void* args);
 int validacion_contenido_consola(char* comando);
