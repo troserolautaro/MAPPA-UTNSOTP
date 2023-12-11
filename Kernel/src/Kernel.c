@@ -33,7 +33,7 @@ int main(void)
 	pthread_mutex_init(&mutexLog,NULL);
 	pthread_mutex_init(&mutexGrado,NULL);
 	pthread_mutex_init(&mutexRecursos,NULL);
-
+	iniciar_KernelMemoria();
 	/************************************RECUPERA DATOS DE ARCHIVO DE CONFIGURACION************************************/
 	//TALVEZ SE PUEDE GLOBALIZAR Y PASAR A UNA FUNCION PARA QUE QUEDE MEJOR PARA LA LECTURA
 	//CONFIGURACION DE CPU
@@ -67,7 +67,6 @@ int main(void)
 		 list_add(elements,colaEspera);
 		 dictionary_put(diccionarioRecursos,recursos[i],elements);
 	}
-	tag=dictionary_create();
 	/************************************INICIALIZAR CONEXIONES************************************/
 	conexionCPUDispatch = crear_conexion(ipCPU, puertoCPUDispatch,KERNEL);
 	conexionCPUInterrupt = crear_conexion(ipCPU, puertoCPUInterrupt,KERNEL);
@@ -447,10 +446,7 @@ void procesar_mensaje(t_list* mensaje){
 	if(!strcasecmp(msg,"tamanio")){
 		char* archivo = (char*)list_get(mensaje,1);
 		uint32_t tamanio = *(uint32_t*)list_get(mensaje,2);
-		//debug(string_from_format("Archivo abierto: %s - Tamaño: %d",archivo,tamanio));
-		registro_tag* regTag = crear_reg_tag(archivo);
-		(regTag->tamanio)=tamanio;
-		dictionary_put(tag,archivo,regTag);
+		tamanio_func(archivo,tamanio);
 		free(archivo);
 		sem_post(&sem_archivoCreado);
 		}

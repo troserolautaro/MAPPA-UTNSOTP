@@ -4,7 +4,6 @@
 #ifndef KERNELMEMORIA_H_
 #define KERNELMEMORIA_H_
 #include"Generales.h"
-extern t_dictionary * tag;
 //MANEJO DE MEMORIA
 
 extern sem_t paginaCargada,sem_archivoCreado,sem_truncado,sem_read,sem_write;
@@ -25,7 +24,7 @@ typedef struct {
 	lock_t* lockActivo;
 	t_queue* colaLocks;
 	uint32_t tamanio;
-
+	pthread_mutex_t* mutexRegistro;
 }registro_tag;//Tabla Archivos Global
 
 typedef struct {

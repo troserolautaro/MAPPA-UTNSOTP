@@ -15,7 +15,7 @@ int cantBloques,cantBloquesSWAP, cantBloquesFAT;
 int tamBloque;
 int retardoAccesoBloque,retardoAccesoFAT;
 int tamanioFAT;  //Tamaño de los bloques FAT (lo defino en el main)
-pthread_mutex_t mutexLog,mutexTablaSwap,mutexBloques,mutexFAT;
+pthread_mutex_t mutexLog,mutexTablaSwap,mutexBloques,mutexFAT, mutexBuffer;
 int conexionMemoria;
 sem_t validRead_s;
 sem_t datosMemoria_s;
@@ -64,6 +64,7 @@ int main(void) {
 	pthread_mutex_init(&mutexTablaSwap,NULL);
 	pthread_mutex_init(&mutexBloques,NULL);
 	pthread_mutex_init(&mutexFAT,NULL);
+	pthread_mutex_init(&mutexBuffer,NULL);
 	pthread_t hiloMemoria;
 	pthread_create(&hiloMemoria,NULL,manejar_cliente,&conexionMemoria);
 	serverFilesystem = iniciar_servidor(puertoEscucha);
@@ -186,13 +187,13 @@ uint32_t get_ultimo_bloque_archivo(uint32_t bloqueInicial){
 	pthread_mutex_lock(&mutexFAT);
 	fseek(archivoFAT,bloqueInicial*sizeof(uint32_t),SEEK_SET);
 	fread(&ultimoBloque,sizeof(uint32_t),1,archivoFAT);
-	pthread_mutex_unlock(&mutexFAT);
     while (ultimoBloque != UINT32_MAX) {
     	pthread_mutex_lock(&mutexFAT);
     	fseek(archivoFAT,ultimoBloque*sizeof(uint32_t),SEEK_SET);
     	fread(&ultimoBloque,sizeof(uint32_t),1,archivoFAT);
     	pthread_mutex_unlock(&mutexFAT);
     }
+    pthread_mutex_unlock(&mutexFAT);
 	return ultimoBloque;
 }
 
@@ -290,18 +291,19 @@ void truncar_archivo(char*path, uint32_t tamanio){ //situacionDeseada : ampliar 
 }
 uint32_t obtener_bloque(t_config *config, uint32_t puntero){
 	uint32_t bloque =(uint32_t) config_get_int_value(config,"BLOQUE_INICIAL");
+	uint32_t bloqueReal = bloque;
 	FILE *archivoFAT = fopen(pathFAT, "rb+");
 	usleep(retardoAccesoFAT*1000);
-
-	while(puntero>0){
+	while((puntero/tamBloque)>0){
 		pthread_mutex_lock(&mutexFAT);
 		fseek(archivoFAT,bloque*sizeof(uint32_t),SEEK_SET);
 		fread(&bloque,sizeof(uint32_t),1,archivoFAT);
 		pthread_mutex_unlock(&mutexFAT);
-		puntero--;
+		bloqueReal = bloque;
+		puntero -= tamBloque;
 	}
 	fclose(archivoFAT);
-	return bloque;
+	return bloqueReal;
 }
 void leer_archivo(char*path,uint32_t direccionFisica, uint32_t puntero,int conexion){
 	//comunicacion con memoria
@@ -355,11 +357,12 @@ void escribir_archivo(char*path, uint32_t puntero,int conexion){
 	t_config *configArchivo=config_create(path);
 	uint32_t bloque=obtener_bloque(configArchivo,puntero);
 	uint32_t punteroFisico=cantBloquesSWAP+bloque;
-
-	pthread_mutex_lock(&mutexBloques);
+	pthread_mutex_lock(&mutexBloques); //HIlo 1 <= no podes lo tiene el hilo 1
 	FILE *archivoBloques = fopen(pathBloques, "rb+");
 	fseek(archivoBloques,punteroFisico*tamBloque,SEEK_SET);
+	pthread_mutex_lock(&mutexBuffer); //No podes lo tiene el hilo 2
 	fwrite(bufferMemoria,tamBloque,1,archivoBloques);
+	pthread_mutex_unlock(&mutexBuffer);
 	fclose(archivoBloques);
 	pthread_mutex_unlock(&mutexBloques);
 	t_paquete * paquete = crear_paquete();
@@ -496,7 +499,9 @@ void procesar_mensaje(t_list* mensaje){
 		escribir_archivo(path,*(uint32_t*)list_get(mensaje,3),conexion);
 	}
 	if(!strcasecmp(msg,"datos_memoria")){
+		pthread_mutex_lock(&mutexBuffer);
 		bufferMemoria=list_get(mensaje,1);
+		pthread_mutex_unlock(&mutexBuffer);
 		sem_post(&datosMemoria_s);
 	}
 	//peticiones de memoria

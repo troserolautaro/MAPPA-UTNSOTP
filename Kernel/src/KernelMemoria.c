@@ -2,9 +2,9 @@
 #include "KernelMemoria.h"
 sem_t paginaCargada;
 sem_t sem_archivoCreado,sem_truncado,sem_read,sem_write;
+t_dictionary * tag;
+pthread_mutex_t* mutexTag;
 
-t_queue * colaLocks;
-t_dictionary * tag,*t_dictionarytap;
 lock_t* crear_lock(uint32_t tipoDeLock){
 	lock_t * lock = malloc(sizeof(lock_t));
 	lock->participantes=list_create();
@@ -42,13 +42,17 @@ registro_tag* crear_reg_tag(char* archivo){
 	registroTag->nombreArchivo=archivo;
 	registroTag->aperturas = 0;
 	registroTag->lockActivo=crear_lock(NOASIGNADO);
-	registroTag->colaLocks = queue_create();//semaforo si es necesario
+	registroTag->colaLocks = queue_create();
+	registroTag->mutexRegistro = malloc(sizeof(pthread_mutex_t));
+	pthread_mutex_init(registroTag->mutexRegistro,NULL);//semaforo si es necesario
 	return registroTag;
 }
 void agregar_a_colaLock(lock_t* lockAEncolar,registro_tag* registroTag){
 	queue_push(registroTag->colaLocks,lockAEncolar);
 }
 void destruir_registro_tag(registro_tag* registroTag){
+	pthread_mutex_destroy(registroTag->mutexRegistro);
+	free(registroTag->mutexRegistro);
 	free(registroTag->nombreArchivo);
 	destruir_lock(registroTag->lockActivo);
 	queue_clean(registroTag->colaLocks);
@@ -61,6 +65,7 @@ registro_tag* get_reg_tag(char* archivo){
 	//si esta el archivo en global lo recupera
 	//sino lo crea y añade
 	registro_tag *registroTag;
+	pthread_mutex_lock(mutexTag);
 	if(dictionary_has_key(tag,archivo)){
 		registroTag = (registro_tag*)dictionary_get(tag,archivo);
 	}else{
@@ -68,6 +73,7 @@ registro_tag* get_reg_tag(char* archivo){
 		registroTag=crear_reg_tag(archivo);
 		dictionary_put(tag,archivo,registroTag);
 	}
+	pthread_mutex_unlock(mutexTag);
 	return registroTag;
 }
 registro_tap* get_reg_tap(t_dictionary* tablaArchivos, char* archivo){
@@ -113,23 +119,28 @@ void agregar_reg_tap(PCB* proceso, char* archivo, uint32_t modoApertura){
 bool f_open(PCB* proceso,char * archivo,uint32_t modoApertura){
 	//parte fisica del fopen
 	bool bloqueado = false;
-	if(!dictionary_has_key(tag,archivo)){ //Revisar existencia en tabla archivos globales abiertos
+	pthread_mutex_lock(mutexTag);
+	if(!dictionary_has_key(tag,archivo)){
+		pthread_mutex_unlock(mutexTag);//Revisar existencia en tabla archivos globales abiertos
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"f_open",sizeof("f_open"));
 		agregar_a_paquete(paquete,archivo,strlen(archivo)+1);
 		enviar_paquete(paquete,conexionFileSystem);
 		eliminar_paquete(paquete);
 		sem_wait(&sem_archivoCreado);
+	}else{
+		pthread_mutex_unlock(mutexTag);
 	}
+
 	//posible semaforo aca esperando respuesta de fs
 	//parte logica del fopen
 	registro_tag* regTag=get_reg_tag(archivo);
-
 	switch(modoApertura){
 		case ESCRITURA:
 			lock_t * lockEscritura = crear_lock(modoApertura);
 			agregar_participante(lockEscritura,proceso);
 			//Crear LOCK exclusivo por lectura, es decir nuevo lock con un solo participante
+			pthread_mutex_lock(regTag->mutexRegistro);
 			if(regTag->lockActivo->tipoDeLock == NOASIGNADO){
 				//No bloquear y darle el archivo
 				destruir_lock(regTag->lockActivo);
@@ -141,9 +152,11 @@ bool f_open(PCB* proceso,char * archivo,uint32_t modoApertura){
 				bloquear_proceso(proceso,archivo);
 				agregar_a_colaLock(lockEscritura,regTag);
 			}
+			pthread_mutex_unlock(regTag->mutexRegistro);
 			break;
 
 		case LECTURA:
+			pthread_mutex_lock(regTag->mutexRegistro);
 			if(regTag->lockActivo->tipoDeLock == ESCRITURA){
 				lock_t* lockLectura = crear_lock(modoApertura);
 				agregar_participante(lockLectura,proceso);
@@ -166,9 +179,9 @@ bool f_open(PCB* proceso,char * archivo,uint32_t modoApertura){
 				agregar_reg_tap(proceso,archivo,modoApertura);
 
 			}
+			pthread_mutex_unlock(regTag->mutexRegistro);
 			break;
 	}
-
 	return bloqueado;
 	}
 
@@ -180,6 +193,7 @@ void borrar_reg_tap(t_dictionary* tablaArchivos, char* regABorrar){
 
 void f_close(PCB* proceso,char * archivo){
 	registro_tag* regTag=get_reg_tag(archivo);
+	pthread_mutex_lock(regTag->mutexRegistro);
 	lock_t* lockActivo = regTag->lockActivo;
 	sacar_participante(lockActivo,proceso);
 	borrar_reg_tap(proceso->tablaArchivos,archivo);
@@ -215,6 +229,7 @@ void f_close(PCB* proceso,char * archivo){
 			//dictionary_remove(diccionarioArchivos,archivo);//VER SI ENREALIDAD SE SACA DE LA GLOBAL
 		}
 	}
+	pthread_mutex_unlock(regTag->mutexRegistro);
 
 }
 
@@ -245,7 +260,9 @@ void f_truncate(t_list* parameters){
 	eliminar_paquete(paquete);
 	sem_wait(&sem_truncado);
 	registro_tag* regTag=get_reg_tag(archivo);
+	pthread_mutex_lock(regTag->mutexRegistro);
 	(regTag->tamanio)=tamanio;
+	pthread_mutex_unlock(regTag->mutexRegistro);
 	push_colaCorto(proceso);
 	sem_post(&planiCorto);
 	//semaforo de filesystem
@@ -263,6 +280,7 @@ void f_read(t_list* parameters){
 	registro_tag* regTag=get_reg_tag(archivo);
 	registro_tap* regTap=get_reg_tap((proceso->tablaArchivos), archivo);
 	escritura_log(string_from_format("PID: %d - LEer Archivo: %s - Puntero: %d - Dirección Memoria: %d - Tamaño: %d ", proceso->pid,archivo,(regTap->puntero),direccionFisica,(regTag->tamanio)));
+	pthread_mutex_lock(regTag->mutexRegistro);
 	if((regTag->tamanio)>0){
 		//if(regTap->modoApertura==LECTURA){
 			bloquear_proceso(proceso,archivo);
@@ -286,6 +304,7 @@ void f_read(t_list* parameters){
 	}else{
 		planificador_largo_salida(proceso,"INVALID_READ");
 	}
+	pthread_mutex_unlock(regTag->mutexRegistro);
 }
 
 void f_write(t_list* parameters){
@@ -302,6 +321,7 @@ void f_write(t_list* parameters){
 	registro_tag* regTag=get_reg_tag(archivo);
 	registro_tap* regTap=get_reg_tap(proceso->tablaArchivos, archivo);
 	escritura_log(string_from_format("PID: %d - Escribir Archivo: %s - Puntero: %d - Dirección Memoria: %d - Tamaño: %d ", proceso->pid,archivo,(regTap->puntero),direccionFisica,(regTag->tamanio)));
+	pthread_mutex_lock(regTag->mutexRegistro);
 	if((regTag->tamanio)>0){
 		if(regTap->modoApertura==ESCRITURA){
 			bloquear_proceso(proceso,archivo);
@@ -326,6 +346,7 @@ void f_write(t_list* parameters){
 	else{
 		planificador_largo_salida(proceso,"INVALID_WRITE");
 	}
+	pthread_mutex_unlock(regTag->mutexRegistro);
 }
 //PAGE FAULT
 void cargar_pagina(uint32_t pid, uint32_t pagina){
@@ -347,4 +368,19 @@ void page_fault(t_list* parametros){
 	push_colaCorto(proceso);
 	sem_post(&planiCorto);
 }
+void iniciar_KernelMemoria(){
+	mutexTag = malloc(sizeof(pthread_mutex_t));
+	pthread_mutex_init(mutexTag,NULL);
+	tag=dictionary_create();
+}
+void tamanio_func(char* archivo, uint32_t tamanio){
+	registro_tag* regTag = crear_reg_tag(archivo);
+	pthread_mutex_lock(regTag->mutexRegistro);
+	(regTag->tamanio)=tamanio;
+	pthread_mutex_unlock(regTag->mutexRegistro);
 
+	pthread_mutex_lock(mutexTag);
+	dictionary_put(tag,archivo,regTag);
+	pthread_mutex_unlock(mutexTag);
+
+}
