@@ -287,7 +287,6 @@ void f_read(t_list* parameters){
 			sem_post(&planiCorto);
 			t_paquete * paquete = crear_paquete();
 			agregar_a_paquete(paquete,"f_read",sizeof("f_read"));
-			//agregar_a_paquete(paquete,&(proceso->pid),sizeof(uint32_t));
 			agregar_a_paquete(paquete,archivo,strlen(archivo)+1);
 			agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
 			agregar_a_paquete(paquete,&(regTap->puntero),sizeof(uint32_t));

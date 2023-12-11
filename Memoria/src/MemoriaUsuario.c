@@ -228,7 +228,6 @@ void page_fault(uint32_t pid,uint32_t numPagina){
 		pthread_mutex_lock(paginaVictima->mutexPagina);
 		if(paginaVictima->m!=0){
 			void* datos = descargar_pagina_swap(marcoLibre->base);
-			debug(string_from_format("PORCION EN BYTES EN MEMORIA: %s",mem_hexstring(datos,tamPagina)));
 			//Guardar en bloques SWAP y luego continuar
 			t_paquete* paquete = crear_paquete();
 			agregar_a_paquete(paquete,"escribirSwap",sizeof("escribirSwap"));
@@ -379,12 +378,8 @@ void recibir_datos_bloque(uint32_t direccionFisica, void* datos){
 	//Carga un bloque entero en base a uint32_t
 	for(int i = 0; i < tamPagina/sizeof(uint32_t);i++){
 		set_dato(direccionFisica+(i*sizeof(uint32_t)),*((uint32_t*)((char*)datos + i * sizeof(uint32_t))));
-		//escritura_log(string_from_format("PID: %d - Accion: ESCRIBIR - Direccion fisica: %d",pid,(int)(direccionFisica+i*sizeof(uint32_t))));
+		escritura_log(string_from_format("PID: %d - Accion: ESCRIBIR - Direccion fisica: %d",0,(int)(direccionFisica+i*sizeof(uint32_t))));
 	}
 	free(datos);
-	t_paquete* paquete = crear_paquete();
-	agregar_a_paquete(paquete,"valid_read",sizeof("valid_read"));
-	//agregar_a_paquete(paquete,&paginaVictima->posSWAP,sizeof(uint32_t));
-	enviar_paquete(paquete,conexionFS);
-	eliminar_paquete(paquete);
+
 }

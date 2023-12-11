@@ -313,12 +313,12 @@ void leer_archivo(char*path,uint32_t direccionFisica, uint32_t puntero,int conex
 	void* valorBloque=malloc(tamBloque);
 	uint32_t punteroFisico;
 	int tamanio=config_get_int_value(configArchivo,"TAMANIO_ARCHIVO");
-	if( tamanio/tamBloque>=puntero){
+	if(tamanio/tamBloque>=puntero/tamBloque){
 		bloque=obtener_bloque(configArchivo,puntero);
 		//debug(string_from_format("bloque %d",bloque));
 		uint32_t punteroFisico=(cantBloquesSWAP+bloque)*tamBloque;
-		pthread_mutex_lock(&mutexBloques);
 		FILE *archivoBloques = fopen(pathBloques, "rb");
+		pthread_mutex_lock(&mutexBloques);
 		fseek(archivoBloques,punteroFisico,SEEK_SET);
 		fread(valorBloque,tamBloque,1,archivoBloques);
 		fclose(archivoBloques);
@@ -331,10 +331,6 @@ void leer_archivo(char*path,uint32_t direccionFisica, uint32_t puntero,int conex
 		enviar_paquete(paquete,conexionMemoria);
 		eliminar_paquete(paquete);
 		sem_wait(&validRead_s);
-		paquete = crear_paquete();
-		agregar_a_paquete(paquete,"valid_read",sizeof("valid_read"));
-		enviar_paquete(paquete,conexion);
-		eliminar_paquete(paquete);
 	}
 	else{
 		agregar_a_paquete(paquete,"invalid_read",sizeof("invalid_read"));
@@ -486,6 +482,10 @@ void procesar_mensaje(t_list* mensaje){
 		char* path=devolver_path((char*)list_get(mensaje,1));
 		escritura_log(string_from_format("Leer Archivo: %s - Puntero: %d - Memoria: %d",(char*)list_get(mensaje,1),(*(uint32_t*)list_get(mensaje,3)),(*(uint32_t*)list_get(mensaje,2))));
 		leer_archivo(path,*(uint32_t*)list_get(mensaje,2),*(uint32_t*)list_get(mensaje,3),conexion);
+		t_paquete * paquete = crear_paquete();
+		agregar_a_paquete(paquete,"valid_read",sizeof("valid_read"));
+		enviar_paquete(paquete,conexion);
+		eliminar_paquete(paquete);
 	}
 	if(!strcasecmp(msg,"valid_read")){
 		sem_post(&validRead_s);
@@ -497,6 +497,7 @@ void procesar_mensaje(t_list* mensaje){
 		solicitar_datos_memoria(*(uint32_t*)list_get(mensaje,2));
 		sem_wait(&datosMemoria_s);
 		escribir_archivo(path,*(uint32_t*)list_get(mensaje,3),conexion);
+
 	}
 	if(!strcasecmp(msg,"datos_memoria")){
 		pthread_mutex_lock(&mutexBuffer);

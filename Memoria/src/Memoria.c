@@ -210,10 +210,14 @@ void procesar_mensaje(t_list* mensaje){
 	if(!strcasecmp(msg,"f_write")){
 		usleep(retardoRespuesta*1000);
 		enviar_datos_bloque(*(uint32_t*)list_get(mensaje,1));
-		}
+	}
 	if(!strcasecmp(msg,"f_read")){
 		usleep(retardoRespuesta*1000);
-		recibir_datos_bloque( *(uint32_t*)list_get(mensaje,1), (void*)list_get(mensaje,1));
+		recibir_datos_bloque(*(uint32_t*)list_get(mensaje,1), (void*)list_get(mensaje,2));
+		t_paquete* paquete = crear_paquete();
+		agregar_a_paquete(paquete,"valid_read",sizeof("valid_read"));
+		enviar_paquete(paquete,conexion);
+		eliminar_paquete(paquete);
 	}
 	if(!strcasecmp(msg,"paginaSwap")){
 		uint32_t pid = *(uint32_t*)list_get(mensaje,1);

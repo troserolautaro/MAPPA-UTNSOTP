@@ -451,16 +451,13 @@ void procesar_mensaje(t_list* mensaje){
 		sem_post(&sem_archivoCreado);
 		}
 	if(!strcasecmp(msg,"f_truncate")){
-			//debug("se trunco el archivo");
 			sem_post(&sem_truncado);
 		}
 	if(!strcasecmp(msg,"f_read")){
-		//debug("se leyo el archivo");
 		sem_post(&sem_read);
 	}
 	if(!strcasecmp(msg,"valid_read")){
-			//debug("se leyo bien");
-			sem_post(&sem_read);
+		sem_post(&sem_read);
 		}
 	if(!strcasecmp(msg,"valid_write")){
 		//debug("se escribio el archivo");
