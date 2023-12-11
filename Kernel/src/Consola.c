@@ -90,6 +90,7 @@ void finalizar_proceso(int pid){
 		if(proceso->estado!=TERMINATED){
 			planificador_largo_salida(proceso,"SIGKILL");
 		}
+
 	}
 }
 
@@ -105,14 +106,17 @@ void proceso_estado(){
 		*blocked=string_from_format("Estado: BLOCKED - Procesos: "),
 		*terminated=string_from_format("Estado: TERMINATED - Procesos: ");
 		for(i = 0 ; i<list_size(procesos); i++){
+			pthread_mutex_t * mutex = list_get(mutexProceso,i);
+			pthread_mutex_lock(mutex);
 			proceso = list_get(procesos,i);
 			switch(proceso->estado){
-			case NEW:string_append_with_format(&new,"PID_%s ",string_itoa(proceso->pid)); break;
-			case READY: string_append_with_format(&ready,"PID_%s ",string_itoa(proceso->pid)); break;
-			case BLOCKED: string_append_with_format(&blocked,"PID_%s ",string_itoa(proceso->pid)); break;
-			case EXEC: string_append_with_format(&exec,"PID_%s ",string_itoa(proceso->pid)); break;
-			case TERMINATED:string_append_with_format(&terminated,"PID_%s ",string_itoa(proceso->pid)); break;
+				case NEW:string_append_with_format(&new,"PID_%s ",string_itoa(proceso->pid)); break;
+				case READY: string_append_with_format(&ready,"PID_%s ",string_itoa(proceso->pid)); break;
+				case BLOCKED: string_append_with_format(&blocked,"PID_%s ",string_itoa(proceso->pid)); break;
+				case EXEC: string_append_with_format(&exec,"PID_%s ",string_itoa(proceso->pid)); break;
+				case TERMINATED:string_append_with_format(&terminated,"PID_%s ",string_itoa(proceso->pid)); break;
 			}
+			pthread_mutex_unlock(mutex);
 	}
 	pthread_mutex_unlock(&mutexProcesos);
 	char * estados = string_new();

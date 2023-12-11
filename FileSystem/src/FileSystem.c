@@ -134,9 +134,9 @@ bool existencia_archivo(char* archivo){
 
 uint32_t abrir_archivo(char* archivo){
 	if(existencia_archivo(archivo)){
-	t_config* configArchivofcb = config_create(archivo);
-	uint32_t tamanio =(uint32_t) config_get_int_value(configArchivofcb,"TAMANIO_ARCHIVO");
-	return tamanio;
+		t_config* configArchivofcb = config_create(archivo);
+		uint32_t tamanio =(uint32_t) config_get_int_value(configArchivofcb,"TAMANIO_ARCHIVO");
+		return tamanio;
 	}
 	return -1;
 }
@@ -147,6 +147,7 @@ bool crear_archivo(char* nombreArchivo){
 	char* path = devolver_path(nombreArchivo);
 	FILE * nuevofcb = fopen(path,"w");
 	fclose(nuevofcb);
+	escritura_log(string_from_format("Crear Archivo: %s",nombreArchivo));
 	//lo abre como config para cargarle los datos principales
 	t_config * nuevoArchivo= iniciar_config(path);
 	config_set_value(nuevoArchivo, "NOMBRE_ARCHIVO", nombreArchivo);
@@ -203,6 +204,7 @@ void asignar_bloques_FAT(t_config* archivo, uint32_t cantidad){
 		ultimoBloque =get_ultimo_bloque_archivo(bloqueInicial);
 	}
 	FILE *archivoFAT = fopen(pathFAT, "rb+");
+	usleep(retardoAccesoFAT*1000);
 	for(uint32_t i=1; i<cantBloquesFAT && cantidad>0;i++){
 		pthread_mutex_lock(&mutexFAT);
 		fseek(archivoFAT,(i*sizeof(uint32_t)),SEEK_SET);
@@ -246,6 +248,8 @@ void liberar_bloques_FAT(t_config* archivo, uint32_t cantidad){
 	finArch=UINT32_MAX;
 	libre=0;
 	FILE *archivoFAT = fopen(pathFAT, "rb+");
+	usleep(retardoAccesoFAT*1000);
+
 	if(tieneBloqueInicial){
 		numBloqueInicial=(uint32_t)config_get_int_value(archivo,"BLOQUE_INICIAL");
 		ultimoBloque =get_ultimo_bloque_archivo(numBloqueInicial);
@@ -287,6 +291,8 @@ void truncar_archivo(char*path, uint32_t tamanio){ //situacionDeseada : ampliar 
 uint32_t obtener_bloque(t_config *config, uint32_t puntero){
 	uint32_t bloque =(uint32_t) config_get_int_value(config,"BLOQUE_INICIAL");
 	FILE *archivoFAT = fopen(pathFAT, "rb+");
+	usleep(retardoAccesoFAT*1000);
+
 	while(puntero>0){
 		pthread_mutex_lock(&mutexFAT);
 		fseek(archivoFAT,bloque*sizeof(uint32_t),SEEK_SET);
@@ -338,22 +344,17 @@ void leer_archivo(char*path,uint32_t direccionFisica, uint32_t puntero,int conex
 
 }
 
-void solicitar_datos_memoria(char*path,uint32_t direccionFisica, uint32_t puntero){
-	t_config *configArchivo=config_create(path);
-	int tamanio=config_get_int_value(configArchivo,"TAMANIO_ARCHIVO");
-	if( tamanio>=puntero){
-		t_paquete * paquete = crear_paquete();
-		agregar_a_paquete(paquete,"f_write",sizeof("f_write"));
-		agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
-		enviar_paquete(paquete,conexionMemoria);
-		eliminar_paquete(paquete);
-	}
+void solicitar_datos_memoria(uint32_t direccionFisica){
+	t_paquete * paquete = crear_paquete();
+	agregar_a_paquete(paquete,"f_write",sizeof("f_write"));
+	agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
+	enviar_paquete(paquete,conexionMemoria);
+	eliminar_paquete(paquete);
 }
 void escribir_archivo(char*path, uint32_t puntero,int conexion){
 	t_config *configArchivo=config_create(path);
 	uint32_t bloque=obtener_bloque(configArchivo,puntero);
 	uint32_t punteroFisico=cantBloquesSWAP+bloque;
-	mem_hexdump(bufferMemoria,tamBloque);
 
 	pthread_mutex_lock(&mutexBloques);
 	FILE *archivoBloques = fopen(pathBloques, "rb+");
@@ -361,7 +362,6 @@ void escribir_archivo(char*path, uint32_t puntero,int conexion){
 	fwrite(bufferMemoria,tamBloque,1,archivoBloques);
 	fclose(archivoBloques);
 	pthread_mutex_unlock(&mutexBloques);
-
 	t_paquete * paquete = crear_paquete();
 	agregar_a_paquete(paquete,"valid_write",sizeof("valid_write"));
 	enviar_paquete(paquete,conexion);
@@ -451,14 +451,13 @@ void procesar_mensaje(t_list* mensaje){
 	if(!strcasecmp(msg,"f_open")){
 		char* archivo = (char*)list_get(mensaje,1);
 		char* path = devolver_path(archivo);
-		escritura_log(string_from_format("Abrir Archivo: %s",archivo));
 		uint32_t tamanio = abrir_archivo(path);
 		if(tamanio==-1){
-			escritura_log(string_from_format("Crear Archivo: %s",archivo));
 			if(crear_archivo(archivo)){
 				tamanio = abrir_archivo(path);
 			}
 		}
+		escritura_log(string_from_format("Abrir Archivo: %s",archivo));
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"tamanio",sizeof("tamanio"));
 		agregar_a_paquete(paquete,archivo,strlen(archivo)+1);
@@ -482,6 +481,7 @@ void procesar_mensaje(t_list* mensaje){
 	}
 	if(!strcasecmp(msg,"f_read")){
 		char* path=devolver_path((char*)list_get(mensaje,1));
+		escritura_log(string_from_format("Leer Archivo: %s - Puntero: %d - Memoria: %d",(char*)list_get(mensaje,1),(*(uint32_t*)list_get(mensaje,3)),(*(uint32_t*)list_get(mensaje,2))));
 		leer_archivo(path,*(uint32_t*)list_get(mensaje,2),*(uint32_t*)list_get(mensaje,3),conexion);
 	}
 	if(!strcasecmp(msg,"valid_read")){
@@ -489,8 +489,9 @@ void procesar_mensaje(t_list* mensaje){
 	}
 	if(!strcasecmp(msg,"f_write")){
 		//debug(string_from_format(" Archivo: %s",(char*)list_get(mensaje,1)));
+		escritura_log(string_from_format("Escribir Archivo: %s - Puntero: %d - Memoria: %d",(char*)list_get(mensaje,1),(*(uint32_t*)list_get(mensaje,3)),(*(uint32_t*)list_get(mensaje,2))));
 		char* path=devolver_path((char*)list_get(mensaje,1));
-		solicitar_datos_memoria(path,*(uint32_t*)list_get(mensaje,2), *(uint32_t*)list_get(mensaje,2));
+		solicitar_datos_memoria(*(uint32_t*)list_get(mensaje,2));
 		sem_wait(&datosMemoria_s);
 		escribir_archivo(path,*(uint32_t*)list_get(mensaje,3),conexion);
 	}

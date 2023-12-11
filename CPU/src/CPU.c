@@ -13,7 +13,7 @@ t_log* logger;
 t_config* config;
 t_instruccion * instruccion;
 PCB* proceso;
-pthread_mutex_t mutexProceso, mutexLog,mutexInstruccion, mutexBloquear, mutexInterrupcion;
+pthread_mutex_t mutexProceso, mutexLog,mutexInstruccion, mutexBloquear, mutexInterrupcion,mutexMotivo;
 sem_t tamPagina_s;
 sem_t memoria_s;
 
@@ -55,6 +55,7 @@ int main() {
 	pthread_mutex_init(&mutexInstruccion,NULL);
 	pthread_mutex_init(&mutexBloquear,NULL);
 	pthread_mutex_init(&mutexInterrupcion,NULL);
+	pthread_mutex_init(&mutexMotivo,NULL);
 	//Iniciar Cliente que conecta a memoria
 	conexionMemoria = crear_conexion(ipMemoria, puertoMemoria,CPUDispatch);
 
@@ -488,7 +489,9 @@ void check_interrupt(){
 	pthread_mutex_lock(&mutexInterrupcion);
 	if(interrupcion){
 			t_list * mensaje = list_create();
+			pthread_mutex_lock(&mutexMotivo);
 			list_add(mensaje,motivo);
+			pthread_mutex_unlock(&mutexMotivo);
 			contexto_ejecucion(mensaje);
 			list_destroy(mensaje);
 			interrupcion=false;
@@ -577,7 +580,9 @@ void procesar_mensaje(t_list* mensaje){
 		switch(razon){
 			case DESALOJO:
 					uint32_t pid = 0;
+					pthread_mutex_lock(&mutexMotivo);
 					motivo = ((char*) list_get(mensaje,2));
+					pthread_mutex_unlock(&mutexMotivo);
 					pid= *(uint32_t*)list_get(mensaje,3);
 					pthread_mutex_lock(&mutexProceso);
 					if (pid == (proceso->pid)) banderaInterrumpir = true;

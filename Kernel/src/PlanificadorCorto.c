@@ -3,7 +3,6 @@
 sem_t clockT,validarQuantum,contexto;
 pthread_mutex_t  mutexEjecutando;
 bool ejecutandoB = false;
-/*DECIDI HACERLO UNA COLA PORQUE CREI QUE ERA LO MEJOR */
 void* clock_rr(void* pid) {
 	bool bandera=true;
     while (bandera) { // clockT = 2;
@@ -12,7 +11,10 @@ void* clock_rr(void* pid) {
         bool empty = queue_is_empty(colaCorto);
         pthread_mutex_unlock(&mutexColaCorto);
         if(!empty){
+    		pthread_mutex_t * mutex = list_get(mutexProceso,(*(uint32_t*)pid)-1);
+			pthread_mutex_lock(mutex);
         	enviar_interrupcion_cpu("quantum",pid);
+        	pthread_mutex_unlock(mutex);
         	bandera=false;
         }
 
@@ -38,7 +40,9 @@ void* planificador_corto(){
 			}
 
 			//si no es ninguno de los anterior es fifo por que es una cola (estructura de tipo fifo)
+			pthread_mutex_lock(&mutexEjecutando);
 			if(!ejecutandoB){
+				pthread_mutex_unlock(&mutexEjecutando);
 				pthread_mutex_lock(&mutexColaCorto);
 				PCB* proceso= queue_pop(colaCorto);
 				pthread_mutex_unlock(&mutexColaCorto);
@@ -53,13 +57,19 @@ void* planificador_corto(){
 				//ENVIAR PROCESO
 				t_paquete* paquete = crear_paquete();
 				agregar_a_paquete(paquete, "proceso", sizeof("proceso"));
+
+				pthread_mutex_t * mutex = list_get(mutexProceso,proceso->pid-1);
+				pthread_mutex_lock(mutex);
 				serializar_proceso(paquete,proceso);
+				pthread_mutex_unlock(mutex);
 				enviar_paquete(paquete,conexionCPUDispatch);
 				eliminar_paquete(paquete);
 
 				if(idPlanificador == ROUNDROBIN){
 					hilo_funcion(&(proceso->pid),clock_rr);
 				}
+			}else{
+				pthread_mutex_unlock(&mutexEjecutando);
 			}
 
 		}else {
@@ -79,7 +89,6 @@ bool comparar_prioridad_mayor(void* proceso1,void* proceso2 ){
 }
 //ALGORITMO DE PRIORIDADES
 void prioridad(){
-
 	pthread_mutex_lock(&mutexColaCorto);
 	list_sort((colaCorto->elements),comparar_prioridad_mayor);
 	pthread_mutex_unlock(&mutexColaCorto);
@@ -100,9 +109,10 @@ void prioridad(){
 			sem_wait(&contexto);
 
 		}
-	pthread_mutex_unlock(&mutexEjecutando);
+
 
 	}
+	pthread_mutex_unlock(&mutexEjecutando);
 }
 
 

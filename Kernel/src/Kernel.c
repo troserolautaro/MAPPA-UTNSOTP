@@ -97,13 +97,13 @@ int main(void)
 	pthread_create(&hiloLargo,NULL,planificador_largo,NULL);
 	/************************************FINALIZA LOS PROGRAMAS O HILOS A FUTURO************************************/
 	pthread_join(hiloConsola,NULL);
-	terminar_programa();
 	pthread_join(hiloCPUDispatch,NULL);
 	pthread_join(hiloCPUInterrupt,NULL);
 	pthread_join(hiloMemoria,NULL);
 	pthread_join(hiloCorto,NULL);
 	pthread_join(hiloLargo,NULL);
 	pthread_join(hiloFilesystem,NULL);
+	terminar_programa();
 	return EXIT_SUCCESS;
 }
 void terminar_programa()
@@ -233,11 +233,15 @@ void signal_recurso(PCB* proceso,char* recurso){
 			escritura_log(mensaje);
 			free(mensaje);
 
+			pthread_mutex_lock(&mutexEjecutando);
 			if(ejecutandoB){
+				pthread_mutex_unlock(&mutexEjecutando);
 				enviar_interrupcion_cpu_sin_pid("desalojo_signal");
 			}else{
+				pthread_mutex_unlock(&mutexEjecutando);
 				sem_post(&planiCorto);
 			}
+
 		}else{
 			planificador_largo_salida(proceso,"INVALID_RESOURCE");
 		}
@@ -313,6 +317,7 @@ void procesar_mensaje(t_list* mensaje){
 
 		pthread_mutex_t * mutex = list_get(mutexProceso,proceso->pid-1);
 		pthread_mutex_lock(mutex);
+		if(proceso->estado!=TERMINATED){
 		deserializar_proceso(proceso,mensaje,posInicio);
 
 
@@ -431,6 +436,7 @@ void procesar_mensaje(t_list* mensaje){
 			break;
 		case EXIT:
 			error_show("Motivo desconocido");
+		}
 		}
 		pthread_mutex_unlock(mutex);
 	}

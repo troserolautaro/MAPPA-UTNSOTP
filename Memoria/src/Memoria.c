@@ -145,7 +145,7 @@ void procesar_mensaje(t_list* mensaje){
 		//liberar diccionario de instrucciones
 		finalizar_proceso(pid);
 		t_paquete * paquete = crear_paquete();
-		agregar_a_paquete(paquete,"proceso finalizado",sizeof("proceso finalizado"));
+		agregar_a_paquete(paquete,"procesoFinalizado",sizeof("procesoFinalizado"));
 		agregar_a_paquete(paquete,&pid,sizeof(uint32_t));
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
@@ -186,11 +186,13 @@ void procesar_mensaje(t_list* mensaje){
 		pagina_t * pagina = pagina_get(pid,numeroPagina);
 		if(pagina!=NULL){
 			//Talvez habria que liberarlos
+			pthread_mutex_lock(pagina->mutexPagina);
 			escritura_log(string_from_format("PID: %d - Pagina: %d - Marco: %d",pid,numeroPagina,pagina->marco));
 			if(pagina->p == 1){
 				marco = pagina->marco;
 				pageFault = false;
 			}
+			pthread_mutex_unlock(pagina->mutexPagina);
 			t_paquete* paquete=crear_paquete();
 			agregar_a_paquete(paquete,"marco",sizeof("marco"));
 			agregar_a_paquete(paquete,&pageFault,sizeof(bool));
@@ -198,15 +200,19 @@ void procesar_mensaje(t_list* mensaje){
 			usleep(retardoRespuesta*1000);
 			enviar_paquete(paquete,conexion);
 			eliminar_paquete(paquete);
+
 		}
+
 	}
 	if(!strcasecmp(msg,"bloquesSwap")){
 		asignar_swap(mensaje);
 	}
 	if(!strcasecmp(msg,"f_write")){
-			enviar_datos_bloque(*(uint32_t*)list_get(mensaje,1));
+		usleep(retardoRespuesta*1000);
+		enviar_datos_bloque(*(uint32_t*)list_get(mensaje,1));
 		}
 	if(!strcasecmp(msg,"f_read")){
+		usleep(retardoRespuesta*1000);
 		recibir_datos_bloque( *(uint32_t*)list_get(mensaje,1), (void*)list_get(mensaje,1));
 	}
 	if(!strcasecmp(msg,"paginaSwap")){

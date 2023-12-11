@@ -17,7 +17,10 @@ void* planificador_largo(){
 		PCB* proceso=(PCB*)queue_pop(colaLargo);
 		pthread_mutex_unlock(&mutexColaLargo);
 
+		pthread_mutex_t * mutex = list_get(mutexProceso,proceso->pid-1);
+		pthread_mutex_lock(mutex);
 		push_colaCorto(proceso);
+		pthread_mutex_unlock(mutex);
 
 		pthread_mutex_lock(&mutexMulti);
 		multiprogramacion++;
@@ -50,8 +53,11 @@ void liberar_recursos(PCB* proceso){
 
 		if(!queue_is_empty(colaEspera)){
 			PCB* temp = (PCB*) queue_pop(colaEspera);
+			pthread_mutex_t * mutex = list_get(mutexProceso,temp->pid-1);
+			pthread_mutex_lock(mutex);
 			push_colaCorto(temp);
 			list_add(temp->recursos,recurso);
+			pthread_mutex_unlock(mutex);
 			sem_post(&planiCorto);
 		}else{
 			*instancias +=1;

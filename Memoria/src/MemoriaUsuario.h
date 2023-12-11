@@ -14,17 +14,20 @@
 
 typedef struct{
 	uint32_t marco,p,m,posSWAP;
+	pthread_mutex_t* mutexPagina;
 }pagina_t;
 
 //para fifo y
 typedef struct{
 	uint32_t pagina,pid,accesos;
+	pthread_mutex_t* mutexGlobal;
 }pagina_global_t;
 
 typedef struct{
 	bool libre;
 	int base;
 	int limite;
+	pthread_mutex_t* mutexMarco;
 	//ver que otros datos podriamos poner aca
 }marco_t;
 

@@ -11,15 +11,9 @@ t_list* cargar_instrucciones(char** file){
 		string_append(&direccionIns,*file);
 		//abre el archivo en modo lectura
 		fileInstrucciones = fopen(direccionIns, "r");
-
-		if (fileInstrucciones == NULL)
-		    {
-			 printf("no hay insctrucciones o hubo error con el archivo");
-		    }
-		 	else
-		    {
-		 	    printf("\nEl contenido del archivo de prueba es \n");
-
+		if (fileInstrucciones == NULL){
+			 error_show("no hay insctrucciones o hubo error con el archivo");
+		    }else{
 			char* lineaDeCodigo=NULL;
 			size_t lineLength = 0;
 			while (getline(&lineaDeCodigo, &lineLength, fileInstrucciones) != -1) {
@@ -32,6 +26,5 @@ t_list* cargar_instrucciones(char** file){
 				free(lineaDeCodigo);
 			}
 			fclose(fileInstrucciones);
-			printf("\n tamanio de lista %d \n", list_size(listaInstrucciones));
 			return listaInstrucciones;
 }
