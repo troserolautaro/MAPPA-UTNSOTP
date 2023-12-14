@@ -35,7 +35,6 @@ int main() {
 	iniciar_memoria_usuario();
 	//INICIAR SERVIDOR
 	serverMemoria = iniciar_servidor(puertoEscucha);
-	free(puertoEscucha);
 	archivosCargados=dictionary_create();
 	//printf("%ld \n %ld", (long)getpid(), (long)getppid());
 
@@ -228,5 +227,5 @@ void procesar_mensaje(t_list* mensaje){
 	if(!strcasecmp(msg,"escribirSwap")){
 		sem_post(&sem_escribirSwap);
 	}
-	free(msg);
+
 }

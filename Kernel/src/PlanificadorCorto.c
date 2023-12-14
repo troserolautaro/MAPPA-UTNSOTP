@@ -11,10 +11,7 @@ void* clock_rr(void* pid) {
         bool empty = queue_is_empty(colaCorto);
         pthread_mutex_unlock(&mutexColaCorto);
         if(!empty){
-    		pthread_mutex_t * mutex = list_get(mutexProceso,(*(uint32_t*)pid)-1);
-			pthread_mutex_lock(mutex);
         	enviar_interrupcion_cpu("quantum",pid);
-        	pthread_mutex_unlock(mutex);
         	bandera=false;
         }
 
@@ -43,6 +40,7 @@ void* planificador_corto(){
 			pthread_mutex_lock(&mutexEjecutando);
 			if(!ejecutandoB){
 				pthread_mutex_unlock(&mutexEjecutando);
+
 				pthread_mutex_lock(&mutexColaCorto);
 				PCB* proceso= queue_pop(colaCorto);
 				pthread_mutex_unlock(&mutexColaCorto);
@@ -57,11 +55,10 @@ void* planificador_corto(){
 				//ENVIAR PROCESO
 				t_paquete* paquete = crear_paquete();
 				agregar_a_paquete(paquete, "proceso", sizeof("proceso"));
-
-				pthread_mutex_t * mutex = list_get(mutexProceso,proceso->pid-1);
-				pthread_mutex_lock(mutex);
+				pthread_mutex_lock(proceso->mutex);
 				serializar_proceso(paquete,proceso);
-				pthread_mutex_unlock(mutex);
+				pthread_mutex_unlock(proceso->mutex);
+
 				enviar_paquete(paquete,conexionCPUDispatch);
 				eliminar_paquete(paquete);
 
@@ -79,8 +76,12 @@ void* planificador_corto(){
 	}while(true);
 	return NULL;
 }
-bool buscar_proceso_ejecutando(void* proceso){
-	return (((PCB*)proceso)->estado==EXEC) ? true : false;
+bool buscar_proceso_ejecutando(PCB* proceso){
+	pthread_mutex_lock(proceso->mutex);
+	uint32_t estado = proceso->estado;
+	debug(string_itoa(estado));
+	pthread_mutex_unlock(proceso->mutex);
+	return (estado == EXEC) ? true : false;
 }
 
 bool comparar_prioridad_mayor(void* proceso1,void* proceso2 ){
@@ -95,24 +96,35 @@ void prioridad(){
 
 	pthread_mutex_lock(&mutexEjecutando);
 	if(ejecutandoB){
+		pthread_mutex_unlock(&mutexEjecutando);
 
 		pthread_mutex_lock(&mutexProcesos);
-		PCB* ejecutando = (PCB*)list_find(procesos,buscar_proceso_ejecutando);
+		PCB* ejecutando = (PCB*)list_find(procesos,(void*)buscar_proceso_ejecutando);
 		pthread_mutex_unlock(&mutexProcesos);
 
 		pthread_mutex_lock(&mutexColaCorto);
 		PCB* prioritario = (PCB*)queue_peek(colaCorto);
 		pthread_mutex_unlock(&mutexColaCorto);
-
-		if(ejecutando != NULL && ejecutando->pid != prioritario->pid && ejecutando->prioridad > prioritario->prioridad){
-			enviar_interrupcion_cpu("prioridades",&(ejecutando->pid));
-			sem_wait(&contexto);
+		if(ejecutando != NULL){
+			pthread_mutex_lock(prioritario->mutex);
+			int pidPrio = prioritario->pid;
+			int prioridadPrio = prioritario->prioridad;
+			pthread_mutex_unlock(prioritario->mutex);
+			pthread_mutex_lock(ejecutando->mutex);
+			int pidEjec = ejecutando->pid;
+			int prioridadEjec = ejecutando->prioridad;
+			pthread_mutex_unlock(ejecutando->mutex);
+			if(pidEjec != pidPrio && prioridadEjec > prioridadPrio){
+				enviar_interrupcion_cpu("prioridades",&(pidEjec));
+				sem_wait(&contexto);
+			}
 
 		}
 
-
+	}else{
+		pthread_mutex_unlock(&mutexEjecutando);
 	}
-	pthread_mutex_unlock(&mutexEjecutando);
+
 }
 
 
@@ -140,7 +152,6 @@ void enviar_interrupcion_cpu_sin_pid(char* motivo){
 	eliminar_paquete(paquete);
 }
 
-//iniciar hilo de clock en kernel si algoritmo de planificacion es rr
 
 int planificador_enum(){
 	if(!strcasecmp(AlgoritmoPlanificacion, "prioridades"))return PRIORIDADES;

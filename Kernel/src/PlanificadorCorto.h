@@ -18,5 +18,4 @@ void prioridad(); //Multicola sin salto entre ellas
 void round_robin();
 void enviar_interrupcion_cpu(char* motivo, void*pid);
 void enviar_interrupcion_cpu_sin_pid(char* motivo);
-bool buscar_proceso_ejecutando(void* proceso);
 #endif /* PLANIFICADORCORTO_H_ */

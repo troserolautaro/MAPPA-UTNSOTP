@@ -156,7 +156,7 @@ void sub(uint32_t * registroDestino,uint32_t * registroOrigen){
 
 void jnz(uint32_t * registro,uint32_t pc){
 	pthread_mutex_lock(&mutexProceso);
-	if(*registro==0)proceso->pc=pc;
+	if(*registro!=0)proceso->pc=pc;
 	pthread_mutex_unlock(&mutexProceso);
 }
 
@@ -420,7 +420,7 @@ void decode_and_execute(){
 	}
 	if(!strcasecmp(comando,"JNZ")){
 		registroOrigen = obtener_registro((char*)list_get(parametros,0));
-		uint32_t jnzPC=(uint32_t)strtol(list_get(parametros,0),NULL,10);
+		uint32_t jnzPC=(uint32_t)strtol(list_get(parametros,1),NULL,10);
 		jnz(registroOrigen,jnzPC);
 	}
 	if(!strcasecmp(comando,"SLEEP")){

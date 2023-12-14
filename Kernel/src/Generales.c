@@ -27,10 +27,11 @@ char* estado_enum(uint32_t estado){
 }
 void cambiar_estado(PCB* proceso, int estado){
 	char* mensaje =string_from_format("PID: %d",proceso->pid);
+	pthread_mutex_lock(proceso->mutex);
 	string_append_with_format(&mensaje," - Estado Anterior: %s",estado_enum(proceso->estado)); //0
 	proceso->estado=estado;
 	string_append_with_format(&mensaje," - Estado Actual: %s",estado_enum(proceso->estado)); // 2
-
+	pthread_mutex_unlock(proceso->mutex);
 	escritura_log(mensaje);
 
 
@@ -43,10 +44,15 @@ void iterar_lista(char** mensaje) {
     list_iterate(colaCorto->elements, (void*) iterator);
 }
 void push_colaCorto(PCB* proceso){
+	bool buscar_proceso_en_cola(PCB* temp){
+		return (temp->pid == proceso->pid);
+	}
 	cambiar_estado(proceso,READY);
 	char* mensaje = string_from_format("Cola Ready %s: ",AlgoritmoPlanificacion);
 	pthread_mutex_lock(&mutexColaCorto);
-	queue_push(colaCorto,proceso);
+	if(list_find(colaCorto->elements,(void*)buscar_proceso_en_cola) == NULL){
+		queue_push(colaCorto,proceso);
+	}
 	iterar_lista(&mensaje);
 	pthread_mutex_unlock(&mutexColaCorto);
 	escritura_log(mensaje);

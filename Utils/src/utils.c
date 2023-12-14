@@ -20,6 +20,8 @@ PCB* proceso_create(){
 	proceso->registros=registros_create();
 	proceso->recursos = list_create();
 	proceso->tablaArchivos = dictionary_create();
+	proceso->mutex = malloc(sizeof(pthread_mutex_t));
+	pthread_mutex_init(proceso->mutex,NULL);
 	return proceso;
 }
 

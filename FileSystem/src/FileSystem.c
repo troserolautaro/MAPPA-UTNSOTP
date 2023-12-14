@@ -323,8 +323,7 @@ void leer_archivo(char*path,uint32_t direccionFisica, uint32_t puntero,int conex
 		fread(valorBloque,tamBloque,1,archivoBloques);
 		fclose(archivoBloques);
 		pthread_mutex_unlock(&mutexBloques);
-		//debug(string_from_format("bloque %d",valorBloque));
-		mem_hexdump(valorBloque,tamBloque); // REVISAR CUANDO LOS MENSAJES SE ESCRIBAN BIEN
+		//debug(string_from_format("bloque %d",valorBloque));// REVISAR CUANDO LOS MENSAJES SE ESCRIBAN BIEN
 		agregar_a_paquete(paquete,"f_read",sizeof("f_read"));
 		agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
 		agregar_a_paquete(paquete,valorBloque,tamBloque);
@@ -408,10 +407,6 @@ void reservar_SWAP(uint32_t pid, uint32_t cantBloques){
 
 	fclose(archivoBloques);
 
-	if (cantBloques>0){
-		error_show("Cantidad maxima de SWAP ocupada");
-		agregar_a_paquete(paquete,"error",sizeof("error"));
-	}
 	enviar_paquete(paquete,conexionMemoria);
 	eliminar_paquete(paquete);
 

@@ -15,7 +15,6 @@ int main(void)
 
 	/*INICIALIZAR LISTAS */
 	procesos=list_create();
-	mutexProceso = list_create();
 	colaLargo=queue_create();
 	colaCorto=queue_create();
 	//Inicializar_semaforos
@@ -122,7 +121,9 @@ void terminar_programa()
 
 
 void bloquear_proceso(PCB* proceso,char* motivo){
+
 	cambiar_estado(proceso,BLOCKED);
+
 	//“PID: <PID> - Bloqueado por: <SLEEP / NOMBRE_RECURSO / NOMBRE_ARCHIVO>”
 	char* mensaje = string_from_format("PID: %d - Bloqueado por: %s",proceso->pid,motivo);
 	escritura_log(mensaje);
@@ -174,7 +175,7 @@ void wait_recurso(PCB* proceso,char* recurso){
 	}else{
 		planificador_largo_salida(proceso,"INVALID_RESOURCE");
 	}
-
+	sem_post(&planiCorto);
 
 }
 void ordenar_adelante(PCB* proceso){
@@ -306,6 +307,7 @@ void procesar_mensaje(t_list* mensaje){
 		uint32_t direccionFisica,puntero;
 		char* archivo=string_new();
 		t_list* params;
+
 		pthread_mutex_lock(&mutexEjecutando);
 		ejecutandoB = false;
 		pthread_mutex_unlock(&mutexEjecutando);
@@ -313,32 +315,31 @@ void procesar_mensaje(t_list* mensaje){
 		pthread_mutex_lock(&mutexProcesos);
 		PCB* proceso = (PCB*)list_get(procesos,pid);
 		pthread_mutex_unlock(&mutexProcesos);
-
-		pthread_mutex_t * mutex = list_get(mutexProceso,proceso->pid-1);
-		pthread_mutex_lock(mutex);
 		if(proceso->estado!=TERMINATED){
+		pthread_mutex_lock(proceso->mutex);
 		deserializar_proceso(proceso,mensaje,posInicio);
-
-
+		pthread_mutex_unlock(proceso->mutex);
 		switch(motivo){
-
 		case PROCESOEXIT:
 				planificador_largo_salida(proceso,"SUCCESS");
 			break;
 
 		case PRIORIDADES:
-				cambiar_estado(proceso,READY);
+				if(proceso->estado==EXEC){
+					push_colaCorto(proceso);
+				}
 				sem_post(&contexto);
 			break;
 
 		case ROUNDROBIN:
-				push_colaCorto(proceso);
+				if(proceso->estado==EXEC){
+					push_colaCorto(proceso);
+				}
 				sem_post(&planiCorto);
 			break;
 
 		case WAIT:{
 				cambiar_estado(proceso,READY);
-				sem_post(&planiCorto);
 				char* recurso = (char*)list_get(mensaje,2);
 				wait_recurso(proceso,recurso);
 				//free(recurso);
@@ -371,8 +372,10 @@ void procesar_mensaje(t_list* mensaje){
 				list_add(parameters,list_get(mensaje,2));
 				hilo_funcion(parameters,(void*)page_fault);
 				sem_post(&planiCorto);
+
 			break;
 		case F_OPEN:
+			cambiar_estado(proceso,READY);
 			int modoApertura;
 			char* archivo = (char*)list_get(mensaje,2);
 			if(!strcasecmp((char*)list_get(mensaje,3),"W"))modoApertura=ESCRITURA;
@@ -394,18 +397,20 @@ void procesar_mensaje(t_list* mensaje){
 			 */
 			break;
 		case F_CLOSE:
+			cambiar_estado(proceso,READY);
 			escritura_log(string_from_format("PID: %d - Cerrar Archivo: %s", proceso->pid,(char*)list_get(mensaje,2)));
 			f_close(proceso,(char*)list_get(mensaje,2));
 			ordenar_adelante(proceso); //Pone el proceso adelante de la colaCorto
 			sem_post(&planiCorto);
+
 			break;
 		case F_SEEK:
+			cambiar_estado(proceso,READY);
 			puntero=strtol((char*)list_get(mensaje,3),NULL,10);
 			escritura_log(string_from_format("PID: %d -  Actualizar puntero Archivo: %s - Puntero: %d" , proceso->pid,(char*)list_get(mensaje,2),puntero));
 			f_seek(proceso,(char*)list_get(mensaje,2),puntero);
 			ordenar_adelante(proceso); //Pone el proceso adelante de la colaCorto
 			sem_post(&planiCorto);
-
 			break;
 		case F_WRITE:
 			archivo = (char*)list_get(mensaje,2);
@@ -437,7 +442,6 @@ void procesar_mensaje(t_list* mensaje){
 			error_show("Motivo desconocido");
 		}
 		}
-		pthread_mutex_unlock(mutex);
 	}
 
 	if(!strcasecmp(msg,"paginaCargada")){

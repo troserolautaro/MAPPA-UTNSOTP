@@ -50,6 +50,7 @@ typedef struct{
 	registros_CPU* registros;
 	t_dictionary* tablaArchivos;
 	t_list * recursos;
+	pthread_mutex_t * mutex;
 }PCB;
 
 //REGUISTROS DE CPU

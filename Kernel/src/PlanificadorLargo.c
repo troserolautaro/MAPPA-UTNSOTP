@@ -17,10 +17,9 @@ void* planificador_largo(){
 		PCB* proceso=(PCB*)queue_pop(colaLargo);
 		pthread_mutex_unlock(&mutexColaLargo);
 
-		pthread_mutex_t * mutex = list_get(mutexProceso,proceso->pid-1);
-		pthread_mutex_lock(mutex);
+
 		push_colaCorto(proceso);
-		pthread_mutex_unlock(mutex);
+
 
 		pthread_mutex_lock(&mutexMulti);
 		multiprogramacion++;
@@ -53,11 +52,10 @@ void liberar_recursos(PCB* proceso){
 
 		if(!queue_is_empty(colaEspera)){
 			PCB* temp = (PCB*) queue_pop(colaEspera);
-			pthread_mutex_t * mutex = list_get(mutexProceso,temp->pid-1);
-			pthread_mutex_lock(mutex);
+			pthread_mutex_lock(proceso->mutex);
 			push_colaCorto(temp);
 			list_add(temp->recursos,recurso);
-			pthread_mutex_unlock(mutex);
+			pthread_mutex_unlock(proceso->mutex);
 			sem_post(&planiCorto);
 		}else{
 			*instancias +=1;
@@ -99,8 +97,10 @@ void deteccion_deadlock(PCB* proceso){
 	}
 }
 void planificador_largo_salida(PCB* proceso,char* razon){
-	if(proceso->estado == BLOCKED) deteccion_deadlock(proceso);
+	bool bloqueado = false;
+	if(proceso->estado == BLOCKED) bloqueado = true;
 	cambiar_estado(proceso,TERMINATED);
+
 	liberar_recursos(proceso);
 	// <SUCCESS / INVALID_RESOURCE / INVALID_WRITE>”
 	char *mensaje = string_from_format("Finaliza el proceso %d - Motivo %s",proceso->pid,razon);
@@ -110,7 +110,9 @@ void planificador_largo_salida(PCB* proceso,char* razon){
 	pthread_mutex_lock(&mutexMulti);
 	multiprogramacion--;
 	pthread_mutex_unlock(&mutexMulti);
-
+	if(bloqueado){
+		deteccion_deadlock(proceso);
+	}
 	sem_post(&planiLargo);
 
 }

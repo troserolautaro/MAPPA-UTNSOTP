@@ -49,11 +49,8 @@ void iniciar_proceso(char* path, int size, int prioridad){
 		proceso->registros->CX = 0;
 		proceso->registros->DX = 0;
 		proceso->pc=0;
-		proceso->pid = PIDGLOBAL; //Modificar en caso de que sea necesario
-		proceso->tablaArchivos = dictionary_create(); //Modificar en caso de que sea necesario
-		pthread_mutex_t *mutex = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t));
-		pthread_mutex_init(mutex,NULL);
-		list_add(mutexProceso,(void*)mutex);
+		proceso->pid = PIDGLOBAL;
+		proceso->tablaArchivos = dictionary_create();
 		//añade el proceso a la lista de procesos y a la cola del planificador a largo plazo
 
 		//envia archivo a cargar en memoria para este proceso a el modulo de memoria
@@ -106,9 +103,8 @@ void proceso_estado(){
 		*blocked=string_from_format("Estado: BLOCKED - Procesos: "),
 		*terminated=string_from_format("Estado: TERMINATED - Procesos: ");
 		for(i = 0 ; i<list_size(procesos); i++){
-			pthread_mutex_t * mutex = list_get(mutexProceso,i);
-			pthread_mutex_lock(mutex);
 			proceso = list_get(procesos,i);
+			pthread_mutex_lock(proceso->mutex);
 			switch(proceso->estado){
 				case NEW:string_append_with_format(&new,"PID_%s ",string_itoa(proceso->pid)); break;
 				case READY: string_append_with_format(&ready,"PID_%s ",string_itoa(proceso->pid)); break;
@@ -116,7 +112,7 @@ void proceso_estado(){
 				case EXEC: string_append_with_format(&exec,"PID_%s ",string_itoa(proceso->pid)); break;
 				case TERMINATED:string_append_with_format(&terminated,"PID_%s ",string_itoa(proceso->pid)); break;
 			}
-			pthread_mutex_unlock(mutex);
+			pthread_mutex_unlock(proceso->mutex);
 	}
 	pthread_mutex_unlock(&mutexProcesos);
 	char * estados = string_new();
