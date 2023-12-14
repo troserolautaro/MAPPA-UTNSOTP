@@ -98,6 +98,12 @@ void deteccion_deadlock(PCB* proceso){
 
 	}
 }
+void liberar_archivos(){
+	//Liberar lock FCLOSE() ya lo hace, y liberar el dictionary
+}
+void liberar_memoria(){
+	//Enviar mensaje a memoria y borrar estructuras al respecto
+}
 void planificador_largo_salida(PCB* proceso,char* razon){
 	bool bloqueado = false;
 	if(proceso->estado == BLOCKED) bloqueado = true;
@@ -119,6 +125,8 @@ void planificador_largo_salida(PCB* proceso,char* razon){
 	cambiar_estado(proceso,TERMINATED);
 
 	liberar_recursos(proceso);
+	liberar_archivos();
+	liberar_memoria();
 	// <SUCCESS / INVALID_RESOURCE / INVALID_WRITE>”
 	char *mensaje = string_from_format("Finaliza el proceso %d - Motivo %s",proceso->pid,razon);
 	escritura_log(mensaje);
