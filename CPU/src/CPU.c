@@ -32,6 +32,10 @@ int main() {
 	t_config* config = iniciar_config("./CPU.config");
 
 	proceso = proceso_create();
+	list_destroy(proceso->recursos);
+	dictionary_destroy(proceso->tablaArchivos);
+	pthread_mutex_destroy(proceso->mutex);
+	free(proceso->mutex);
 	instruccion = instruccion_create();
 	char* ipMemoria = malloc(sizeof(char*)),
 			*puertoEscuchaDispatch = malloc(sizeof(char*)),
