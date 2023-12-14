@@ -16,7 +16,8 @@ typedef enum{
 	F_WRITE = 11,
 	F_READ = 12,
 	F_TRUNCATE = 13,
-	F_SEEK = 14
+	F_SEEK = 14,
+	SIGK = 15
 }desalojo;
 void paquete(int);
 void terminar_programa();

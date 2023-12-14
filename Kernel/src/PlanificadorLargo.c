@@ -1,8 +1,10 @@
 #include"PlanificadorLargo.h"
 	pthread_mutex_t mutexMulti;
 	int multiprogramacion = 0;
+	sem_t procesoTerminado;
 void* planificador_largo(){
 	pthread_mutex_init(&mutexMulti,NULL);
+	sem_init(&procesoTerminado,0,0);
 	do{
 	sem_wait(&planiLargo);
 	pthread_mutex_lock(&mutexColaLargo);
@@ -99,6 +101,21 @@ void deteccion_deadlock(PCB* proceso){
 void planificador_largo_salida(PCB* proceso,char* razon){
 	bool bloqueado = false;
 	if(proceso->estado == BLOCKED) bloqueado = true;
+	if(proceso->estado == EXEC && !(!strcasecmp(razon,"SUCCESS"))) {
+		t_paquete* paquete = crear_paquete();
+		agregar_a_paquete(paquete,"interrupcion",sizeof("interrupcion"));
+		agregar_a_paquete(paquete,"desalojo",sizeof("desalojo"));
+		agregar_a_paquete(paquete,"TERMINATED",sizeof("TERMINATED"));
+		agregar_a_paquete(paquete,&(proceso->pid),sizeof(uint32_t));
+		enviar_paquete(paquete,conexionCPUInterrupt);
+		eliminar_paquete(paquete);
+		sem_wait(&procesoTerminado);
+	}
+	list_remove_element(colaCorto->elements,proceso);
+	list_remove_element(colaLargo->elements,proceso);
+
+
+
 	cambiar_estado(proceso,TERMINATED);
 
 	liberar_recursos(proceso);
@@ -115,4 +132,7 @@ void planificador_largo_salida(PCB* proceso,char* razon){
 	}
 	sem_post(&planiLargo);
 
+}
+void proceso_terminado(){
+	sem_post(&procesoTerminado);
 }

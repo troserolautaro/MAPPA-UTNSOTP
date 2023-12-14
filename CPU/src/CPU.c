@@ -583,6 +583,7 @@ void procesar_mensaje(t_list* mensaje){
 					pthread_mutex_lock(&mutexMotivo);
 					motivo = ((char*) list_get(mensaje,2));
 					pthread_mutex_unlock(&mutexMotivo);
+					debug(motivo);
 					pid= *(uint32_t*)list_get(mensaje,3);
 					pthread_mutex_lock(&mutexProceso);
 					if (pid == (proceso->pid)) banderaInterrumpir = true;

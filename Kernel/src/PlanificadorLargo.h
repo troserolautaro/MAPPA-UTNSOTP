@@ -5,5 +5,4 @@
 void* planificador_largo();
 void planificador_largo_salida(PCB* proceso, char* razon);
 void deteccion_deadlock(PCB* proceso);
-
 #endif /* PLANIFICADORLARGO_H_ */

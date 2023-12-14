@@ -266,7 +266,7 @@ int motivo_desalojo(char * desalojo){
 	if(!strcasecmp(desalojo,"f_read")) return F_READ;
 	if(!strcasecmp(desalojo,"f_truncate")) return F_TRUNCATE;
 	if(!strcasecmp(desalojo,"f_seek")) return F_SEEK;
-
+	if(!strcasecmp(desalojo,"TERMINATED")) return SIGK;
 
 
 	return motivo;
@@ -438,8 +438,13 @@ void procesar_mensaje(t_list* mensaje){
 			list_add(params,list_get(mensaje,3));
 			hilo_funcion(params,(void*)f_truncate); //Solucion lista semaforos por proceso
 			break;
+		case SIGK:
+			cambiar_estado(proceso,READY);
+			proceso_terminado();
+			break;
 		case EXIT:
 			error_show("Motivo desconocido");
+
 		}
 		}
 	}
