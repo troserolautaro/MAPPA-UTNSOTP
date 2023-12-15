@@ -37,7 +37,7 @@ pagina_global_t* crear_pagina_global(int i){
 	pagina_global_t *paginaGlobal=malloc(sizeof(pagina_global_t));
 	paginaGlobal->pagina=-1;
 	paginaGlobal->pid=-1;
-	paginaGlobal->accesos=0;
+	paginaGlobal->tiempo = temporal_create();
 	paginaGlobal->mutexGlobal = crear_mutex();
 	return paginaGlobal;
 }
@@ -272,7 +272,8 @@ void page_fault(uint32_t pid,uint32_t numPagina){
 	pthread_mutex_lock(paginaGlobal->mutexGlobal);
 	paginaGlobal->pid = pid;
 	paginaGlobal->pagina = numPagina;
-	paginaGlobal->accesos = 0; // No sabia que hacer ?
+	temporal_destroy(paginaGlobal->tiempo);
+	paginaGlobal->tiempo = temporal_create(); // No sabia que hacer ?
 	pthread_mutex_unlock(paginaGlobal->mutexGlobal);
 
 	obtener_pagina_swap(pid,posSWAP,numPagina);
@@ -316,13 +317,21 @@ pagina_t* FIFO(){
 void* pagina_mas_reciente(void* pagina1,void* pagina2){
 	pagina_global_t * p1=(pagina_global_t *) pagina1;
 	pagina_global_t * p2=(pagina_global_t *) pagina2;
-	if((p1->accesos)<(p2->accesos))return pagina1;
+	int64_t diferencia = temporal_diff(p1->tiempo,p2->tiempo);
+	if(diferencia > -1)return pagina1;
 	return pagina2;
 }
-
+void frenar_tiempo(pagina_global_t* paginaGlobal){
+	temporal_stop(paginaGlobal->tiempo);
+}
+void reanudar_tiempo(pagina_global_t* paginaGlobal){
+	temporal_resume(paginaGlobal->tiempo);
+}
 pagina_t* LRU(){
 	pthread_mutex_lock(&mutexInversa);
+	list_iterate(tablapaginasGlobales,(void*)frenar_tiempo);
 	pagina_global_t* paginaVictima=(pagina_global_t*)list_get_minimum(tablapaginasGlobales,pagina_mas_reciente);
+	list_iterate(tablapaginasGlobales,(void*)reanudar_tiempo);
 	pthread_mutex_unlock(&mutexInversa);
 	pthread_mutex_lock(paginaVictima->mutexGlobal);
 	pagina_t* paginaVict = pagina_get((paginaVictima->pid),(paginaVictima->pagina));

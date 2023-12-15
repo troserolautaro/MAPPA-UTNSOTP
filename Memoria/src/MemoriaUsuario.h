@@ -8,6 +8,7 @@
 #include <commons/log.h>
 #include <commons/config.h>
 #include <commons/string.h>
+#include <commons/temporal.h>
 #include <commons/collections/list.h>
 #include <utilsServidor.h>
 #include <utilsCliente.h>
@@ -19,8 +20,9 @@ typedef struct{
 
 //para fifo y
 typedef struct{
-	uint32_t pagina,pid,accesos;
+	uint32_t pagina,pid;
 	pthread_mutex_t* mutexGlobal;
+	t_temporal* tiempo;
 }pagina_global_t;
 
 typedef struct{

@@ -188,6 +188,9 @@ void procesar_mensaje(t_list* mensaje){
 			pthread_mutex_lock(pagina->mutexPagina);
 			escritura_log(string_from_format("PID: %d - Pagina: %d - Marco: %d",pid,numeroPagina,pagina->marco));
 			if(pagina->p == 1){
+				pagina_global_t* paginaGlobal = (pagina_global_t*) list_get(tablapaginasGlobales,pagina->marco);
+				temporal_destroy(paginaGlobal->tiempo);
+				paginaGlobal->tiempo = temporal_create();
 				marco = pagina->marco;
 				pageFault = false;
 			}
