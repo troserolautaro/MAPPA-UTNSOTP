@@ -64,7 +64,9 @@ int main(void)
 		 *instancia =  (int)strtol(temp[i], (char **)NULL, 10);
 		 list_add(elements,instancia);
 		 list_add(elements,colaEspera);
+		 pthread_mutex_lock(&mutexRecursos);
 		 dictionary_put(diccionarioRecursos,recursos[i],elements);
+		 pthread_mutex_unlock(&mutexRecursos);
 	}
 	/************************************INICIALIZAR CONEXIONES************************************/
 	conexionCPUDispatch = crear_conexion(ipCPU, puertoCPUDispatch,KERNEL);
@@ -128,7 +130,11 @@ void bloquear_proceso(PCB* proceso,char* motivo){
 	char* mensaje = string_from_format("PID: %d - Bloqueado por: %s",proceso->pid,motivo);
 	escritura_log(mensaje);
 	free(mensaje);
-	if(dictionary_has_key(diccionarioRecursos,motivo)) deteccion_deadlock(proceso);
+	if(dictionary_has_key(diccionarioRecursos,motivo)) {
+		pthread_mutex_lock(&mutexRecursos);
+		deteccion_deadlock(proceso);
+		pthread_mutex_unlock(&mutexRecursos);
+	}
 
 
 }
@@ -145,6 +151,7 @@ void sleep_proceso(void* parametros){
 
 //MANEJO DE RECRUSOS
 void wait_recurso(PCB* proceso,char* recurso){
+	pthread_mutex_lock(&mutexRecursos);
 	if(dictionary_has_key(diccionarioRecursos,recurso)){
 		t_list* elements = (t_list*)dictionary_get(diccionarioRecursos,recurso);
 		int* instancias = (int*)list_get(elements,0);
@@ -152,8 +159,9 @@ void wait_recurso(PCB* proceso,char* recurso){
 			*instancias-= 1;
 
 			list_add(proceso->recursos,recurso);
-			// “PID: <PID> - Wait: <NOMBRE RECURSO> - Instancias: <INSTANCIAS RECURSO>”
 			char* mensaje = string_from_format("PID: %d - Wait: %s - Instancias: %d",proceso->pid,recurso,*instancias);
+			pthread_mutex_unlock(&mutexRecursos);
+
 			escritura_log(mensaje);
 			free(mensaje);
 			char* mensajeCola = string_from_format("Cola Ready %s: ",AlgoritmoPlanificacion);
@@ -169,12 +177,15 @@ void wait_recurso(PCB* proceso,char* recurso){
 		}else{
 			t_queue* colaEspera = (t_queue*)list_get(elements,1);
 			queue_push(colaEspera,proceso);
+			pthread_mutex_unlock(&mutexRecursos);
 			bloquear_proceso(proceso,recurso);
 		}
 
 	}else{
+		pthread_mutex_unlock(&mutexRecursos);
 		planificador_largo_salida(proceso,"INVALID_RESOURCE");
 	}
+
 	sem_post(&planiCorto);
 
 }
@@ -205,6 +216,7 @@ void ordenar_adelante(PCB* proceso){
 	free(mensajeCola);
 }
 void signal_recurso(PCB* proceso,char* recurso){
+	pthread_mutex_lock(&mutexRecursos);
 	if(dictionary_has_key(diccionarioRecursos,recurso) && !list_is_empty(proceso->recursos)){
 		bool buscar_recurso(void* element){
 			return (!strcasecmp((char*)element,recurso)) ? true : false;
@@ -228,8 +240,8 @@ void signal_recurso(PCB* proceso,char* recurso){
 
 				push_colaCorto(temp);
 			}
-
 			char* mensaje = string_from_format("PID: %d - Signal: %s - Instancias: %d",proceso->pid,recurso,*instancias);
+			pthread_mutex_unlock(&mutexRecursos);
 			escritura_log(mensaje);
 			free(mensaje);
 
@@ -243,11 +255,14 @@ void signal_recurso(PCB* proceso,char* recurso){
 			}
 
 		}else{
+			pthread_mutex_unlock(&mutexRecursos);
 			planificador_largo_salida(proceso,"INVALID_RESOURCE");
 		}
 	}else{
+		pthread_mutex_unlock(&mutexRecursos);
 		planificador_largo_salida(proceso,"INVALID_RESOURCE");
 	}
+
 
 }
 int motivo_desalojo(char * desalojo){

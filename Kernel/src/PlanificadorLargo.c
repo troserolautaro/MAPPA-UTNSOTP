@@ -39,13 +39,13 @@ void* planificador_largo(){
 }
 
 void liberar_recursos(PCB* proceso){
-
 	void remover_espera(char* key, t_list* elements){
 		t_queue* colaEspera = (t_queue*)list_get(elements,1);
 		if(!queue_is_empty(colaEspera)){
 			list_remove_element(colaEspera->elements,proceso);
 		}
 	}
+
 	dictionary_iterator(diccionarioRecursos,(void*)remover_espera);
 
 	int i =0;
@@ -71,6 +71,7 @@ void liberar_recursos(PCB* proceso){
 
 }
 void deteccion_deadlock(PCB* proceso){
+	pthread_mutex_lock(proceso->mutex);
 	escritura_log("Analisis de deteccion de Deadlocks");
 	char* mensajeDeadlock = string_new();
 	void iterar_recursos(char* temp) {string_append_with_format(&mensajeDeadlock,"%s ",temp);}
@@ -96,6 +97,7 @@ void deteccion_deadlock(PCB* proceso){
 						string_append_with_format(&mensajeDeadlock,"Recurso Solicitado: %s \n",recurso);
 						bandera = true;
 					}else if(!list_is_empty(temp->recursos)){
+						pthread_mutex_lock(temp->mutex);
 						PCB* encontrado = list_find(temp->recursos,(void*)verificacion_DL);
 						if(encontrado!=NULL){
 							string_append_with_format(&mensajeDeadlock,"Deadlock detectado: %d - Recursos en posesion: ", temp->pid);
@@ -109,6 +111,7 @@ void deteccion_deadlock(PCB* proceso){
 							string_append_with_format(&mensajeDeadlock,"Recurso Solicitado: %s \n",recurso);
 							bandera=true;
 						}
+						pthread_mutex_unlock(temp->mutex);
 					}
 
 					i++;
@@ -124,7 +127,7 @@ void deteccion_deadlock(PCB* proceso){
 
 	}
 	free(mensajeDeadlock);
-
+	pthread_mutex_unlock(proceso->mutex);
 }
 
 
@@ -169,9 +172,17 @@ void planificador_largo_salida(PCB* proceso,char* razon){
 		eliminar_paquete(paquete);
 		sem_wait(&procesoTerminado);
 	}
+	pthread_mutex_lock(&mutexColaCorto);
 	list_remove_element(colaCorto->elements,proceso);
+	pthread_mutex_unlock(&mutexColaCorto);
+
+	pthread_mutex_lock(&mutexColaLargo);
 	list_remove_element(colaLargo->elements,proceso);
+	pthread_mutex_unlock(&mutexColaLargo);
+
+	pthread_mutex_lock(&mutexRecursos);
 	liberar_recursos(proceso);
+	pthread_mutex_unlock(&mutexRecursos);
 	liberar_archivos(proceso);
 	liberar_paginas(proceso);
 
