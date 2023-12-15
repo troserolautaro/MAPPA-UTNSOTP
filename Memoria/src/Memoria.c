@@ -182,19 +182,29 @@ void procesar_mensaje(t_list* mensaje){
 		uint32_t marco = -1;
 
 	//	debug(string_from_format("PID: %s, Numero de pagina: %s",string_itoa(pid),string_itoa(numeroPagina)));
+
 		pagina_t * pagina = pagina_get(pid,numeroPagina);
 		if(pagina!=NULL){
 			//Talvez habria que liberarlos
 			pthread_mutex_lock(pagina->mutexPagina);
 			escritura_log(string_from_format("PID: %d - Pagina: %d - Marco: %d",pid,numeroPagina,pagina->marco));
 			if(pagina->p == 1){
-				pagina_global_t* paginaGlobal = (pagina_global_t*) list_get(tablapaginasGlobales,pagina->marco);
+				marco = pagina->marco;
+				pthread_mutex_unlock(pagina->mutexPagina);
+
+				pthread_mutex_lock(&mutexInversa);
+				pagina_global_t* paginaGlobal = (pagina_global_t*) list_get(tablapaginasGlobales,marco);
+				pthread_mutex_unlock(&mutexInversa);
+
+				pthread_mutex_lock(paginaGlobal->mutexGlobal);
 				temporal_destroy(paginaGlobal->tiempo);
 				paginaGlobal->tiempo = temporal_create();
-				marco = pagina->marco;
+				pthread_mutex_unlock(paginaGlobal->mutexGlobal);
 				pageFault = false;
+			}else{
+				pthread_mutex_unlock(pagina->mutexPagina);
 			}
-			pthread_mutex_unlock(pagina->mutexPagina);
+
 			t_paquete* paquete=crear_paquete();
 			agregar_a_paquete(paquete,"marco",sizeof("marco"));
 			agregar_a_paquete(paquete,&pageFault,sizeof(bool));

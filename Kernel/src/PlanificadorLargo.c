@@ -1,10 +1,11 @@
 #include"PlanificadorLargo.h"
 	pthread_mutex_t mutexMulti;
 	int multiprogramacion = 0;
-	sem_t procesoTerminado;
+	sem_t procesoTerminado, sem_paginasLiberadas;
 void* planificador_largo(){
 	pthread_mutex_init(&mutexMulti,NULL);
 	sem_init(&procesoTerminado,0,0);
+	sem_init(&sem_paginasLiberadas,0,0);
 	do{
 	sem_wait(&planiLargo);
 	pthread_mutex_lock(&mutexColaLargo);
@@ -116,9 +117,18 @@ void liberar_archivos(PCB* proceso){
 	}
 
 }
-void liberar_paginas(){
-	//Enviar mensaje a memoria y borrar estructuras al respecto
+void procesoFinalizado(){
+	sem_post(&sem_paginasLiberadas);
 }
+void liberar_paginas(PCB* proceso){
+	t_paquete* paquete = crear_paquete();
+	agregar_a_paquete(paquete,"finalizar_proceso",sizeof("finalizar_proceso"));
+	agregar_a_paquete(paquete,&(proceso->pid),sizeof(uint32_t));
+	enviar_paquete(paquete,conexionMemoria);
+	eliminar_paquete(paquete);
+	sem_wait(&sem_paginasLiberadas);
+}
+
 void planificador_largo_salida(PCB* proceso,char* razon){
 	bool bloqueado = false;
 	if(proceso->estado == BLOCKED) bloqueado = true;
@@ -136,7 +146,7 @@ void planificador_largo_salida(PCB* proceso,char* razon){
 	list_remove_element(colaLargo->elements,proceso);
 	liberar_recursos(proceso);
 	liberar_archivos(proceso);
-	liberar_paginas();
+	liberar_paginas(proceso);
 
 
 	cambiar_estado(proceso,TERMINATED);

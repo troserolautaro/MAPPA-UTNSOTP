@@ -4,13 +4,19 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-../src/Memoria.c 
+../src/Memoria.c \
+../src/MemoriaInstruciones.c \
+../src/MemoriaUsuario.c 
 
 C_DEPS += \
-./src/Memoria.d 
+./src/Memoria.d \
+./src/MemoriaInstruciones.d \
+./src/MemoriaUsuario.d 
 
 OBJS += \
-./src/Memoria.o 
+./src/Memoria.o \
+./src/MemoriaInstruciones.o \
+./src/MemoriaUsuario.o 
 
 
 # Each subdirectory must supply rules for building sources it contributes
@@ -25,7 +31,7 @@ src/%.o: ../src/%.c src/subdir.mk
 clean: clean-src
 
 clean-src:
-	-$(RM) ./src/Memoria.d ./src/Memoria.o
+	-$(RM) ./src/Memoria.d ./src/Memoria.o ./src/MemoriaInstruciones.d ./src/MemoriaInstruciones.o ./src/MemoriaUsuario.d ./src/MemoriaUsuario.o
 
 .PHONY: clean-src
 

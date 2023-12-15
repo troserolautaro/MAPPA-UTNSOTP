@@ -24,4 +24,4 @@ echo 'Finished building target: Memoria'
 
 cd ..
 echo 'ejecutando binario de Memoria'
-valgrind -s ./Debug/Memoria
+valgrind -s --tool=helgrind ./Debug/Memoria

@@ -104,31 +104,47 @@ void crear_proceso(uint32_t pid,char* nombre, uint32_t tamanio){
 }
 
 //FINALIZAR PROCESO
+bool marco_libre(marco_t * marco){
+	//if(marco->libre) debug("Estoy libre");
+	return (marco->libre);
+}
 void destruir_pagina(pagina_t* pagina){
 	if(pagina->p == 1){
 		pthread_mutex_lock(&mutexTablaMarcos);
-		marco_t* marcoALiberar= list_get(tablaMarcos,(pagina->marco));
+		marco_t* marcoALiberar = list_get(tablaMarcos,(pagina->marco));
 		pthread_mutex_unlock(&mutexTablaMarcos);
+
 		pthread_mutex_lock(marcoALiberar->mutexMarco);
-		marcoALiberar->libre=true;
+		marcoALiberar->libre = true;
 		pthread_mutex_unlock(marcoALiberar->mutexMarco);
 
-		pthread_mutex_destroy(pagina->mutexPagina);
-		free(pagina->mutexPagina);
-		free(pagina);
+		//list_iterate(tablaMarcos,(void*)marco_libre);
+
 	}
+	//pthread_mutex_destroy(pagina->mutexPagina);
+	debug(string_from_format("tamaño del mutex %d", (int)sizeof(pthread_mutex_t)));
+	free(pagina->mutexPagina);
+	free(pagina);
 }
 
 void destruir_tabla_paginas(t_list* tablaPaginacion){
-	for(int i=0;i>list_size(tablaPaginacion);i++){
-		list_remove_and_destroy_element(tablaPaginacion,i,(void*)destruir_pagina);
-	}
-	free(tablaPaginacion);
+	list_destroy_and_destroy_elements(tablaPaginacion,(void*)destruir_pagina);
 }
 void finalizar_proceso(uint32_t pid){
 	pthread_mutex_lock(&mutexTablasPagina);
-	dictionary_remove_and_destroy(tablaProcesos,string_itoa(pid), (void*)destruir_tabla_paginas);
-	pthread_mutex_unlock(&mutexTablasPagina);
+	if(dictionary_has_key(tablaProcesos,string_itoa(pid))){
+		pthread_mutex_unlock(&mutexTablasPagina);
+
+		pthread_mutex_lock(&mutexTablasPagina);
+		t_list* lista = dictionary_remove(tablaProcesos,string_itoa(pid));
+		pthread_mutex_unlock(&mutexTablasPagina);
+		//talvez mutex
+		destruir_tabla_paginas(lista);
+
+	}else{
+		pthread_mutex_unlock(&mutexTablasPagina);
+	}
+
 }
 
 
@@ -201,7 +217,7 @@ int marcos_libres(){
 	pthread_mutex_unlock(&mutexTablaMarcos);
 	return retorno;
 }
-bool marco_libre(marco_t * marco){return (marco->libre);}
+
 
 void* descargar_pagina_swap(int base){
 	void * datos = malloc(tamPagina);

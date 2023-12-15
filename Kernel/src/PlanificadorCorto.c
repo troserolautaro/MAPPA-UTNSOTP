@@ -6,7 +6,7 @@ bool ejecutandoB = false;
 void* clock_rr(void* pid) {
 	bool bandera=true;
     while (bandera) { // clockT = 2;
-    	sleep(quantum/1000);
+    	usleep(quantum*1000);
         pthread_mutex_lock(&mutexColaCorto);
         bool empty = queue_is_empty(colaCorto);
         pthread_mutex_unlock(&mutexColaCorto);

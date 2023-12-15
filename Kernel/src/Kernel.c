@@ -472,6 +472,9 @@ void procesar_mensaje(t_list* mensaje){
 		//debug("se escribio el archivo");
 		sem_post(&sem_write);
 	}
+	if(!strcasecmp(msg,"procesoFinalizado")){
+		procesoFinalizado();
+	}
 	free(msg);
 }
 

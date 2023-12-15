@@ -40,6 +40,7 @@ extern int marcoFIFO;
 extern t_list* tablapaginasGlobales;
 extern pagina_t* (*algoritmoRemplazo)();
 extern sem_t sem_bloquesSwap, sem_paginaSwap, sem_escribirSwap,sem_escribirBloque;
+extern pthread_mutex_t mutexInversa;
 void iniciar_memoria_usuario();
 void crear_proceso(uint32_t pid,char* nombre, uint32_t tamanio);
 void finalizar_proceso(uint32_t pid);

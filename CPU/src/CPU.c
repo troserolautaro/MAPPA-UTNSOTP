@@ -16,7 +16,7 @@ PCB* proceso;
 pthread_mutex_t mutexProceso, mutexLog,mutexInstruccion, mutexBloquear, mutexInterrupcion,mutexMotivo;
 sem_t tamPagina_s;
 sem_t memoria_s;
-
+uint32_t pcInicial = 0;
 /*struct{
 	t_instruccion * instruccion;
 	sem_t instruccion_s;
@@ -242,51 +242,56 @@ void mov_out(uint32_t* direccionLogica,uint32_t* registro) {
 }
 
 void f_open(char* nombreArchivo, char* modoApertura) {
+	bloquear_proceso();
 	t_list * mensaje = list_create();
 	list_add(mensaje,"f_open");
 	list_add(mensaje,nombreArchivo);
 	list_add(mensaje,modoApertura);
 	contexto_ejecucion(mensaje);
 
-	bloquear_proceso();
+
 
 	list_destroy(mensaje);
 }
 
 void f_close(char* nombreArchivo) {
+	bloquear_proceso();
 	t_list * mensaje = list_create();
 	list_add(mensaje,"f_close");
 	list_add(mensaje,nombreArchivo);
 	contexto_ejecucion(mensaje);
 
-	bloquear_proceso();
+
 
 	list_destroy(mensaje);
 }
 
 void f_seek(char* nombreArchivo, uint32_t posicion) {
+	bloquear_proceso();
 	t_list * mensaje = list_create();
 	list_add(mensaje,"f_seek");
 	list_add(mensaje,nombreArchivo);
 	list_add(mensaje,string_itoa(posicion));
 	contexto_ejecucion(mensaje);
 
-	bloquear_proceso();
+
 
 	list_destroy(mensaje);
 }
 
 void f_read(char* nombreArchivo, uint32_t direccionLogica) {
+
 	uint32_t direccionFisica;
 	direccionFisica=mmu(&direccionLogica);
 	if(!pageFault){
+		bloquear_proceso();
 		t_list * mensaje = list_create();
 		list_add(mensaje,"f_read");
 		list_add(mensaje,nombreArchivo);
 		list_add(mensaje,string_itoa(direccionFisica));
 
 		contexto_ejecucion(mensaje);
-		bloquear_proceso();
+
 
 
 		list_destroy(mensaje);
@@ -300,13 +305,14 @@ void f_write(char* nombreArchivo, uint32_t direccionLogica) {
 	uint32_t direccionFisica;
 	direccionFisica=mmu(&direccionLogica);
 	if(!pageFault){
+		bloquear_proceso();
 		t_list * mensaje = list_create();
 		list_add(mensaje,"f_write");
 		list_add(mensaje,nombreArchivo);
 		list_add(mensaje,string_itoa(direccionFisica));
 		contexto_ejecucion(mensaje);
 
-		bloquear_proceso();
+
 
 
 		list_destroy(mensaje);
@@ -317,13 +323,13 @@ void f_write(char* nombreArchivo, uint32_t direccionLogica) {
 }
 
 void f_truncate(char* nombreArchivo, uint32_t newSize) {
+	bloquear_proceso();
 	t_list * mensaje = list_create();
 	list_add(mensaje,"f_truncate");
 	list_add(mensaje,nombreArchivo);
 	list_add(mensaje,string_itoa(newSize));
 	contexto_ejecucion(mensaje);
 
-	bloquear_proceso();
 
 	list_destroy(mensaje);
 }
@@ -421,6 +427,7 @@ void decode_and_execute(){
 		registroDestino = obtener_registro((char*)list_get(parametros,0));
 		registroOrigen =  obtener_registro((char*)list_get(parametros,1));
 		sub(registroDestino,registroOrigen);
+		debug(string_itoa(*registroDestino));
 	}
 	if(!strcasecmp(comando,"JNZ")){
 		registroOrigen = obtener_registro((char*)list_get(parametros,0));
@@ -481,7 +488,7 @@ void check_interrupt(){
 	if(!interrupcion && !bloquear){sem_post(&ciclo);}
 	pthread_mutex_unlock(&mutexBloquear);
 	pthread_mutex_unlock(&mutexInterrupcion);
-
+	bool temp = bloquear;
 	pthread_mutex_lock(&mutexBloquear);
 	if(bloquear){
 
@@ -491,14 +498,14 @@ void check_interrupt(){
 	pthread_mutex_unlock(&mutexBloquear);
 
 	pthread_mutex_lock(&mutexInterrupcion);
-	if(interrupcion){
-			t_list * mensaje = list_create();
-			pthread_mutex_lock(&mutexMotivo);
-			list_add(mensaje,motivo);
-			pthread_mutex_unlock(&mutexMotivo);
-			contexto_ejecucion(mensaje);
-			list_destroy(mensaje);
-			interrupcion=false;
+	if(interrupcion && !temp){
+		t_list * mensaje = list_create();
+		pthread_mutex_lock(&mutexMotivo);
+		list_add(mensaje,motivo);
+		pthread_mutex_unlock(&mutexMotivo);
+		contexto_ejecucion(mensaje);
+		list_destroy(mensaje);
+		interrupcion=false;
 	}
 	pthread_mutex_unlock(&mutexInterrupcion);
 }
@@ -550,7 +557,6 @@ void procesar_mensaje(t_list* mensaje){
 		pthread_mutex_lock(&mutexProceso);
 		deserializar_proceso(proceso,mensaje,1);
 		pthread_mutex_unlock(&mutexProceso);
-
 		sem_post(&ciclo);
 	}
 	if(!strcasecmp(msg,"instruccion")){
@@ -587,7 +593,6 @@ void procesar_mensaje(t_list* mensaje){
 					pthread_mutex_lock(&mutexMotivo);
 					motivo = ((char*) list_get(mensaje,2));
 					pthread_mutex_unlock(&mutexMotivo);
-					debug(motivo);
 					pid= *(uint32_t*)list_get(mensaje,3);
 					pthread_mutex_lock(&mutexProceso);
 					if (pid == (proceso->pid)) banderaInterrumpir = true;
