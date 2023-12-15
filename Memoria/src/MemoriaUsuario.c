@@ -104,29 +104,30 @@ void crear_proceso(uint32_t pid,char* nombre, uint32_t tamanio){
 }
 
 //FINALIZAR PROCESO
-void destruir_pagina(void* pagina){
-	pagina_t * pag=(pagina_t*) pagina;
-	pthread_mutex_lock(&mutexTablaMarcos);
-	marco_t* marcoALiberar= list_get(tablaMarcos,(pag->marco));
-	pthread_mutex_unlock(&mutexTablaMarcos);
-	pthread_mutex_lock(marcoALiberar->mutexMarco);
-	marcoALiberar->libre=true;
-	pthread_mutex_unlock(marcoALiberar->mutexMarco);
+void destruir_pagina(pagina_t* pagina){
+	if(pagina->p == 1){
+		pthread_mutex_lock(&mutexTablaMarcos);
+		marco_t* marcoALiberar= list_get(tablaMarcos,(pagina->marco));
+		pthread_mutex_unlock(&mutexTablaMarcos);
+		pthread_mutex_lock(marcoALiberar->mutexMarco);
+		marcoALiberar->libre=true;
+		pthread_mutex_unlock(marcoALiberar->mutexMarco);
 
-	pthread_mutex_destroy(pag->mutexPagina);
-	free(pag->mutexPagina);
-	free(pagina);
+		pthread_mutex_destroy(pagina->mutexPagina);
+		free(pagina->mutexPagina);
+		free(pagina);
+	}
 }
 
-void destruir_tabla_paginas(void* tablaPaginacion){
+void destruir_tabla_paginas(t_list* tablaPaginacion){
 	for(int i=0;i>list_size(tablaPaginacion);i++){
-	list_remove_and_destroy_element(tablaPaginacion,i,destruir_pagina);
+		list_remove_and_destroy_element(tablaPaginacion,i,(void*)destruir_pagina);
 	}
 	free(tablaPaginacion);
 }
 void finalizar_proceso(uint32_t pid){
 	pthread_mutex_lock(&mutexTablasPagina);
-	dictionary_remove_and_destroy(tablaProcesos,string_itoa(pid), destruir_tabla_paginas);
+	dictionary_remove_and_destroy(tablaProcesos,string_itoa(pid), (void*)destruir_tabla_paginas);
 	pthread_mutex_unlock(&mutexTablasPagina);
 }
 

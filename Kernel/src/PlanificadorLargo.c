@@ -98,10 +98,25 @@ void deteccion_deadlock(PCB* proceso){
 
 	}
 }
-void liberar_archivos(){
+
+
+void liberar_archivos(PCB* proceso){
 	//Liberar lock FCLOSE() ya lo hace, y liberar el dictionary
+	if(!dictionary_is_empty(proceso->tablaArchivos)){
+		t_list* lista = dictionary_keys(proceso->tablaArchivos);
+		for(int i = 0; i<list_size(lista);i++){
+			char* tempChar = string_new();
+			tempChar = string_duplicate((char*)list_get(lista,i));
+			f_close(proceso,tempChar);
+			free(tempChar);
+		}
+		list_destroy(lista);
+		dictionary_clean(proceso->tablaArchivos);
+		dictionary_destroy(proceso->tablaArchivos);
+	}
+
 }
-void liberar_memoria(){
+void liberar_paginas(){
 	//Enviar mensaje a memoria y borrar estructuras al respecto
 }
 void planificador_largo_salida(PCB* proceso,char* razon){
@@ -119,14 +134,14 @@ void planificador_largo_salida(PCB* proceso,char* razon){
 	}
 	list_remove_element(colaCorto->elements,proceso);
 	list_remove_element(colaLargo->elements,proceso);
-
+	liberar_recursos(proceso);
+	liberar_archivos(proceso);
+	liberar_paginas();
 
 
 	cambiar_estado(proceso,TERMINATED);
 
-	liberar_recursos(proceso);
-	liberar_archivos();
-	liberar_memoria();
+
 	// <SUCCESS / INVALID_RESOURCE / INVALID_WRITE>”
 	char *mensaje = string_from_format("Finaliza el proceso %d - Motivo %s",proceso->pid,razon);
 	escritura_log(mensaje);

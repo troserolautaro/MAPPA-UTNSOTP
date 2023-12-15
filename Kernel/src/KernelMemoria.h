@@ -42,5 +42,8 @@ void f_seek(PCB* proceso, char * archivo, uint32_t puntero);
 void f_truncate(t_list* parameters);
 void f_read(t_list* parameters);
 void f_write(t_list* parameters);
+void destruir_registro_tap(registro_tap* registroTap);
 registro_tag* crear_reg_tag(char* archivo);
+void iniciar_KernelMemoria();
+void tamanio_func(char* archivo, uint32_t tamanio);
 #endif /* KERNELMEMORIA_H_ */
