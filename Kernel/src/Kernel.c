@@ -294,9 +294,11 @@ void procesar_mensaje(t_list* mensaje){
 
 		escritura_log(string_from_format("Se crea el proceso %d en NEW",proceso->pid));
 		sem_post(&procesoCargado);
+		pthread_mutex_lock(&mutexDetenida);
 		if(!detenida){
 				sem_post(&planiLargo);
 		}
+		pthread_mutex_unlock(&mutexDetenida);
 	}
 
 

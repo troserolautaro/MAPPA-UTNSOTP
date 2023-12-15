@@ -10,7 +10,7 @@ t_config* config;
 int conexionCPUDispatch, conexionCPUInterrupt,conexionMemoria,conexionFileSystem,pidGlobal;
 int gradoMultiprogramacion, quantum;
 char* AlgoritmoPlanificacion;
-pthread_mutex_t mutexColaCorto,mutexColaLargo,mutexProcesos,mutexLog,mutexGrado,mutexRecursos;
+pthread_mutex_t mutexColaCorto,mutexColaLargo,mutexProcesos,mutexLog,mutexGrado,mutexRecursos,mutexDetenida;
 sem_t planiLargo,planiCorto;
 t_dictionary *diccionarioRecursos;
 

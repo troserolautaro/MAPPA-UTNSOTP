@@ -6,6 +6,7 @@ void* planificador_largo(){
 	pthread_mutex_init(&mutexMulti,NULL);
 	sem_init(&procesoTerminado,0,0);
 	sem_init(&sem_paginasLiberadas,0,0);
+	pthread_mutex_init(&mutexDetenida,NULL);
 	do{
 	sem_wait(&planiLargo);
 	pthread_mutex_lock(&mutexColaLargo);
@@ -14,6 +15,7 @@ void* planificador_largo(){
 	pthread_mutex_unlock(&mutexColaLargo);
 	int i = 0;
 	pthread_mutex_lock(&mutexGrado);
+	pthread_mutex_lock(&mutexDetenida);
 	while(!vacio && i<size && !detenida && multiprogramacion<gradoMultiprogramacion){
 
 		pthread_mutex_lock(&mutexColaLargo);
@@ -29,6 +31,7 @@ void* planificador_largo(){
 		pthread_mutex_unlock(&mutexMulti);
 		i++;
 	}
+	pthread_mutex_unlock(&mutexDetenida);
 	pthread_mutex_unlock(&mutexGrado);
 	sem_post(&planiCorto);
 	}while(true);
@@ -69,35 +72,59 @@ void liberar_recursos(PCB* proceso){
 }
 void deteccion_deadlock(PCB* proceso){
 	escritura_log("Analisis de deteccion de Deadlocks");
+	char* mensajeDeadlock = string_new();
+	void iterar_recursos(char* temp) {string_append_with_format(&mensajeDeadlock,"%s ",temp);}
+
 	if(!list_is_empty(proceso->recursos)){
 		bool verificacion_DL(char* recurso){
-		t_list* elements = (t_list*)dictionary_get(diccionarioRecursos,recurso);
-		t_queue* colaEspera = (t_queue*)list_get(elements,1);
-		bool bandera = false;
-		if(!queue_is_empty(colaEspera)){
-			int i = 0;
-			while(!bandera && i<queue_size(colaEspera)){
-				PCB* temp = list_get(colaEspera->elements,i);
-				if(temp->pid == proceso->pid){
-					bandera = true;
-				}else if(!list_is_empty(temp->recursos)){
-					PCB* encontrado = list_find(temp->recursos,(void*)verificacion_DL);
-					if(encontrado!=NULL){
-						bandera=true;
+			t_list* elements = (t_list*)dictionary_get(diccionarioRecursos,recurso);
+			t_queue* colaEspera = (t_queue*)list_get(elements,1);
+			bool bandera = false;
+			if(!queue_is_empty(colaEspera)){
+				int i = 0;
+				while(!bandera && i<queue_size(colaEspera)){
+					PCB* temp = list_get(colaEspera->elements,i);
+					if(temp->pid == proceso->pid){
+						string_append_with_format(&mensajeDeadlock,"Deadlock detectado: %d - Recursos en posesion: ", temp->pid);
+						list_iterate(temp->recursos,(void*)iterar_recursos);
+						t_list* keys = dictionary_keys(temp->tablaArchivos);
+						if(!list_is_empty(keys)){
+							list_iterate(keys,(void*) iterar_recursos);
+						}
+						list_clean(keys);
+						list_destroy(keys);
+						string_append_with_format(&mensajeDeadlock,"Recurso Solicitado: %s \n",recurso);
+						bandera = true;
+					}else if(!list_is_empty(temp->recursos)){
+						PCB* encontrado = list_find(temp->recursos,(void*)verificacion_DL);
+						if(encontrado!=NULL){
+							string_append_with_format(&mensajeDeadlock,"Deadlock detectado: %d - Recursos en posesion: ", temp->pid);
+							list_iterate(temp->recursos,(void*)iterar_recursos);
+							t_list* keys = dictionary_keys(temp->tablaArchivos);
+							if(!list_is_empty(keys)){
+								list_iterate(keys,(void*) iterar_recursos);
+							}
+							list_clean(keys);
+							list_destroy(keys);
+							string_append_with_format(&mensajeDeadlock,"Recurso Solicitado: %s \n",recurso);
+							bandera=true;
+						}
 					}
-				}
 
-				i++;
+					i++;
+				}
 			}
-		}
 			return bandera;
 		}
 		PCB* encontrado = list_find(proceso->recursos,(void*)verificacion_DL);
 		if(encontrado!=NULL){
-			debug("Hay Deadlock");
+			escritura_log(mensajeDeadlock);
+
 		}
 
 	}
+	free(mensajeDeadlock);
+
 }
 
 

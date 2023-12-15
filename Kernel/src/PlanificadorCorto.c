@@ -3,7 +3,7 @@
 sem_t clockT,validarQuantum,contexto;
 pthread_mutex_t  mutexEjecutando;
 bool ejecutandoB = false;
-void* clock_rr(void* pid) {
+void* clock_rr(PCB* proceso) {
 	bool bandera=true;
     while (bandera) { // clockT = 2;
     	usleep(quantum*1000);
@@ -11,7 +11,9 @@ void* clock_rr(void* pid) {
         bool empty = queue_is_empty(colaCorto);
         pthread_mutex_unlock(&mutexColaCorto);
         if(!empty){
-        	enviar_interrupcion_cpu("quantum",pid);
+        	pthread_mutex_lock(proceso->mutex);
+        	enviar_interrupcion_cpu("quantum",&(proceso->pid));
+        	pthread_mutex_unlock(proceso->mutex);
         	bandera=false;
         }
 
@@ -25,8 +27,10 @@ void* planificador_corto(){
 	int idPlanificador = planificador_enum();
 	do{
 		sem_wait(&planiCorto);
+		pthread_mutex_lock(&mutexDetenida);
 		pthread_mutex_lock(&mutexColaCorto);
 		if(!queue_is_empty(colaCorto) && !detenida){
+			pthread_mutex_unlock(&mutexDetenida);
 			pthread_mutex_unlock(&mutexColaCorto);
 			//Se podria mejorar haciendo lo de algoritmoRemplazo();
 			switch(idPlanificador){
@@ -63,13 +67,14 @@ void* planificador_corto(){
 				eliminar_paquete(paquete);
 
 				if(idPlanificador == ROUNDROBIN){
-					hilo_funcion(&(proceso->pid),clock_rr);
+					hilo_funcion(proceso,(void*)clock_rr);
 				}
 			}else{
 				pthread_mutex_unlock(&mutexEjecutando);
 			}
 
 		}else {
+			pthread_mutex_unlock(&mutexDetenida);
 			pthread_mutex_unlock(&mutexColaCorto);
 		}
 

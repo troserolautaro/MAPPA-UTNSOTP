@@ -5,7 +5,7 @@ char* lectura_consola(){
 	char* linea;
 //	pthread_mutex_lock(&mutexLog);
 	sem_wait(&sem_readline);
-	linea = readline("\n >>");
+	linea = readline("\n");
 	if (linea){ add_history(linea);}
 //	pthread_mutex_unlock(&mutexLog);
 	return linea;
@@ -23,18 +23,22 @@ int validacion_contenido_consola(char* comando){
 }
 
 void iniciar_planificacion(){
+	pthread_mutex_lock(&mutexDetenida);
 	if(detenida){
 		escritura_log("Inicio de planificacion");
 		detenida=false;
 		sem_post(&planiLargo);
 
 	}
+	pthread_mutex_unlock(&mutexDetenida);
 }
 void detener_planificacion(){
+	pthread_mutex_lock(&mutexDetenida);
 	if(!detenida){
 		detenida=true;
 		escritura_log("Pausa de planificacion");
 	}
+	pthread_mutex_unlock(&mutexDetenida);
 }
 
 void iniciar_proceso(char* path, int size, int prioridad){
