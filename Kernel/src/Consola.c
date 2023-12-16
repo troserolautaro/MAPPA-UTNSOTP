@@ -88,8 +88,12 @@ void finalizar_proceso(int pid){
 		PCB* proceso= list_get(procesos,pid);
 		pthread_mutex_unlock(&mutexProcesos);
 
+		pthread_mutex_lock(proceso->mutex);
 		if(proceso->estado!=TERMINATED){
+			pthread_mutex_unlock(proceso->mutex);
 			planificador_largo_salida(proceso,"SIGKILL");
+		}else{
+			pthread_mutex_unlock(proceso->mutex);
 		}
 
 	}

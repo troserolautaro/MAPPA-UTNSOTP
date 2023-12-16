@@ -185,7 +185,6 @@ void wait_recurso(PCB* proceso,char* recurso){
 		pthread_mutex_unlock(&mutexRecursos);
 		planificador_largo_salida(proceso,"INVALID_RESOURCE");
 	}
-
 	sem_post(&planiCorto);
 
 }
@@ -198,15 +197,6 @@ void ordenar_adelante(PCB* proceso){
 		list_add_all(listaNueva,colaCorto->elements);
 		list_destroy(colaCorto->elements);
 		colaCorto->elements=listaNueva;
-/*
-		//List_iterate seria una buena solucion.
-		PCB* temp = (PCB*)list_replace(colaCorto->elements,0,proceso);
-		for(int i = 1;list_size(colaCorto->elements)<i;i++){
-			if(temp!=NULL){
-				temp = (PCB*)list_replace(colaCorto->elements,i,temp);
-			}
-		}*/
-
 	}else{
 		queue_push(colaCorto,proceso);
 	}
@@ -287,7 +277,12 @@ int motivo_desalojo(char * desalojo){
 	return motivo;
 }
 
-
+void respuesta(){
+	t_paquete* paquete = crear_paquete();
+	agregar_a_paquete(paquete,"respuesta",sizeof("respuesta"));
+	enviar_paquete(paquete,conexionCPUDispatch);
+	eliminar_paquete(paquete);
+}
 
 void procesar_mensaje(t_list* mensaje){
 	char* msg = string_new();
@@ -322,7 +317,7 @@ void procesar_mensaje(t_list* mensaje){
 		int posInicio = (*(int*)(list_get(mensaje,list_size(mensaje)-2)));
 		uint32_t pid = (*(uint32_t*)list_get(mensaje,posInicio))-1;
 		uint32_t direccionFisica,puntero;
-		char* archivo=string_new();
+		char* archivo;
 		t_list* params;
 
 		pthread_mutex_lock(&mutexEjecutando);
@@ -339,6 +334,7 @@ void procesar_mensaje(t_list* mensaje){
 		switch(motivo){
 		case PROCESOEXIT:
 				planificador_largo_salida(proceso,"SUCCESS");
+				respuesta();
 			break;
 
 		case PRIORIDADES:
@@ -346,10 +342,13 @@ void procesar_mensaje(t_list* mensaje){
 					push_colaCorto(proceso);
 				}
 				sem_post(&contexto);
-			break;
+				break;
 
 		case ROUNDROBIN:
 				if(proceso->estado==EXEC){
+					char* mensaje = string_from_format("Fin de Quantum: PID: %d - Desalojado por fin de Quantum",proceso->pid);
+					escritura_log(mensaje);
+					free(mensaje);
 					push_colaCorto(proceso);
 				}
 				sem_post(&planiCorto);
@@ -359,6 +358,7 @@ void procesar_mensaje(t_list* mensaje){
 				cambiar_estado(proceso,READY);
 				char* recurso = (char*)list_get(mensaje,2);
 				wait_recurso(proceso,recurso);
+				respuesta();
 				//free(recurso);
 			break;
 		}
@@ -369,6 +369,7 @@ void procesar_mensaje(t_list* mensaje){
 				list_add(parametros,list_get(mensaje,2));
 				list_add(parametros, proceso);
 				hilo_funcion(parametros,(void*)sleep_proceso);
+				respuesta();
 			break;
 
 		case SIGNAL:{
@@ -376,6 +377,7 @@ void procesar_mensaje(t_list* mensaje){
 				sem_post(&planiCorto);
 				char* recurso = (char*)list_get(mensaje,2);
 				signal_recurso(proceso,recurso);
+				respuesta();
 				//free(recurso);
 		}
 			break;
@@ -388,11 +390,13 @@ void procesar_mensaje(t_list* mensaje){
 				list_add(parameters, proceso);
 				list_add(parameters,list_get(mensaje,2));
 				hilo_funcion(parameters,(void*)page_fault);
+				respuesta();
 				sem_post(&planiCorto);
 
 			break;
 		case F_OPEN:
 			cambiar_estado(proceso,READY);
+			respuesta();
 			int modoApertura;
 			char* archivo = (char*)list_get(mensaje,2);
 			if(!strcasecmp((char*)list_get(mensaje,3),"W"))modoApertura=ESCRITURA;
@@ -415,6 +419,7 @@ void procesar_mensaje(t_list* mensaje){
 			break;
 		case F_CLOSE:
 			cambiar_estado(proceso,READY);
+			respuesta();
 			escritura_log(string_from_format("PID: %d - Cerrar Archivo: %s", proceso->pid,(char*)list_get(mensaje,2)));
 			f_close(proceso,(char*)list_get(mensaje,2));
 			ordenar_adelante(proceso); //Pone el proceso adelante de la colaCorto
@@ -423,6 +428,7 @@ void procesar_mensaje(t_list* mensaje){
 			break;
 		case F_SEEK:
 			cambiar_estado(proceso,READY);
+			respuesta();
 			puntero=strtol((char*)list_get(mensaje,3),NULL,10);
 			escritura_log(string_from_format("PID: %d -  Actualizar puntero Archivo: %s - Puntero: %d" , proceso->pid,(char*)list_get(mensaje,2),puntero));
 			f_seek(proceso,(char*)list_get(mensaje,2),puntero);
@@ -436,6 +442,7 @@ void procesar_mensaje(t_list* mensaje){
 			list_add(params,archivo);
 			list_add(params,list_get(mensaje,3));
 			hilo_funcion(params,(void*)f_write);
+			respuesta();
 			break;
 		case F_READ:
 			archivo = (char*)list_get(mensaje,2);
@@ -444,6 +451,7 @@ void procesar_mensaje(t_list* mensaje){
 			list_add(params,archivo);
 			list_add(params,list_get(mensaje,3));
 			hilo_funcion(params,(void*)f_read);
+			respuesta();
 			break;
 		case F_TRUNCATE:
 			archivo = (char*)list_get(mensaje,2);
@@ -453,7 +461,8 @@ void procesar_mensaje(t_list* mensaje){
 			list_add(params,proceso);
 			list_add(params,archivo);
 			list_add(params,list_get(mensaje,3));
-			hilo_funcion(params,(void*)f_truncate); //Solucion lista semaforos por proceso
+			hilo_funcion(params,(void*)f_truncate);
+			respuesta();//Solucion lista semaforos por proceso
 			break;
 		case SIGK:
 			cambiar_estado(proceso,READY);

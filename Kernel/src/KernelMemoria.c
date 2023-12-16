@@ -279,7 +279,7 @@ void f_read(t_list* parameters){
 	uint32_t direccionFisica = (uint32_t)strtol((char*)list_get(parameters,2),NULL,10);
 	registro_tag* regTag=get_reg_tag(archivo);
 	registro_tap* regTap=get_reg_tap((proceso->tablaArchivos), archivo);
-	escritura_log(string_from_format("PID: %d - LEer Archivo: %s - Puntero: %d - Dirección Memoria: %d - Tamaño: %d ", proceso->pid,archivo,(regTap->puntero),direccionFisica,(regTag->tamanio)));
+	escritura_log(string_from_format("PID: %d - Leer Archivo: %s - Puntero: %d - Dirección Memoria: %d - Tamaño: %d ", proceso->pid,archivo,(regTap->puntero),direccionFisica,(regTag->tamanio)));
 	pthread_mutex_lock(regTag->mutexRegistro);
 	if((regTag->tamanio)>0){
 		//if(regTap->modoApertura==LECTURA){
@@ -320,17 +320,22 @@ void f_write(t_list* parameters){
 	registro_tag* regTag=get_reg_tag(archivo);
 	registro_tap* regTap=get_reg_tap(proceso->tablaArchivos, archivo);
 	escritura_log(string_from_format("PID: %d - Escribir Archivo: %s - Puntero: %d - Dirección Memoria: %d - Tamaño: %d ", proceso->pid,archivo,(regTap->puntero),direccionFisica,(regTag->tamanio)));
+	bloquear_proceso(proceso,archivo);
 	pthread_mutex_lock(regTag->mutexRegistro);
 	if((regTag->tamanio)>0){
 		if(regTap->modoApertura==ESCRITURA){
-			bloquear_proceso(proceso,archivo);
+			pthread_mutex_unlock(regTag->mutexRegistro);
 			sem_post(&planiCorto);
 			t_paquete * paquete = crear_paquete();
 			agregar_a_paquete(paquete,"f_write",sizeof("f_write"));
 			//agregar_a_paquete(paquete,&(proceso->pid),sizeof(uint32_t));
 			agregar_a_paquete(paquete,archivo,strlen(archivo)+1);
 			agregar_a_paquete(paquete,&direccionFisica,sizeof(uint32_t));
+
+			pthread_mutex_lock(regTag->mutexRegistro);
 			agregar_a_paquete(paquete,&(regTap->puntero),sizeof(uint32_t));
+			pthread_mutex_unlock(regTag->mutexRegistro);
+
 			enviar_paquete(paquete,conexionFileSystem);
 			eliminar_paquete(paquete);
 			free(archivo);
@@ -339,13 +344,14 @@ void f_write(t_list* parameters){
 			sem_post(&planiCorto);
 		}
 		else{
+			pthread_mutex_unlock(regTag->mutexRegistro);
 			planificador_largo_salida(proceso,"INVALID_WRITE");
 		}
-	}
-	else{
+	}else{
+		pthread_mutex_unlock(regTag->mutexRegistro);
 		planificador_largo_salida(proceso,"INVALID_WRITE");
 	}
-	pthread_mutex_unlock(regTag->mutexRegistro);
+
 }
 //PAGE FAULT
 void cargar_pagina(uint32_t pid, uint32_t pagina){

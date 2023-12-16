@@ -58,10 +58,10 @@ void liberar_recursos(PCB* proceso){
 
 		if(!queue_is_empty(colaEspera)){
 			PCB* temp = (PCB*) queue_pop(colaEspera);
-			pthread_mutex_lock(proceso->mutex);
 			push_colaCorto(temp);
+			pthread_mutex_lock(temp->mutex);
 			list_add(temp->recursos,recurso);
-			pthread_mutex_unlock(proceso->mutex);
+			pthread_mutex_unlock(temp->mutex);
 			sem_post(&planiCorto);
 		}else{
 			*instancias +=1;
@@ -75,9 +75,10 @@ void deteccion_deadlock(PCB* proceso){
 	escritura_log("Analisis de deteccion de Deadlocks");
 	char* mensajeDeadlock = string_new();
 	void iterar_recursos(char* temp) {string_append_with_format(&mensajeDeadlock,"%s ",temp);}
-
 	if(!list_is_empty(proceso->recursos)){
+		debug("Entro");
 		bool verificacion_DL(char* recurso){
+			debug("Verifico");
 			t_list* elements = (t_list*)dictionary_get(diccionarioRecursos,recurso);
 			t_queue* colaEspera = (t_queue*)list_get(elements,1);
 			bool bandera = false;
@@ -128,6 +129,7 @@ void deteccion_deadlock(PCB* proceso){
 	}
 	free(mensajeDeadlock);
 	pthread_mutex_unlock(proceso->mutex);
+	debug("Termino");
 }
 
 
@@ -161,13 +163,17 @@ void liberar_paginas(PCB* proceso){
 
 void planificador_largo_salida(PCB* proceso,char* razon){
 	bool bloqueado = false;
+	bool estadoAntiguo = proceso->estado;
 	if(proceso->estado == BLOCKED) bloqueado = true;
 	if(proceso->estado == EXEC && !(!strcasecmp(razon,"SUCCESS"))) {
 		t_paquete* paquete = crear_paquete();
 		agregar_a_paquete(paquete,"interrupcion",sizeof("interrupcion"));
 		agregar_a_paquete(paquete,"desalojo",sizeof("desalojo"));
 		agregar_a_paquete(paquete,"TERMINATED",sizeof("TERMINATED"));
+		pthread_mutex_lock(proceso->mutex);
 		agregar_a_paquete(paquete,&(proceso->pid),sizeof(uint32_t));
+		pthread_mutex_unlock(proceso->mutex);
+
 		enviar_paquete(paquete,conexionCPUInterrupt);
 		eliminar_paquete(paquete);
 		sem_wait(&procesoTerminado);
@@ -187,21 +193,28 @@ void planificador_largo_salida(PCB* proceso,char* razon){
 	liberar_paginas(proceso);
 
 
-	cambiar_estado(proceso,TERMINATED);
-
-
-	// <SUCCESS / INVALID_RESOURCE / INVALID_WRITE>”
 	char *mensaje = string_from_format("Finaliza el proceso %d - Motivo %s",proceso->pid,razon);
 	escritura_log(mensaje);
 	free(mensaje);
 
-	pthread_mutex_lock(&mutexMulti);
-	multiprogramacion--;
-	pthread_mutex_unlock(&mutexMulti);
+
+	cambiar_estado(proceso,TERMINATED);
+
+
+	// <SUCCESS / INVALID_RESOURCE / INVALID_WRITE>”
+
+
 	if(bloqueado){
 		deteccion_deadlock(proceso);
 	}
-	sem_post(&planiLargo);
+
+	if(estadoAntiguo!=NEW){
+		pthread_mutex_lock(&mutexMulti);
+		multiprogramacion--;
+		pthread_mutex_unlock(&mutexMulti);
+
+		sem_post(&planiLargo);
+	}
 
 }
 void proceso_terminado(){

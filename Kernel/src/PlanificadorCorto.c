@@ -121,6 +121,7 @@ void prioridad(){
 			pthread_mutex_unlock(ejecutando->mutex);
 			if(pidEjec != pidPrio && prioridadEjec > prioridadPrio){
 				enviar_interrupcion_cpu("prioridades",&(pidEjec));
+				debug("esperando");
 				sem_wait(&contexto);
 			}
 

@@ -14,7 +14,7 @@ t_config* config;
 t_instruccion * instruccion;
 PCB* proceso;
 pthread_mutex_t mutexProceso, mutexLog,mutexInstruccion, mutexBloquear, mutexInterrupcion,mutexMotivo;
-sem_t tamPagina_s;
+sem_t tamPagina_s, respuesta;
 sem_t memoria_s;
 uint32_t pcInicial = 0;
 /*struct{
@@ -53,7 +53,7 @@ int main() {
 	sem_init(&instruccion_s,0,0);
 	sem_init(&tamPagina_s,0,0);
 	sem_init(&memoria_s,0,0);
-
+	sem_init(&respuesta,0,0);
 	pthread_mutex_init(&mutexProceso,NULL);
 	pthread_mutex_init(&mutexLog,NULL);
 	pthread_mutex_init(&mutexInstruccion,NULL);
@@ -427,7 +427,7 @@ void decode_and_execute(){
 		registroDestino = obtener_registro((char*)list_get(parametros,0));
 		registroOrigen =  obtener_registro((char*)list_get(parametros,1));
 		sub(registroDestino,registroOrigen);
-		debug(string_itoa(*registroDestino));
+	//	debug(string_itoa(*registroDestino));
 	}
 	if(!strcasecmp(comando,"JNZ")){
 		registroOrigen = obtener_registro((char*)list_get(parametros,0));
@@ -488,17 +488,16 @@ void check_interrupt(){
 	if(!interrupcion && !bloquear){sem_post(&ciclo);}
 	pthread_mutex_unlock(&mutexBloquear);
 	pthread_mutex_unlock(&mutexInterrupcion);
-	bool temp = bloquear;
 	pthread_mutex_lock(&mutexBloquear);
 	if(bloquear){
 
 			bloquear=false;
-
+			sem_wait(&respuesta);
 	}
 	pthread_mutex_unlock(&mutexBloquear);
 
 	pthread_mutex_lock(&mutexInterrupcion);
-	if(interrupcion && !temp){
+	if(interrupcion){
 		t_list * mensaje = list_create();
 		pthread_mutex_lock(&mutexMotivo);
 		list_add(mensaje,motivo);
@@ -605,6 +604,9 @@ void procesar_mensaje(t_list* mensaje){
 			pthread_mutex_unlock(&mutexInterrupcion);
 
 		}
+	}
+	if(!strcasecmp(msg,"respuesta")){
+		sem_post(&respuesta);
 	}
 	free(msg);
 }

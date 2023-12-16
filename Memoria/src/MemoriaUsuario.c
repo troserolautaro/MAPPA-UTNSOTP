@@ -5,7 +5,7 @@ t_list* tablaMarcos;//indice=marco,mutexTablaMarcos
 
 t_dictionary* tablaProcesos;//clave pid,mutexTablasPagina
 
-typedef pagina_t* (*AlgoritmoRemplazoFuncion)();
+typedef pagina_t* (*AlgoritmoRemplazoFuncion)(char** mensaje);
 AlgoritmoRemplazoFuncion algoritmoRemplazo;
 
 void* espacioContiguoMemoria; //mutexRAM
@@ -15,7 +15,7 @@ int tamPagina,tamMemoria,cantMarcos,retardoRespuesta;
 int conexionFS;
 int marcoFIFO;
 pthread_mutex_t mutexMemoria,mutexTablasPagina, mutexTablaMarcos, mutexInversa;
-sem_t sem_bloquesSwap, sem_paginaSwap, sem_escribirSwap,sem_escribirBloque;
+sem_t sem_bloquesSwap, sem_paginaSwap, sem_escribirSwap,sem_escribirBloque,sem_swapLiberado;
 
 //INICIAR  MEMORIA DE USUARIO
 pthread_mutex_t* crear_mutex(){
@@ -91,7 +91,9 @@ void crear_proceso(uint32_t pid,char* nombre, uint32_t tamanio){
 	pthread_mutex_lock(&mutexTablasPagina);
 	dictionary_put(tablaProcesos,string_itoa(pid),tablaPaginacion);
 	pthread_mutex_unlock(&mutexTablasPagina);
-	escritura_log(string_from_format("Creacion Tabla Paginas PID: %d - Tamaño: %d",pid,tamanio));
+	char* mensaje= string_from_format("Creacion Tabla Paginas PID: %d - Tamaño: %d",pid,cantPaginasProceso);
+	escritura_log(mensaje);
+	free(mensaje);
 	//reservar swap con fs
 	t_paquete* paquete=crear_paquete();
 	agregar_a_paquete(paquete,"reservarSWAP",sizeof("reservarSWAP"));
@@ -122,12 +124,19 @@ void destruir_pagina(pagina_t* pagina){
 
 	}
 	//pthread_mutex_destroy(pagina->mutexPagina);
-	debug(string_from_format("tamaño del mutex %d", (int)sizeof(pthread_mutex_t)));
 	free(pagina->mutexPagina);
 	free(pagina);
 }
 
 void destruir_tabla_paginas(t_list* tablaPaginacion){
+	t_paquete* paquete = crear_paquete();
+	agregar_a_paquete(paquete,"liberar_swap",sizeof("liberar_swap"));
+	void agregar_swap(pagina_t* pagina){
+		agregar_a_paquete(paquete,&(pagina->posSWAP),sizeof(uint32_t));
+	}
+	list_iterate(tablaPaginacion,(void*)agregar_swap);
+	enviar_paquete(paquete,conexionFS);
+	eliminar_paquete(paquete);
 	list_destroy_and_destroy_elements(tablaPaginacion,(void*)destruir_pagina);
 }
 void finalizar_proceso(uint32_t pid){
@@ -139,8 +148,11 @@ void finalizar_proceso(uint32_t pid){
 		t_list* lista = dictionary_remove(tablaProcesos,string_itoa(pid));
 		pthread_mutex_unlock(&mutexTablasPagina);
 		//talvez mutex
+		char* mensaje= string_from_format("Destruccion Tabla Paginas PID: %d - Tamaño: %d",pid,list_size(lista));
+		escritura_log(mensaje);
+		free(mensaje);
 		destruir_tabla_paginas(lista);
-
+		sem_wait(&sem_swapLiberado);
 	}else{
 		pthread_mutex_unlock(&mutexTablasPagina);
 	}
@@ -236,7 +248,8 @@ void page_fault(uint32_t pid,uint32_t numPagina){
 	bool victima = false;
 	char * mensaje = string_new();
 	if((marcos_libres())==0){
-		pagina_t* paginaVictima=algoritmoRemplazo();
+		char* mensaje2 = string_new();
+		pagina_t* paginaVictima=algoritmoRemplazo(&mensaje2);
 
 		pthread_mutex_lock(&mutexTablaMarcos);
 		marcoLibre = list_get(tablaMarcos,paginaVictima->marco);
@@ -253,6 +266,8 @@ void page_fault(uint32_t pid,uint32_t numPagina){
 			enviar_paquete(paquete,conexionFS);
 			eliminar_paquete(paquete);
 			sem_wait(&sem_escribirSwap);
+			escritura_log(mensaje2);
+			free(mensaje2);
 		}
 		paginaVictima->p = 0;
 		paginaVictima->m = 0;
@@ -293,7 +308,9 @@ void page_fault(uint32_t pid,uint32_t numPagina){
 	pthread_mutex_unlock(paginaGlobal->mutexGlobal);
 
 	obtener_pagina_swap(pid,posSWAP,numPagina);
-	escritura_log(string_from_format("SWAP IN -  PID: %d - Marco: %d - Page In: %d-%d",pid,pagina->marco,pid,numPagina));
+	char* mensaje2 = string_from_format("SWAP IN -  PID: %d - Marco: %d - Page In: %d-%d",pid,pagina->marco,pid,numPagina);
+	escritura_log(mensaje2);
+	free(mensaje2);
 
 }
 
@@ -315,7 +332,7 @@ void asignar_swap(t_list* args){
 
 //SELECCION DE VICTIMA
 //FIFO
-pagina_t* FIFO(){
+pagina_t* FIFO(char** mensaje){
 	pthread_mutex_lock(&mutexInversa);
 	pagina_global_t* paginaVictima=(pagina_global_t*)list_get(tablapaginasGlobales,marcoFIFO);
 	pthread_mutex_unlock(&mutexInversa);
@@ -327,6 +344,7 @@ pagina_t* FIFO(){
 	pthread_mutex_lock(paginaVictima->mutexGlobal);
 	pagina_t* paginaVict=pagina_get((paginaVictima->pid),(paginaVictima->pagina));
 	pthread_mutex_unlock(paginaVictima->mutexGlobal);
+	string_append_with_format(mensaje,"SWAP OUT -  PID: %d - Marco: %d - Page Out: %d-%d",paginaVictima->pid,paginaVict->marco,paginaVictima->pid,paginaVictima->pagina);
 	return paginaVict;
 }
 //LRU
@@ -343,7 +361,7 @@ void frenar_tiempo(pagina_global_t* paginaGlobal){
 void reanudar_tiempo(pagina_global_t* paginaGlobal){
 	temporal_resume(paginaGlobal->tiempo);
 }
-pagina_t* LRU(){
+pagina_t* LRU(char** mensaje){
 	pthread_mutex_lock(&mutexInversa);
 	list_iterate(tablapaginasGlobales,(void*)frenar_tiempo);
 	pagina_global_t* paginaVictima=(pagina_global_t*)list_get_minimum(tablapaginasGlobales,pagina_mas_reciente);
@@ -352,6 +370,7 @@ pagina_t* LRU(){
 	pthread_mutex_lock(paginaVictima->mutexGlobal);
 	pagina_t* paginaVict = pagina_get((paginaVictima->pid),(paginaVictima->pagina));
 	pthread_mutex_unlock(paginaVictima->mutexGlobal);
+	string_append_with_format(mensaje,"SWAP OUT -  PID: %d - Marco: %d - Page In: %d-%d",paginaVictima->pid,paginaVict->marco,paginaVictima->pid,paginaVictima->pagina);
 	return paginaVict;
 }
 void iniciar_memoria_usuario(){
@@ -360,6 +379,7 @@ void iniciar_memoria_usuario(){
 	pthread_mutex_init(&mutexTablaMarcos,NULL);
 	pthread_mutex_init(&mutexInversa,NULL);
 	pthread_mutex_init(&mutexMemoria,NULL);
+	sem_init(&sem_swapLiberado,0,0);
 	if(!strcasecmp(algoritmoReemplazo,"fifo")){
 		algoritmoRemplazo = FIFO;
 	}else{

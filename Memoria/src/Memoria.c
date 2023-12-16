@@ -238,7 +238,11 @@ void procesar_mensaje(t_list* mensaje){
 		cargar_pagina_swap(pid,numPagina,datos);
 	}
 	if(!strcasecmp(msg,"escribirSwap")){
+
 		sem_post(&sem_escribirSwap);
+	}
+	if(!strcasecmp(msg,"liberar_swap")){
+		sem_post(&sem_swapLiberado);
 	}
 
 }
