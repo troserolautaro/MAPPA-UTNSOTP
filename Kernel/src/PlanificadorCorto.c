@@ -84,7 +84,7 @@ void* planificador_corto(){
 bool buscar_proceso_ejecutando(PCB* proceso){
 	pthread_mutex_lock(proceso->mutex);
 	uint32_t estado = proceso->estado;
-	debug(string_itoa(estado));
+
 	pthread_mutex_unlock(proceso->mutex);
 	return (estado == EXEC) ? true : false;
 }
@@ -121,7 +121,6 @@ void prioridad(){
 			pthread_mutex_unlock(ejecutando->mutex);
 			if(pidEjec != pidPrio && prioridadEjec > prioridadPrio){
 				enviar_interrupcion_cpu("prioridades",&(pidEjec));
-				debug("esperando");
 				sem_wait(&contexto);
 			}
 

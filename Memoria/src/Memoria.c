@@ -123,17 +123,39 @@ void procesar_mensaje(t_list* mensaje){
 
 		uint32_t size=*(uint32_t*)list_get(mensaje,3);
 		t_list* instrucciones=list_create();
-		instrucciones=cargar_instrucciones(&path);
-		//list_add(instrucciones,"1");
-		pthread_mutex_lock(&mutexArchivos);
-		dictionary_put(archivosCargados,string_itoa(pid),instrucciones);
-		pthread_mutex_unlock(&mutexArchivos);
-		//crea las estructuras para la memoria de usuario del proceso
-		crear_proceso(pid,path,size);
-		//Acordarse liberar diccionario
+		char* temp = string_new();
+		string_append(&temp, pathInstrucciones);
+		string_append(&temp, "/");
+		string_append(&temp,path);
+		FILE* prueba = fopen(temp,"r");
+		bool yes = false;
+		if(prueba!=NULL){
+			yes = true;
+			fclose(prueba);
+		}
+		free(temp);
+		if(yes){
+			instrucciones=cargar_instrucciones(&path);
+			//list_add(instrucciones,"1");
+			pthread_mutex_lock(&mutexArchivos);
+			dictionary_put(archivosCargados,string_itoa(pid),instrucciones);
+			pthread_mutex_unlock(&mutexArchivos);
+			//crea las estructuras para la memoria de usuario del proceso
+			crear_proceso(pid,path,size);
+			//Acordarse liberar diccionario
+		}
+
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"cargado",sizeof("cargado"));
 		agregar_a_paquete(paquete,&pid,sizeof(uint32_t));
+		if(yes){
+			agregar_a_paquete(paquete,"yes",sizeof("yes"));
+
+		}else{
+			agregar_a_paquete(paquete,"not",sizeof("not"));
+
+		}
+
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
 		//free(instrucciones); puede que esto sea mejor porque el dictionary put te dice que el elemento no se libera

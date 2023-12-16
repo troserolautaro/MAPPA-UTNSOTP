@@ -159,42 +159,21 @@ bool crear_archivo(char* nombreArchivo){
 	return true;
 }
 
-//si devuelve null no hay anteultimo elemento
-uint32_t* get_anteultimo_bloque_archivo(uint32_t bloqueInicial){
-	FILE *archivoFAT = fopen(pathFAT, "rb");
-	uint32_t anteUltimoBloque=bloqueInicial;
-	uint32_t ultimoBloque;
-	pthread_mutex_lock(&mutexFAT);
-	fseek(archivoFAT,anteUltimoBloque*sizeof(uint32_t),SEEK_SET);
-	fread(&ultimoBloque,sizeof(uint32_t),1,archivoFAT);
-	pthread_mutex_unlock(&mutexFAT);
-	bool esAnteultimoBLoque=(ultimoBloque == UINT32_MAX );
-	if(esAnteultimoBLoque)return NULL;
-    while (!esAnteultimoBLoque ) {
-    	anteUltimoBloque=ultimoBloque;
-    	pthread_mutex_lock(&mutexFAT);
-    	fseek(archivoFAT,anteUltimoBloque*sizeof(uint32_t),SEEK_SET);
-		fread(&ultimoBloque,sizeof(uint32_t),1,archivoFAT);
-		pthread_mutex_unlock(&mutexFAT);
-		bool esAnteultimoBLoque=(ultimoBloque == UINT32_MAX );
-    }
-	return anteUltimoBloque;
-}
 
 uint32_t get_ultimo_bloque_archivo(uint32_t bloqueInicial){
 	FILE *archivoFAT = fopen(pathFAT, "rb");
-	uint32_t ultimoBloque;
+	uint32_t ultimoBloque, bloqueReal;
 	pthread_mutex_lock(&mutexFAT);
 	fseek(archivoFAT,bloqueInicial*sizeof(uint32_t),SEEK_SET);
 	fread(&ultimoBloque,sizeof(uint32_t),1,archivoFAT);
     while (ultimoBloque != UINT32_MAX) {
-    	pthread_mutex_lock(&mutexFAT);
+    	bloqueReal = ultimoBloque;
     	fseek(archivoFAT,ultimoBloque*sizeof(uint32_t),SEEK_SET);
     	fread(&ultimoBloque,sizeof(uint32_t),1,archivoFAT);
-    	pthread_mutex_unlock(&mutexFAT);
+
     }
     pthread_mutex_unlock(&mutexFAT);
-	return ultimoBloque;
+	return bloqueReal;
 }
 
 void asignar_bloques_FAT(t_config* archivo, uint32_t cantidad){
@@ -206,7 +185,7 @@ void asignar_bloques_FAT(t_config* archivo, uint32_t cantidad){
 	}
 	FILE *archivoFAT = fopen(pathFAT, "rb+");
 	usleep(retardoAccesoFAT*1000);
-	for(uint32_t i=1; i<cantBloquesFAT && cantidad>0;i++){
+	for(uint32_t i=1; i<cantBloquesFAT && cantidad/tamBloque>0;i++){
 		pthread_mutex_lock(&mutexFAT);
 		fseek(archivoFAT,(i*sizeof(uint32_t)),SEEK_SET);
     	fread(&bloqueActual,sizeof(uint32_t),1,archivoFAT);
@@ -229,7 +208,7 @@ void asignar_bloques_FAT(t_config* archivo, uint32_t cantidad){
 
 			}
 			ultimoBloque = i;
-			cantidad--;
+			cantidad-=tamBloque;
 		}
 
 
@@ -243,58 +222,70 @@ void asignar_bloques_FAT(t_config* archivo, uint32_t cantidad){
 //y asignar la constante al ultimo bloque cuando apunta al bloque siguiete
 void liberar_bloques_FAT(t_config* archivo, uint32_t cantidad){
 	bool tieneBloqueInicial=config_has_property(archivo,"BLOQUE_INICIAL");
-	bool tieneAnteUltimoBloque=false;
-	bool error=false;
-	uint32_t numBloqueInicial,ultimoBloque, anteultimoBloque,finArch,libre;
-	finArch=UINT32_MAX;
-	libre=0;
 	FILE *archivoFAT = fopen(pathFAT, "rb+");
 	usleep(retardoAccesoFAT*1000);
-
 	if(tieneBloqueInicial){
-		numBloqueInicial=(uint32_t)config_get_int_value(archivo,"BLOQUE_INICIAL");
-		ultimoBloque =get_ultimo_bloque_archivo(numBloqueInicial);
-		anteultimoBloque =get_anteultimo_bloque_archivo(numBloqueInicial);
-	}
-	while(cantidad>0 || !error){
-		if(!tieneBloqueInicial ){
-			error=true;//si no tengo bloque inicial errror
+		uint32_t numBloqueInicial=(uint32_t)config_get_int_value(archivo,"BLOQUE_INICIAL");
+		uint32_t tamanio = (uint32_t) config_get_int_value(archivo,"TAMANIO_ARCHIVO");
+		uint32_t cantBorrar = cantidad/tamBloque;
+		uint32_t finArch = valor_EOF;
+		uint32_t libre = 0;
+		fseek(archivoFAT,(numBloqueInicial*sizeof(uint32_t)),SEEK_SET);
+
+		t_list* listaFAT = list_create();
+		uint32_t* temp = malloc(sizeof(uint32_t));
+		*temp = numBloqueInicial;
+		list_add(listaFAT,temp);
+		for(int i = 0; i < tamanio/tamBloque-1; i++){
+			uint32_t* bloque = malloc(sizeof(uint32_t));
+			fread(bloque,sizeof(uint32_t),1,archivoFAT);
+			list_add(listaFAT,bloque);
+			fseek(archivoFAT,*bloque*sizeof(uint32_t),SEEK_SET);
 		}
-		else{
-			anteultimoBloque =get_anteultimo_bloque_archivo(numBloqueInicial);
-			ultimoBloque =get_ultimo_bloque_archivo(numBloqueInicial);
-			pthread_mutex_lock(&mutexFAT);
-			fseek(archivoFAT,ultimoBloque*sizeof(uint32_t),SEEK_SET);
+		int i = 0;
+		while(cantBorrar>0){
+			uint32_t bloque = *(uint32_t*)list_get(listaFAT,list_size(listaFAT)-1-i);
+			fseek(archivoFAT,bloque*sizeof(uint32_t),SEEK_SET);
 			fwrite(&libre,sizeof(uint32_t),1,archivoFAT);
-			fseek(archivoFAT,anteultimoBloque*sizeof(uint32_t),SEEK_SET);
-			fwrite(&finArch,sizeof(uint32_t),1,archivoFAT);
-			pthread_mutex_unlock(&mutexFAT);
+			cantBorrar --;
+			i++;
 		}
-		cantidad--;
+		if(!list_is_empty(listaFAT)){
+			uint32_t ultimo = *(uint32_t*)list_get(listaFAT,list_size(listaFAT)-1-i);
+			fseek(archivoFAT,ultimo*sizeof(uint32_t),SEEK_SET);
+			fwrite(&finArch,sizeof(uint32_t),1,archivoFAT);
+			list_clean_and_destroy_elements(listaFAT,free);
+		}
+		list_destroy(listaFAT);
+
 	}
+	fclose(archivoFAT);
+
 }
 
-void truncar_archivo(char*path, uint32_t tamanio){ //situacionDeseada : ampliar o reducir tamanio
+void truncar_archivo(char*path, uint32_t tamanio){
 	t_config* archivo =config_create(path);
 	uint32_t tamanioActual =(uint32_t) config_get_int_value(archivo,"TAMANIO_ARCHIVO");
-	if(tamanio*tamBloque > tamanioActual){
+	if(tamanio > tamanioActual){
 		uint32_t cantidad=tamanio-tamanioActual;
 		asignar_bloques_FAT(archivo,cantidad);
 	}
-	else if(tamanio*tamBloque  < tamanioActual){
+	else if(tamanio < tamanioActual){
 		uint32_t cantidad=tamanioActual-tamanio;
 		liberar_bloques_FAT(archivo,cantidad);
 	}
-	config_set_value(archivo,"TAMANIO_ARCHIVO",string_itoa(tamanio*tamBloque));
+	config_set_value(archivo,"TAMANIO_ARCHIVO",string_itoa(tamanio));
 	config_save(archivo);
 	config_destroy(archivo);
 }
 uint32_t obtener_bloque(t_config *config, uint32_t puntero){
 	uint32_t bloque =(uint32_t) config_get_int_value(config,"BLOQUE_INICIAL");
 	uint32_t bloqueReal = bloque;
+	char* mensaje = string_from_format("Acceso FAT: - Entrada: ");
 	FILE *archivoFAT = fopen(pathFAT, "rb+");
 	usleep(retardoAccesoFAT*1000);
 	while((puntero/tamBloque)>0){
+		if(puntero/tamBloque == 1) string_append_with_format(&mensaje,"%d ",bloque);
 		pthread_mutex_lock(&mutexFAT);
 		fseek(archivoFAT,bloque*sizeof(uint32_t),SEEK_SET);
 		fread(&bloque,sizeof(uint32_t),1,archivoFAT);
@@ -303,6 +294,9 @@ uint32_t obtener_bloque(t_config *config, uint32_t puntero){
 		puntero -= tamBloque;
 	}
 	fclose(archivoFAT);
+	string_append_with_format(&mensaje,"Valor: %d",bloqueReal);
+	escritura_log(mensaje);
+	free(mensaje);
 	return bloqueReal;
 }
 void leer_archivo(char*path,uint32_t direccionFisica, uint32_t puntero,int conexion){
@@ -311,12 +305,14 @@ void leer_archivo(char*path,uint32_t direccionFisica, uint32_t puntero,int conex
 	t_config *configArchivo=config_create(path);
 	t_paquete * paquete = crear_paquete();
 	void* valorBloque=malloc(tamBloque);
-	uint32_t punteroFisico;
 	int tamanio=config_get_int_value(configArchivo,"TAMANIO_ARCHIVO");
 	if(tamanio/tamBloque>=puntero/tamBloque){
 		bloque=obtener_bloque(configArchivo,puntero);
 		//debug(string_from_format("bloque %d",bloque));
 		uint32_t punteroFisico=(cantBloquesSWAP+bloque)*tamBloque;
+		char* mensaje = string_from_format("Acceso Bloque - Archivo: %s - Bloque Archivo: %d- Bloque FS: %d",path,puntero/tamBloque,punteroFisico/tamBloque);
+		escritura_log(mensaje);
+		free(mensaje);
 		FILE *archivoBloques = fopen(pathBloques, "rb");
 		pthread_mutex_lock(&mutexBloques);
 		fseek(archivoBloques,punteroFisico,SEEK_SET);
@@ -352,6 +348,9 @@ void escribir_archivo(char*path, uint32_t puntero,int conexion){
 	t_config *configArchivo=config_create(path);
 	uint32_t bloque=obtener_bloque(configArchivo,puntero);
 	uint32_t punteroFisico=cantBloquesSWAP+bloque;
+	char* mensaje = string_from_format("Acceso Bloque - Archivo: %s - Bloque Archivo: %d- Bloque FS: %d",path,puntero/tamBloque,punteroFisico);
+	escritura_log(mensaje);
+	free(mensaje);
 	pthread_mutex_lock(&mutexBloques); //HIlo 1 <= no podes lo tiene el hilo 1
 	FILE *archivoBloques = fopen(pathBloques, "rb+");
 	fseek(archivoBloques,punteroFisico*tamBloque,SEEK_SET);
@@ -416,10 +415,10 @@ void* obtener_pagina_swap(uint32_t posSWAP){
 	escritura_log(string_from_format("Acceso SWAP: %d", (posSWAP/tamBloque)));
 	void * datos = malloc(tamBloque);
 
-	pthread_mutex_lock(&mutexTablaSwap);
+	pthread_mutex_lock(&mutexBloques);
 	fseek(archivoBloques, posSWAP,SEEK_SET);
 	fread(datos,tamBloque,1,archivoBloques);
-	pthread_mutex_unlock(&mutexTablaSwap);
+	pthread_mutex_unlock(&mutexBloques);
 
 	fclose(archivoBloques);
 	return datos;
@@ -428,12 +427,20 @@ void escribir_pagina_swap(uint32_t posSWAP, void* datos){
 	FILE* archivoBloques = fopen(pathBloques,"rb+");
 	escritura_log(string_from_format("Acceso SWAP: %d", (posSWAP/tamBloque)));
 
-	pthread_mutex_lock(&mutexTablaSwap);
+	pthread_mutex_lock(&mutexBloques);
 	fseek(archivoBloques,posSWAP,SEEK_SET);
 	fwrite(datos,tamBloque,1,archivoBloques);
-	pthread_mutex_unlock(&mutexTablaSwap);
+	pthread_mutex_unlock(&mutexBloques);
 
 	fclose(archivoBloques);
+}
+void liberar_swap(t_list* mensaje){
+	pthread_mutex_lock(&mutexTablaSwap);
+	for(int i = 1; i<list_size(mensaje)-1;i++){
+		uint32_t posSwap = *(uint32_t*)list_get(mensaje,i);
+		tablaSWAP[posSwap/tamBloque] = false;
+	}
+	pthread_mutex_unlock(&mutexTablaSwap);
 }
 void procesar_mensaje(t_list* mensaje){
 	char* msg = string_new();
@@ -466,7 +473,7 @@ void procesar_mensaje(t_list* mensaje){
 		char* path=devolver_path(archivo);
 		uint32_t tamanio = *(uint32_t*)list_get(mensaje,2);
 		escritura_log(string_from_format("Truncar Archivo: %s - Tamaño %d",archivo,tamanio));
-		truncar_archivo(path,tamanio/tamBloque);
+		truncar_archivo(path,tamanio);
 		t_paquete * paquete = crear_paquete();
 		agregar_a_paquete(paquete,"f_truncate",sizeof("f_truncate"));
 		agregar_a_paquete(paquete,(char*)list_get(mensaje,1),strlen((char*)list_get(mensaje,1))+1);
@@ -528,6 +535,13 @@ void procesar_mensaje(t_list* mensaje){
 		escribir_pagina_swap(*(uint32_t*)list_get(mensaje,1), list_get(mensaje,2));
 		t_paquete* paquete = crear_paquete();
 		agregar_a_paquete(paquete,"escribirSwap",sizeof("escribirSwap"));
+		enviar_paquete(paquete,conexion);
+		eliminar_paquete(paquete);
+	}
+	if(!strcasecmp(msg,"liberar_swap")){
+		liberar_swap(mensaje);
+		t_paquete* paquete = crear_paquete();
+		agregar_a_paquete(paquete,"liberar_swap",sizeof("liberar_swap"));
 		enviar_paquete(paquete,conexion);
 		eliminar_paquete(paquete);
 	}

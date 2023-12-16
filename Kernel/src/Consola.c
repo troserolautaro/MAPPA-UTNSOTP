@@ -1,5 +1,6 @@
 #include"Consola.h"
 sem_t sem_readline,procesoCargado;
+pthread_mutex_t mutexGlobal;
 char* lectura_consola(){
 	//Semaforo de espera mensaje
 	char* linea;

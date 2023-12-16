@@ -18,6 +18,7 @@ typedef enum{
 }consola;
 
 extern sem_t procesoCargado;
+extern pthread_mutex_t mutexGlobal;
 char* lectura_consola();
 void * manejar_consola( void* args);
 int validacion_contenido_consola(char* comando);

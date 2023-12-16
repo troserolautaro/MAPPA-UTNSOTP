@@ -76,9 +76,9 @@ void deteccion_deadlock(PCB* proceso){
 	char* mensajeDeadlock = string_new();
 	void iterar_recursos(char* temp) {string_append_with_format(&mensajeDeadlock,"%s ",temp);}
 	if(!list_is_empty(proceso->recursos)){
-		debug("Entro");
+
 		bool verificacion_DL(char* recurso){
-			debug("Verifico");
+
 			t_list* elements = (t_list*)dictionary_get(diccionarioRecursos,recurso);
 			t_queue* colaEspera = (t_queue*)list_get(elements,1);
 			bool bandera = false;
@@ -129,7 +129,7 @@ void deteccion_deadlock(PCB* proceso){
 	}
 	free(mensajeDeadlock);
 	pthread_mutex_unlock(proceso->mutex);
-	debug("Termino");
+
 }
 
 

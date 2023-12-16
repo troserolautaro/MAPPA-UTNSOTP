@@ -35,7 +35,9 @@ registros_CPU* registros_create(){
 }
 void proceso_destroy(PCB* proceso){
 	//dictionary_destroy_and_destroy_elements(proceso->tablaArchivos,destruir_registro_tap);
-	list_destroy_and_destroy_elements(proceso->recursos,free);
+	pthread_mutex_destroy(proceso->mutex);
+	dictionary_destroy(proceso->tablaArchivos);
+	list_destroy(proceso->recursos);
 	free(proceso->registros);
 	free(proceso);
 }

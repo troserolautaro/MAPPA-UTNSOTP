@@ -32,6 +32,7 @@ int main(void)
 	pthread_mutex_init(&mutexLog,NULL);
 	pthread_mutex_init(&mutexGrado,NULL);
 	pthread_mutex_init(&mutexRecursos,NULL);
+	pthread_mutex_init(&mutexGlobal,NULL);
 	iniciar_KernelMemoria();
 	/************************************RECUPERA DATOS DE ARCHIVO DE CONFIGURACION************************************/
 	//TALVEZ SE PUEDE GLOBALIZAR Y PASAR A UNA FUNCION PARA QUE QUEDE MEJOR PARA LA LECTURA
@@ -298,17 +299,31 @@ void procesar_mensaje(t_list* mensaje){
 		PCB * proceso = list_get(procesos,(pid-1));
 		pthread_mutex_unlock(&mutexProcesos);
 
-		pthread_mutex_lock(&mutexColaLargo);
-		queue_push(colaLargo,proceso);
-		pthread_mutex_unlock(&mutexColaLargo);
 
-		escritura_log(string_from_format("Se crea el proceso %d en NEW",proceso->pid));
-		sem_post(&procesoCargado);
-		pthread_mutex_lock(&mutexDetenida);
-		if(!detenida){
-				sem_post(&planiLargo);
+		if(!strcasecmp((char*)list_get(mensaje,2),"yes")){
+			pthread_mutex_lock(&mutexColaLargo);
+			queue_push(colaLargo,proceso);
+			pthread_mutex_unlock(&mutexColaLargo);
+
+			escritura_log(string_from_format("Se crea el proceso %d en NEW",proceso->pid));
+
+			pthread_mutex_lock(&mutexDetenida);
+			if(!detenida){
+					sem_post(&planiLargo);
+			}
+			pthread_mutex_unlock(&mutexDetenida);
+		}else{
+			pthread_mutex_lock(&mutexProcesos);
+			PCB* proceso = list_remove(procesos,pid-1);
+			pthread_mutex_unlock(&mutexProcesos);
+			proceso_destroy(proceso);
+			pthread_mutex_lock(&mutexGlobal);
+			PIDGLOBAL --;
+			pthread_mutex_unlock(&mutexGlobal);
+
 		}
-		pthread_mutex_unlock(&mutexDetenida);
+		sem_post(&procesoCargado);
+
 	}
 
 
