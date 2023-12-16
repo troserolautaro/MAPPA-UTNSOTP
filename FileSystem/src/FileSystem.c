@@ -284,6 +284,7 @@ uint32_t obtener_bloque(t_config *config, uint32_t puntero){
 	char* mensaje = string_from_format("Acceso FAT: - Entrada: ");
 	FILE *archivoFAT = fopen(pathFAT, "rb+");
 	usleep(retardoAccesoFAT*1000);
+	if(puntero == 0) string_append_with_format(&mensaje,"%d",bloque);
 	while((puntero/tamBloque)>0){
 		if(puntero/tamBloque == 1) string_append_with_format(&mensaje,"%d ",bloque);
 		pthread_mutex_lock(&mutexFAT);
@@ -293,6 +294,7 @@ uint32_t obtener_bloque(t_config *config, uint32_t puntero){
 		bloqueReal = bloque;
 		puntero -= tamBloque;
 	}
+
 	fclose(archivoFAT);
 	string_append_with_format(&mensaje,"Valor: %d",bloqueReal);
 	escritura_log(mensaje);

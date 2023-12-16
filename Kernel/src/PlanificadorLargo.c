@@ -165,7 +165,7 @@ void planificador_largo_salida(PCB* proceso,char* razon){
 	bool bloqueado = false;
 	bool estadoAntiguo = proceso->estado;
 	if(proceso->estado == BLOCKED) bloqueado = true;
-	if(proceso->estado == EXEC && !(!strcasecmp(razon,"SUCCESS"))) {
+	if(proceso->estado == EXEC && !strcasecmp(razon,"SIGKILL")) {
 		t_paquete* paquete = crear_paquete();
 		agregar_a_paquete(paquete,"interrupcion",sizeof("interrupcion"));
 		agregar_a_paquete(paquete,"desalojo",sizeof("desalojo"));

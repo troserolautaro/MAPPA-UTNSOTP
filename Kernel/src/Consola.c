@@ -169,7 +169,6 @@ void * manejar_consola( void* args ){
 						break;
 					}
 					int size = strtol(parametros[2],NULL,10);
-
 					if(parametros[3]==NULL){
 						free(path);
 						break;
@@ -179,7 +178,15 @@ void * manejar_consola( void* args ){
 					free(path);
 			break;
 			case FINALIZAR_PROCESO:
-				finalizar_proceso((int)strtol((parametros[1]), (char **)NULL, 10));
+				if(parametros[1]!=NULL){
+					char* error;
+					int pid = (int)strtol((parametros[1]), &error, 10);
+					if(error == parametros[1]) break;
+					if(pid>0){
+						finalizar_proceso(pid);
+					}
+
+				}
 //				enviar_mensaje("FINALIZAR PROCESO",conexionCPUDispatch);
 			break;
 			case INICIAR_PLANIFICACION:
@@ -191,16 +198,17 @@ void * manejar_consola( void* args ){
 					//enviar_mensaje("DETENER PLANIFICACION",conexionCPUDispatch);
 			break;
 			case MULTIPROGRAMACION:
-				int nuevoGrado = (int)strtol((parametros[1]), (char **)NULL, 10);
-				if(nuevoGrado>0){
-					char * mensaje = string_from_format("Grado Anterior: %d",gradoMultiprogramacion);
-					gradoMultiprogramacion=nuevoGrado;
-					string_append_with_format(&mensaje," - Grado Actual: %d",gradoMultiprogramacion);
-					escritura_log(mensaje);
-					free(mensaje);
-					if(!detenida){sem_post(&planiLargo);}
+				if(parametros[1]!=NULL){
+					int nuevoGrado = (int)strtol((parametros[1]), (char **)NULL, 10);
+					if(nuevoGrado>0 ){
+						char * mensaje = string_from_format("Grado Anterior: %d",gradoMultiprogramacion);
+						gradoMultiprogramacion=nuevoGrado;
+						string_append_with_format(&mensaje," - Grado Actual: %d",gradoMultiprogramacion);
+						escritura_log(mensaje);
+						free(mensaje);
+						if(!detenida){sem_post(&planiLargo);}
+					}
 				}
-
 			break;
 
 			case PROCESO_ESTADO:
