@@ -168,12 +168,18 @@ void * manejar_consola( void* args ){
 						free(path);
 						break;
 					}
-					int size = strtol(parametros[2],NULL,10);
-					if(parametros[3]==NULL){
+					char* error;
+					int size = strtol(parametros[2],&error,10);
+					if(parametros[3]==NULL || error == parametros[2]){
 						free(path);
 						break;
 					}
-					int prioridad = strtol(parametros[3],NULL,10);
+					char* error2;
+					int prioridad = strtol(parametros[3],&error2,10);
+					if(error2 == parametros[3]){
+						free(path);
+						break;
+					}
 					iniciar_proceso(path,size,prioridad);
 					free(path);
 			break;
